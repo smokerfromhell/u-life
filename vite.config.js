@@ -9,7 +9,6 @@ export default defineConfig({
             refresh: true,
         }),
         vue(),
-        vuetify({autoImport: true}),
         tailwindcss(),
     ],
     resolve: {
