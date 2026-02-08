@@ -26,7 +26,7 @@ theme: {
                     button_primary:  '#F0FFF0',
                     text_primary:  '#46811b',
                     primary:  '#2E8b57',
-                    secondary:  '#00A886B',
+                    secondary:  '#0A886B',
                     tertiary:  '50C878',
                     error: '#4a8516',
                     thead_background: '#91be4d',
