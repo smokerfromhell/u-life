@@ -8,56 +8,26 @@
 
         <v-card-text class="space-y-6">
           <!-- Name -->
-          <v-text-field
-            v-model="name"
-            label="NAME"
-            variant="outlined"
-            density="comfortable"
-            class="retro-input"
-          />
+          <v-text-field v-model="name" label="NAME" variant="outlined" density="comfortable" class="retro-input" />
 
           <!-- Email -->
-          <v-text-field
-            v-model="email"
-            label="EMAIL"
-            variant="outlined"
-            density="comfortable"
-            class="retro-input"
-          />
+          <v-text-field v-model="email" label="EMAIL" variant="outlined" density="comfortable" class="retro-input" />
 
           <!-- Password -->
-          <v-text-field
-            v-model="password"
-            :type="showPassword ? 'text' : 'password'"
-            label="PASSWORD"
-            variant="outlined"
-            density="comfortable"
-            class="retro-input"
-          >
+          <v-text-field v-model="password" :type="showPassword ? 'text' : 'password'" label="PASSWORD"
+            variant="outlined" density="comfortable" class="retro-input">
             <template #append-inner>
-              <v-icon
-                @click="showPassword = !showPassword"
-                class="cursor-pointer retro-icon"
-              >
+              <v-icon @click="showPassword = !showPassword" class="cursor-pointer retro-icon">
                 {{ showPassword ? 'mdi-eye' : 'mdi-eye-off' }}
               </v-icon>
             </template>
           </v-text-field>
 
           <!-- Confirm Password -->
-          <v-text-field
-            v-model="confirmPassword"
-            :type="showConfirmPassword ? 'text' : 'password'"
-            label="CONFIRM PASSWORD"
-            variant="outlined"
-            density="comfortable"
-            class="retro-input"
-          >
+          <v-text-field v-model="confirmPassword" :type="showConfirmPassword ? 'text' : 'password'"
+            label="CONFIRM PASSWORD" variant="outlined" density="comfortable" class="retro-input">
             <template #append-inner>
-              <v-icon
-                @click="showConfirmPassword = !showConfirmPassword"
-                class="cursor-pointer retro-icon"
-              >
+              <v-icon @click="showConfirmPassword = !showConfirmPassword" class="cursor-pointer retro-icon">
                 {{ showConfirmPassword ? 'mdi-eye' : 'mdi-eye-off' }}
               </v-icon>
             </template>
@@ -66,19 +36,11 @@
 
         <v-card-actions class="flex flex-col items-center gap-4 mt-6">
           <!-- Register -->
-          <v-btn
-            :disabled="!canRegister"
-            class="retro-btn"
-            type="submit"
-          >
+          <v-btn :disabled="!canRegister || loading" class="retro-btn" type="submit" @click.prevent="register">
             ▶ REGISTER
           </v-btn>
-
           <!-- Back to Login -->
-          <v-btn
-            class="retro-link"
-            @click="goToHome"
-          >
+          <v-btn class="retro-link" @click="goToHome">
             ◀ BACK TO LOGIN
           </v-btn>
         </v-card-actions>
@@ -90,6 +52,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 
 const router = useRouter()
 
@@ -99,8 +62,10 @@ const password = ref('')
 const confirmPassword = ref('')
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
+const loading = ref(false)
+const errorMessage = ref('')
+const successMessage = ref('')
 
-// Simple validation: enable register only if fields are filled and passwords match
 const canRegister = computed(() =>
   name.value &&
   email.value &&
@@ -108,6 +73,27 @@ const canRegister = computed(() =>
   confirmPassword.value &&
   password.value === confirmPassword.value
 )
+
+const register = async () => {
+  loading.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
+
+  try {
+    const response = await axios.post('register', {
+      name: name.value,
+      email: email.value,
+      password: password.value,
+      password_confirmation: confirmPassword.value
+    })
+    successMessage.value = response.data.message
+    router.push('/home')
+  } catch (error) {
+    errorMessage.value = error.response?.data?.message || 'Registration failed'
+  } finally {
+    loading.value = false
+  }
+}
 
 const goToHome = () => {
   router.push('/home')

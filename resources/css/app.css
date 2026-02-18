@@ -90,3 +90,350 @@
 .retro-link:hover {
   color: #00ffe0;
 }
+
+
+
+
+/* Character Creation Styles */
+.character-creation {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100vh;
+  width: 100vw;
+  font-family: 'Press Start 2P', cursive;
+  color: #fff;
+  background: #1e1e2f;
+  padding: 20px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  padding-top: 25px;
+}
+
+.creation-layout {
+  display: flex;
+  flex: 1;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.left-panel, .right-panel {
+  flex: 1;
+  background: #2a2a3d;
+  padding: 15px;
+  border: 4px solid #555;
+  border-radius: 8px;
+  box-shadow: inset 4px 4px #000;
+}
+/* Left panel styling */
+.left-panel {
+  flex: 1;
+  background: #2a2a3d;
+  padding: 20px;
+  border: 4px solid #555;
+  border-radius: 12px;
+  box-shadow: inset 4px 4px #000;
+  display: flex;
+  flex-direction: column;
+  gap: 20px; /* spacing between sections */
+}
+
+/* Section headers */
+.left-panel h3 {
+  text-align: center;
+  font-size: 16px;
+  margin-bottom: 10px;
+  text-shadow: 1px 1px #000;
+  border-bottom: 2px solid #444;
+  padding-bottom: 6px;
+}
+
+/* Labels and inputs */
+.left-panel label {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 6px;
+  color: #00a000; /* gold retro text */
+}
+
+.left-panel input[type="text"],
+.left-panel select,
+.left-panel input[type="number"] {
+  font-family: 'Press Start 2P', cursive;
+  background: #333;
+  color: #fff;
+  border: 2px solid #555;
+  padding: 8px;
+  border-radius: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Stat allocation grid */
+.left-panel div > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.left-panel div > div label {
+  flex: 1;
+}
+
+.left-panel div > div input {
+  width: 60px;
+  text-align: center;
+}
+
+
+/* Right panel split */
+.right-panel {
+  padding-top: 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 60px;
+}
+
+/* Skills get more room */
+.skills-container {
+  flex: 4;
+  overflow-y: auto; /* scroll only skills */
+  max-height: 32vh; /* fixed height */
+  padding-left: 30px;
+}
+
+/* Talents smaller, independent scroll */
+.talents-container {
+  flex: 4;
+  overflow-y: auto; /* scroll only talents */
+  max-height: 32vh; /* fixed height */
+  padding-left: 30px;
+}
+
+.card-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.skill-card, .talent-card {
+  width: 155px;
+  border: 3px solid #888;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #2a2a3d;
+  transition: transform 0.2s, border-color 0.2s;
+  box-shadow: 4px 4px #000;
+}
+
+.skill-card:hover, .talent-card:hover {
+  transform: scale(1.05);
+  border-color: #00a000;
+}
+
+.skill-card.selected, .talent-card.selected {
+  border-color: #4caf50;
+  box-shadow: 0 0 12px #4caf50;
+}
+
+.card-image {
+  width: 100%;
+  height: 190px;
+  object-fit: cover;
+  border-bottom: 2px solid #555;
+}
+
+.card-content {
+  display: fixed;               
+  width: 100%;                  
+  height: 25%;                  
+  padding: 10px;                
+  text-align: center;                   
+  line-height: 1.5;       
+  color: #f0f0f0;     
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;      
+}
+.card-content h4 {
+  font-size: 10px;
+  margin-bottom: 6px;
+  color: #ffd700;   
+            
+}
+.card-content p {
+  font-size: 10px;
+  margin: 0;
+}
+
+.character-creation h2 {
+  text-align: center;
+  font-size: 20px;
+  margin-bottom: 20px;
+  text-shadow: 2px 2px #000;
+  position: sticky; 
+  top: 0;
+  background: #1e1e2f; 
+  z-index: 10;
+}
+
+.skills-container h3,
+.talents-container h3 {
+  text-align: center;
+  font-size: 16px;
+  margin-bottom: 12px;
+  text-shadow: 1px 1px #000;
+  position: sticky;
+  top: 0;
+  background: #2a2a3d; 
+  z-index: 10;
+  padding: 6px 0;
+  color: #ffd700; 
+}
+
+/* Shared container for both buttons */
+.button-bar {
+  display: flex;
+  justify-content: center;   /* center horizontally */
+  align-items: center;       /* center vertically */
+  background: #1e1e2f;       /* dark background */
+  padding: 20px;
+  width: 100%;
+  box-sizing: border-box;
+  gap: 20px;                 /* space between buttons */
+}
+
+/* Start button */
+.start-button-container {
+  font-family: 'Press Start 2P', cursive;
+  background: #008000;       /* solid green */
+  color: #fff;
+  border: 3px solid #333;
+  padding: 14px 28px; 
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 3px 3px #000;
+}
+
+.start-button-container:hover {
+  background: #00a000;       /* lighter green on hover */
+}
+
+/* Logout button */
+.logout-button-container{
+  font-family: 'Press Start 2P', cursive;
+  background: #720000;       /* dark red */
+  color: #fff;
+  border: 3px solid #333;
+  padding: 14px 28px;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 3px 3px #000;
+}
+
+.logout-button-container:hover {
+  background: #d20909;       /* lighter red on hover */
+}
+
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.stat-row label {
+  flex: 1;
+  color: #ffd700; /* gold retro text */
+  font-size: 12px;
+}
+
+.stat-box {
+  display: flex;
+  align-items: center;
+  background: #333;
+  border: 2px solid #555;
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+.stat-box span {
+  font-family: 'Press Start 2P', cursive;
+  color: #fff;
+  margin: 0 10px;
+  min-width: 24px;
+  text-align: center;
+}
+
+.stat-box button {
+  font-family: 'Press Start 2P', cursive;
+  background: #444;
+  color: #fff;
+  border: 2px solid #666;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.stat-box button:hover {
+  background: #00a000; /* green highlight on hover */
+}
+
+/* Works in Chrome, Edge, Safari */
+::-webkit-scrollbar {
+  width: 12px;              /* scrollbar width */
+}
+
+::-webkit-scrollbar-track {
+  background: #1e1e2f;      /* track background */
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4caf50;      /* thumb color (green) */
+  border-radius: 6px;
+  border: 2px solid #333;   /* retro border */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00a000;      /* lighter green on hover */
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;              /* thin scrollbar */
+  scrollbar-color: #4caf50 #1e1e2f;   /* thumb color + track color */
+}
+
+.skill-card, .talent-card {
+  position: relative;
+  cursor: pointer;
+}
+
+.description-popup {
+  position: absolute;          /* overlay inside the card */
+  top: 50%;                    /* center vertically */
+  left: 50%;                   /* center horizontally */
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  max-width: 100%;              /* fit within card width */
+  max-height: 100%;             /* fit within card height */
+  white-space: normal;         /* allow wrapping */
+  word-wrap: normal;       /* break long words */
+  text-align: center;          /* neat alignment */
+  opacity: 0;                  /* hidden by default */
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 2;                  /* above card content but inside */
+}
+
+.skill-card:hover .description-popup,
+.talent-card:hover .description-popup {
+  opacity: 1;                  /* fade in smoothly */
+}
