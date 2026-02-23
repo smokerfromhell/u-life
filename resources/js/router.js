@@ -1,11 +1,11 @@
 import { createRouter, createWebHistory} from "vue-router";
 import Home from './pages/Home.vue';
-import Register from './pages/Register.Vue';
 import CharacterCreation from './pages/CharacterCreation.vue';
+import Create from './pages/Create.vue';
 const routes = [
         {path: '/home', component: Home},
-        {path: '/register', component: Register},
         {path: '/character-creation', component: CharacterCreation},
+        {path: '/create', component: Create},
 ];
 
 export default createRouter({

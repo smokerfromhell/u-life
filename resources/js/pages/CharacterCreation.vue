@@ -5,6 +5,7 @@
     <div class="creation-layout">
       <!-- Left Panel -->
       <div class="left-panel">
+        <!-- Character Info -->
         <div>
           <label>Character Name:</label>
           <input type="text" v-model="character.name" placeholder="Enter name" />
@@ -33,8 +34,14 @@
         </div>
 
         <!-- Stat Allocation -->
-        <div>
-          <h3>Allocate Stats (Remaining: {{ remainingPoints }})</h3>
+        <div class="stats-container">
+          <div class="stats-header">
+            <h3>Allocate Stats (Remaining: {{ remainingPoints }})</h3>
+            <button class="diagram-toggle" @click="toggleDiagram">
+              {{ showDiagram ? 'Hide Diagram' : 'Show Diagram' }}
+            </button>
+          </div>
+
           <div v-for="(value, stat) in character.stats" :key="stat" class="stat-row">
             <label>{{ stat }}:</label>
             <div class="stat-box">
@@ -48,44 +55,67 @@
 
       <!-- Right Panel -->
       <div class="right-panel">
-        <!-- Skills -->
+
+        <!-- Skills Carousel -->
         <div class="skills-container">
           <h3>Choose Skills</h3>
-          <div class="card-grid">
-            <div v-for="skill in skills" :key="skill.name" class="skill-card" @click="toggleSkill(skill)"
-              :class="{ selected: character.skills.includes(skill) }">
-              <img :src="skill.image" alt="skill image" class="card-image" />
-              <div class="card-content">
-                <h4>{{ skill.name }}</h4>
-                <div class="description-popup">
-                  {{ skill.description }}
+          <div class="card-carousel">
+            <button class="arrow-button" @click="prevSkillCard">◄</button>
+            <div class="card-track">
+              <div v-for="(skill, index) in visibleSkills" :key="skill.name" class="skill-card"
+                :class="{ selected: character.skills.includes(skill), 'center-card': index === 2 }"
+                @click="toggleSkill(skill)">
+                <img :src="skill.image" alt="skill image" class="card-image" />
+                <div class="info-icon">
+                  ℹ
+                  <div class="info-popup">
+                    <span>{{ skill.description }}</span>
+                  </div>
+                </div>
+                <div class="card-content">
+                  <h4>{{ skill.name }}</h4>
                 </div>
               </div>
             </div>
+            <button class="arrow-button" @click="nextSkillCard">►</button>
           </div>
         </div>
 
-        <!-- Talents -->
+        <!-- Talents Carousel -->
         <div class="talents-container">
           <h3>Choose Talents</h3>
-          <div class="card-grid">
-            <div v-for="talent in talents" :key="talent.name" class="talent-card" @click="toggleTalent(talent)"
-              :class="{ selected: character.talents.includes(talent) }">
-              <img :src="talent.image" alt="talent image" class="card-image" />
-              <div class="card-content">
-                <h4>{{ talent.name }}</h4>
-                <div class="description-popup">
-                  {{ talent.description }}
+          <div class="card-carousel">
+            <button class="arrow-button" @click="prevTalentCard">◄</button>
+            <div class="card-track">
+              <div v-for="(talent, index) in visibleTalents" :key="talent.name" class="talent-card"
+                :class="{ selected: character.talents.includes(talent), 'center-card': index === 2 }"
+                @click="toggleTalent(talent)">
+                <div class="info-icon">
+                  ℹ
+                  <div class="info-popup">
+                    <span>{{ talent.description }}</span>
+                  </div>
+                </div>
+                <img :src="talent.image" alt="talent image" class="card-image" />
+                <div class="card-content">
+                  <h4>{{ talent.name }}</h4>
                 </div>
               </div>
             </div>
+            <button class="arrow-button" @click="nextTalentCard">►</button>
           </div>
         </div>
       </div>
     </div>
 
+    <!-- Modal Popup -->
+    <div v-if="showDiagram" class="modal-overlay" @click.self="toggleDiagram">
+      <div class="modal-content">
+        <div class="chart-container"> <canvas ref="statChart"></canvas> </div>
+      </div>
+    </div>
     <!-- Start Game button -->
-    <div class ="button-bar">
+    <div class="button-bar">
       <div class="start-button-container">
         <button @click="finalizeCharacter">Start Game</button>
       </div>
@@ -93,12 +123,20 @@
         <button @click="quitGame">Logout</button>
       </div>
     </div>
-
   </div>
-
+  <div v-if="showPopup" class="popup-overlay" @click.self="showPopup = false">
+    <div class="popup-box"> <!-- Centered Logo --> <v-img src="/css/images/ulife1.png" alt="U:LIFE Logo" max-width="120"
+        contain class="popup-icon" />
+      <h3>Notice</h3>
+      <p>{{ popupMessage }}</p> <button @click="showPopup = false">OK</button>
+    </div>
+  </div>
 </template>
 
-<script >
+
+<script>
+import Chart from 'chart.js/auto';
+
 export default {
   data() {
     return {
@@ -113,53 +151,73 @@ export default {
           Charisma: 0,
           Creativity: 0,
           Wealth: 0,
-          Luck: 0,
-          Health: 0,
-          Morality: 0,
+          Luck: 0
         },
         hiddenStats: {
-          Sickness: 0,
-          Stress: 0,
-          Fatigue: 0,
-          Corruption: 0,
           Debt: 0,
+          Health: 0,
+          Addiction: 0,
+          Burnout: 0,
+          Morality: 0,
+          Happiness: 0,
+          Reputation: 0,
+          Discipline: 0,
+          Isolation: 0,
+          Ego: 0,
         },
         skills: [],
         talents: []
       },
-      genderBonus: {},   // store gender modifiers separately
-      ageBonus: {},      // store age modifiers separately
+      genderBonus: {},
+      ageBonus: {},
+      showDiagram: false,
+      chart: null,
       skills: [
-        { name: "Communication", effect: "+4 Charisma, +1 Morality", hidden: "+1 Stress", description: "Express yourself clearly and connect with others. Builds trust and influence, but constant interaction can be draining.", image: "communication.png" },
-        { name: "Financial Literacy", effect: "+5 Wealth, +2 Intelligence", hidden: "+1 Stress", description: "Understanding money management and investments. Creates stability, but responsibility can be stressful.", image: "finance.png" },
-        { name: "Time Management", effect: "+3 Intelligence, +2 Luck", hidden: "-1 Fatigue", description: "Organizing your day to maximize productivity. Frees time and reduces fatigue, but requires discipline.", image: "time.png" },
-        { name: "Cooking", effect: "+3 Creativity, +2 Health", hidden: "+1 Fatigue", description: "Preparing meals improves health and sparks creativity, but takes effort and energy.", image: "cooking.png" },
-        { name: "Fitness", effect: "+5 Strength, +2 Health", hidden: "+1 Fatigue", description: "Regular exercise builds strength and resilience, but can tire you out if overdone.", image: "fitness.png" },
-        { name: "Networking", effect: "+4 Charisma, +2 Wealth", hidden: "+1 Corruption", description: "Building connections opens opportunities, but risks shady dealings or exploitation.", image: "networking.png" },
-        { name: "Problem-Solving", effect: "+5 Intelligence, +2 Creativity", hidden: "+1 Stress", description: "Tackling challenges sharpens your mind, but can be mentally taxing.", image: "problem-solving.png" },
-        { name: "Mindfulness", effect: "+3 Morality, +2 Health", hidden: "-2 Stress", description: "Practicing calmness improves well-being and reduces stress, but may lower ambition.", image: "mindfulness.png" },
-        { name: "Adaptability", effect: "+3 Luck, +2 Creativity", hidden: "+1 Stress", description: "Rolling with change helps survival and innovation, but uncertainty can be stressful.", image: "adaptability.png" },
-        { name: "Leadership", effect: "+5 Charisma, +2 Strength", hidden: "+2 Stress", description: "Inspiring others builds influence and power, but responsibility is heavy.", image: "leadership.png" },
-        { name: "Critical Thinking", effect: "+4 Intelligence, +2 Morality", hidden: "+1 Stress", description: "Analyzing situations carefully helps make better decisions, but can lead to overthinking.", image: "critical-thinking.png" },
-        { name: "Creativity", effect: "+5 Creativity, +1 Charisma", hidden: "+1 Fatigue", description: "Innovative thinking sparks new ideas and solutions, but can be mentally draining.", image: "creativity.png" },
-        { name: "Empathy", effect: "+4 Morality, +2 Charisma", hidden: "+1 Stress", description: "Understanding others builds strong relationships, but emotional weight can be heavy.", image: "empathy.png" },
-        { name: "Discipline", effect: "+4 Strength, +3 Intelligence", hidden: "+1 Stress", description: "Sticking to routines builds resilience and focus, but can feel restrictive.", image: "discipline.png" },
-        { name: "Negotiation", effect: "+4 Wealth, +2 Charisma", hidden: "+1 Corruption", description: "Sharp deal-making improves wealth and influence, but risks moral compromise.", image: "negotiation.png" },
-        { name: "Self-Care", effect: "+3 Health, +2 Morality", hidden: "-2 Stress", description: "Taking care of yourself improves well-being, but may reduce time for other pursuits.", image: "self-care.png" },
-        { name: "Driving", effect: "+3 Luck, +2 Strength", hidden: "+1 Stress", description: "Operating vehicles improves mobility, but traffic and accidents are stressful.", image: "driving.png" },
-        { name: "Technology Use", effect: "+4 Intelligence, +2 Creativity", hidden: "+1 Fatigue", description: "Mastering tech boosts productivity, but screen time can be draining.", image: "technology.png" },
-        { name: "Artistry", effect: "+5 Creativity, +2 Charisma", hidden: "+1 Stress", description: "Creating art inspires others, but emotional vulnerability is high.", image: "artistry.png" },
-        { name: "Parenting", effect: "+4 Morality, +3 Charisma", hidden: "+2 Stress", description: "Raising children builds love and responsibility, but is exhausting.", image: "parenting.png" },
-        { name: "Volunteering", effect: "+4 Morality, +2 Charisma", hidden: "+1 Fatigue", description: "Helping others builds community, but can drain personal resources.", image: "volunteering.png" },
-        { name: "Housekeeping", effect: "+3 Health, +2 Discipline", hidden: "+1 Fatigue", description: "Maintaining a clean home improves health and order, but takes effort.", image: "housekeeping.png" },
-        { name: "Gardening", effect: "+3 Health, +2 Creativity", hidden: "+1 Fatigue", description: "Working with plants improves well-being, but requires patience and energy.", image: "gardening.png" },
-        { name: "Language Learning", effect: "+5 Intelligence, +2 Charisma", hidden: "+1 Stress", description: "Learning new languages expands horizons, but takes dedication.", image: "language.png" },
-        { name: "Storytelling", effect: "+4 Charisma, +2 Creativity", hidden: "+1 Stress", description: "Captivating audiences builds influence, but can be mentally draining.", image: "storytelling.png" },
-        { name: "Traveling", effect: "+4 Luck, +2 Creativity", hidden: "+2 Fatigue", description: "Exploring new places broadens perspective, but can be exhausting.", image: "traveling.png" },
-        { name: "Meditation", effect: "+3 Morality, +2 Health", hidden: "-2 Stress", description: "Practicing calmness improves well-being, but may reduce ambition.", image: "meditation.png" },
-        { name: "DIY Skills", effect: "+4 Creativity, +2 Strength", hidden: "+1 Fatigue", description: "Fixing and building things saves money and sparks creativity, but requires effort.", image: "diy.png" },
-        { name: "Cultural Awareness", effect: "+3 Morality, +2 Intelligence", hidden: "+1 Stress", description: "Understanding diverse cultures builds empathy, but can be overwhelming.", image: "culture.png" },
-        { name: "Event Planning", effect: "+4 Charisma, +2 Intelligence", hidden: "+2 Stress", description: "Organizing events builds leadership and influence, but is highly stressful.", image: "event.png" }
+        { name: "Reading", effect: "+3 Intelligence, +1 Creativity", hidden: "+1 Isolation", description: "Expand your mind through books. Builds knowledge but can make you retreat inward.", image: "reading.png" },
+        { name: "Studying", effect: "+4 Intelligence, +1 Discipline", hidden: "+1 Stress", description: "Sharpen your intellect with focused learning. Boosts academics but can be mentally taxing.", image: "studying.png" },
+        { name: "Problem-Solving", effect: "+3 Intelligence, +2 Creativity", hidden: "+1 Burnout", description: "Tackle challenges with logic and innovation. Enhances adaptability but constant puzzles can wear you down.", image: "problem-solving.png" },
+        { name: "Memory Training", effect: "+3 Intelligence, +1 Luck", hidden: "+1 Stress", description: "Improve recall and retention. Strengthens intellect but can overload your mind.", image: "memory-training.png" },
+        { name: "Fitness", effect: "+4 Strength, +1 Health", hidden: "+1 Discipline", description: "Train your body for endurance and resilience. Improves vitality but demands consistency.", image: "fitness.png" },
+        { name: "Endurance", effect: "+3 Strength, +2 Discipline", hidden: "+1 Burnout", description: "Push your body past limits. Builds stamina but risks exhaustion.", image: "endurance.png" },
+        { name: "Manual Labor", effect: "+3 Strength, +1 Wealth", hidden: "+1 Debt", description: "Work with your hands to earn and build. Strengthens body and finances but can trap you in exhausting cycles.", image: "manual-labor.png" },
+        { name: "Cooking", effect: "+3 Creativity, +2 Health", hidden: "+1 Stress", description: "Prepare meals and nourish yourself. Builds independence but can be tiring.", image: "cooking.png" },
+        { name: "Conversation", effect: "+4 Charisma, +1 Reputation", hidden: "+1 Stress", description: "Engage others with words and presence. Builds influence but constant interaction can drain energy.", image: "conversation.png" },
+        { name: "Confidence", effect: "+3 Charisma, +2 Ego", hidden: "+1 Isolation", description: "Believe in yourself and project strength. Inspires others but can push you toward arrogance.", image: "confidence.png" },
+        { name: "Teamwork", effect: "+3 Charisma, +2 Discipline", hidden: "+1 Burnout", description: "Collaborate effectively with groups. Builds trust but can lead to overreliance on others.", image: "teamwork.png" },
+        { name: "Persuasion", effect: "+3 Charisma, +2 Intelligence", hidden: "+1 Ego", description: "Convince others to see your way. Builds influence but risks manipulation.", image: "persuasion.png" },
+        { name: "Public Speaking", effect: "+4 Charisma, +1 Morality", hidden: "+1 Stress", description: "Address crowds with confidence. Builds leadership but can be nerve-wracking.", image: "public-speaking.png" },
+        { name: "Drawing", effect: "+4 Creativity, +1 Happiness", hidden: "+1 Isolation", description: "Express ideas visually. Sparks joy but can isolate you in your own world.", image: "drawing.png" },
+        { name: "Writing", effect: "+3 Creativity, +2 Intelligence", hidden: "+1 Stress", description: "Craft stories and ideas with words. Builds intellect but can be mentally draining.", image: "writing.png" },
+        { name: "Improvisation", effect: "+3 Creativity, +2 Charisma", hidden: "+1 Stress", description: "Think on your feet and adapt. Builds flexibility but can be chaotic.", image: "improvisation.png" },
+        { name: "Music", effect: "+4 Creativity, +1 Charisma", hidden: "+1 Isolation", description: "Play or compose music. Builds joy and influence but can isolate you in practice.", image: "music.png" },
+        { name: "Budgeting", effect: "+4 Wealth, +1 Discipline", hidden: "+1 Stress", description: "Manage money wisely. Builds financial stability but constant tracking can be tiring.", image: "budgeting.png" },
+        { name: "Negotiation", effect: "+3 Wealth, +2 Charisma", hidden: "+1 Ego", description: "Strike deals and gain advantage. Improves finances but can inflate self-importance.", image: "negotiation.png" },
+        { name: "Planning", effect: "+3 Wealth, +2 Intelligence", hidden: "+1 Burnout", description: "Organize steps toward success. Builds foresight but can lead to overthinking.", image: "planning.png" },
+        { name: "Risk Awareness", effect: "+3 Luck, +1 Intelligence", hidden: "+1 Stress", description: "Sense opportunities and dangers. Builds adaptability but can make you overly cautious.", image: "risk-awareness.png" },
+        { name: "Adaptability", effect: "+4 Luck, +1 Creativity", hidden: "+1 Burnout", description: "Adjust quickly to change. Enhances resilience but constant shifting can wear you down.", image: "adaptability.png" },
+        { name: "Opportunism", effect: "+3 Luck, +2 Wealth", hidden: "+1 Morality", description: "Seize chances when they appear. Builds success but can compromise ethics.", image: "opportunism.png" },
+        { name: "Intuition", effect: "+3 Luck, +2 Creativity", hidden: "+1 Stress", description: "Trust your gut instincts. Builds quick decision-making but can be unreliable.", image: "intuition.png" },
+        { name: "Gardening", effect: "+3 Creativity, +2 Health", hidden: "+1 Isolation", description: "Cultivate plants and nature. Builds patience and wellness but can be solitary.", image: "gardening.png" },
+        { name: "Cooking Basics", effect: "+3 Creativity, +2 Health", hidden: "+1 Stress", description: "Prepare simple meals. Builds independence but can be tiring.", image: "cooking-basics.png" },
+        { name: "Cleaning", effect: "+3 Discipline, +2 Health", hidden: "+1 Stress", description: "Maintain order and hygiene. Builds discipline but can feel repetitive.", image: "cleaning.png" },
+        { name: "Driving", effect: "+3 Luck, +2 Intelligence", hidden: "+1 Stress", description: "Operate vehicles safely. Builds independence but can be risky.", image: "driving.png" },
+        { name: "Swimming", effect: "+4 Strength, +1 Health", hidden: "+1 Stress", description: "Move confidently in water. Builds fitness but requires effort.", image: "swimming.png" },
+        { name: "Meditation", effect: "+3 Discipline, +2 Morality", hidden: "-1 Stress", description: "Calm the mind and body. Builds focus but reduces spontaneity.", image: "meditation.png" },
+        { name: "Basic First Aid", effect: "+3 Intelligence, +2 Health", hidden: "+1 Stress", description: "Treat minor injuries. Builds resilience but can be emotionally taxing.", image: "first-aid.png" },
+        { name: "Crafting", effect: "+4 Creativity, +1 Discipline", hidden: "+1 Stress", description: "Create useful items by hand. Builds innovation but requires patience.", image: "crafting.png" },
+        { name: "Storytelling", effect: "+3 Charisma, +2 Creativity", hidden: "+1 Stress", description: "Captivate others with tales. Builds influence but can drain energy.", image: "storytelling.png" },
+        { name: "Observation", effect: "+3 Intelligence, +2 Luck", hidden: "+1 Stress", description: "Notice details others miss. Builds awareness but can cause overthinking.", image: "observation.png" },
+        { name: "Basic Math", effect: "+4 Intelligence, +1 Wealth", hidden: "+1 Stress", description: "Handle numbers and calculations. Builds problem-solving but can be tedious.", image: "basic-math.png" },
+        { name: "Organization", effect: "+3 Discipline, +2 Intelligence", hidden: "+1 Stress", description: "Keep things structured and efficient. Builds stability but reduces flexibility.", image: "organization.png" },
+        { name: "Negotiation Basics", effect: "+3 Wealth, +2 Charisma", hidden: "+1 Ego", description: "Find compromises and deals. Builds financial gain but risks manipulation.", image: "negotiation-basics.png" },
+        { name: "Survival Skills", effect: "+4 Strength, +1 Luck", hidden: "+1 Stress", description: "Endure harsh conditions. Builds resilience but can be dangerous.", image: "survival.png" },
+        { name: "Listening", effect: "+3 Charisma, +2 Morality", hidden: "+1 Stress", description: "Pay attention to others deeply. Builds trust but can be emotionally draining.", image: "listening.png" },
+        { name: "Time Management", effect: "+3 Discipline, +2 Wealth", hidden: "+1 Stress", description: "Balance priorities effectively. Builds productivity but can feel rigid.", image: "time-management.png" },
+        { name: "Basic Technology", effect: "+3 Intelligence, +2 Creativity", hidden: "+1 Stress", description: "Use everyday devices. Builds adaptability but can be frustrating.", image: "basic-technology.png" },
+        { name: "Negotiation Advanced", effect: "+4 Wealth, +1 Charisma", hidden: "+1 Ego", description: "Master complex deals. Builds influence but risks arrogance.", image: "negotiation-advanced.png" },
+        { name: "Physical Training", effect: "+4 Strength, +1 Discipline", hidden: "+1 Burnout", description: "Condition your body systematically. Builds fitness but risks fatigue.", image: "physical-training.png" },
+        { name: "Basic Language", effect: "+3 Intelligence, +2 Charisma", hidden: "+1 Stress", description: "Learn new words and phrases. Builds communication but can be challenging.", image: "basic-language.png" }
+
       ],
       talents: [
         { name: "Resilience", effect: "+5 Strength, -2 Creativity", hidden: "-1 Stress", description: "Able to endure hardships and bounce back stronger.", image: "resilience.png" },
@@ -191,16 +249,34 @@ export default {
         { name: "Inventiveness", effect: "+5 Creativity, -2 Wealth", hidden: "+1 Fatigue", description: "Natural knack for innovation, but often financially risky.", image: "inventiveness.png" },
         { name: "Self-Reliance", effect: "+5 Strength, +2 Intelligence", hidden: "+1 Stress", description: "Independent and resourceful, but risks isolation.", image: "self-reliance.png" },
         { name: "Adaptability Trait", effect: "+4 Luck, +2 Creativity", hidden: "+1 Stress", description: "Naturally flexible in changing environments, but can feel unstable.", image: "adaptability-trait.png" },
-        { name: "Altruism", effect: "+5 Morality, -2 Wealth", hidden: "+1 Fatigue", description: "Selfless concern for others, but drains personal resources.", image: "altruism.png" }
-      ]
+        { name: "Altruism", effect: "+5 Morality, -2 Wealth", hidden: "+1 Fatigue", description: "Selfless concern for others, but drains personal resources.", image: "altruism.png" },
+        { name: "Honesty", effect: "+5 Morality, -2 Wealth", hidden: "-1 Corruption", description: "Guided by truth, even when it costs opportunities.", image: "honesty.png" },
+        { name: "Patience", effect: "+4 Morality, +2 Intelligence", hidden: "-1 Stress", description: "Able to wait calmly, reducing conflict and mistakes.", image: "patience.png" },
+        { name: "Courage", effect: "+5 Strength, -2 Luck", hidden: "+2 Stress", description: "Bravery in the face of danger, but risk of harm is higher.", image: "courage.png" },
+        { name: "Focus", effect: "+5 Intelligence, -2 Luck", hidden: "+1 Stress", description: "Laser-sharp concentration improves performance, but reduces spontaneity.", image: "focus.png" },
+        { name: "Generosity", effect: "+4 Morality, +2 Charisma", hidden: "+1 Debt", description: "Willingness to give builds goodwill, but risks financial strain.", image: "generosity.png" },
+        { name: "Wisdom", effect: "+5 Intelligence, +2 Morality", hidden: "-1 Stress", description: "Life experience guides decisions, but may slow adaptability.", image: "wisdom.png" },
+        { name: "Discipline of Mind", effect: "+5 Intelligence, -2 Luck", hidden: "+1 Stress", description: "Mental rigor improves focus, but reduces spontaneity.", image: "discipline-mind.png" },
+        { name: "Charisma Aura", effect: "+6 Charisma, -2 Intelligence", hidden: "+2 Stress", description: "Magnetic personality draws people in, but can be exhausting.", image: "charisma-aura.png" },
+        { name: "Stoicism", effect: "+5 Morality, +2 Strength", hidden: "-2 Stress", description: "Calm endurance of hardship builds resilience, but reduces emotional expression.", image: "stoicism.png" },
+        { name: "Visionary", effect: "+5 Creativity, +2 Intelligence", hidden: "+2 Stress", description: "Sees possibilities others miss, but risks impracticality.", image: "visionary.png" },
+        { name: "Loyalty", effect: "+4 Morality, +2 Charisma", hidden: "-1 Stress", description: "Faithful to allies, but can be exploited.", image: "loyalty.png" },
+        { name: "Pragmatism", effect: "+5 Intelligence, -2 Morality", hidden: "+1 Stress", description: "Focus on practical solutions, but risks ethical compromise.", image: "pragmatism.png" },
+        { name: "Diplomacy", effect: "+5 Charisma, +2 Morality", hidden: "+1 Stress", description: "Skilled at peacekeeping, but emotionally draining.", image: "diplomacy.png" },
+        { name: "Inventiveness", effect: "+5 Creativity, -2 Wealth", hidden: "+1 Fatigue", description: "Natural knack for innovation, but often financially risky.", image: "inventiveness.png" }
+
+
+      ],
+      skillIndex: 0,
+      talentIndex: 0,
+      itemsPerPage: 5,
+      showPopup: false,
+      popupMessage: ""
     };
   },
   computed: {
     remainingPoints() {
-      return (
-        this.totalPoints -
-        Object.values(this.character.stats).reduce((a, b) => a + b, 0)
-      );
+      return this.totalPoints - Object.values(this.character.stats).reduce((a, b) => a + b, 0);
     },
     effectiveStats() {
       let stats = { ...this.character.stats };
@@ -218,15 +294,21 @@ export default {
 
       // Apply skill/talent effects
       this.character.skills.forEach(skill => {
-        this.applyEffect(stats, skill.effect);
-        if (skill.hidden) this.applyEffect(hidden, skill.hidden);
+        if (skill.effect) this.applyEffect(stats, skill.effect);
       });
       this.character.talents.forEach(talent => {
-        this.applyEffect(stats, talent.effect);
-        if (talent.hidden) this.applyEffect(hidden, talent.hidden);
+        if (talent.effect) this.applyEffect(stats, talent.effect);
       });
 
       return { visible: stats, hidden: hidden };
+    },
+    visibleSkills() {
+      const looped = [...this.skills, ...this.skills];
+      return looped.slice(this.skillIndex, this.skillIndex + this.itemsPerPage);
+    },
+    visibleTalents() {
+      const looped = [...this.talents, ...this.talents];
+      return looped.slice(this.talentIndex, this.talentIndex + this.itemsPerPage);
     }
   },
   methods: {
@@ -235,33 +317,33 @@ export default {
       parts.forEach(part => {
         const [signVal, stat] = part.trim().split(" ");
         const value = parseInt(signVal);
-        if (stats[stat] !== undefined) {
-          stats[stat] += value;
-        }
+        if (stats[stat] !== undefined) stats[stat] += value;
       });
     },
-    applyGenderBonus() {
-      this.genderBonus = {}; // reset
-      let bonus = Math.floor(Math.random() * 3) + 1;
 
+    applyGenderBonus() {
+      this.genderBonus = {};
       switch (this.character.gender) {
         case "male":
-          this.genderBonus = { Strength: bonus, Intelligence: Math.max(0, bonus - 2) };
+          this.genderBonus = { Strength: 2 };
           break;
         case "female":
-          this.genderBonus = { Intelligence: bonus, Strength: Math.max(0, bonus - 2) };
+          this.genderBonus = { Intelligence: 2 };
           break;
         case "non-binary":
-          this.genderBonus = { Creativity: bonus, Luck: 1 };
+          this.genderBonus = { Creativity: 1, Luck: 1 };
           break;
         case "transgender":
-          this.genderBonus = { Charisma: bonus, Luck: 1 };
+          this.genderBonus = { Charisma: 1, Luck: 1 };
           break;
+        default:
+          this.genderBonus = {};
       }
+      this.updateChart();
     },
-    applyAgeBonus() {
-      this.ageBonus = {}; // reset
 
+    applyAgeBonus() {
+      this.ageBonus = {};
       switch (this.character.ageGroup) {
         case "child":
           this.ageBonus = { Luck: 1, Creativity: 1 };
@@ -275,62 +357,155 @@ export default {
         case "old":
           this.ageBonus = { Strength: -2, Intelligence: 6 };
           break;
+        default:
+          this.ageBonus = {};
       }
+      this.updateChart();
     },
+
     increaseStat(stat) {
       if (this.remainingPoints > 0 && this.character.stats[stat] < 20) {
         this.character.stats[stat]++;
+        this.updateChart();
       }
     },
+
     decreaseStat(stat) {
       if (this.character.stats[stat] > 0) {
         this.character.stats[stat]--;
+        this.updateChart();
       }
     },
+
     toggleSkill(skill) {
       const index = this.character.skills.indexOf(skill);
-      if (index > -1) {
-        this.character.skills.splice(index, 1);
-      } else {
-        this.character.skills.push(skill);
-      }
+      if (index > -1) this.character.skills.splice(index, 1);
+      else this.character.skills.push(skill);
+      this.updateChart();
     },
     toggleTalent(talent) {
       const index = this.character.talents.indexOf(talent);
-      if (index > -1) {
-        this.character.talents.splice(index, 1);
+      if (index > -1) this.character.talents.splice(index, 1);
+      else this.character.talents.push(talent);
+      this.updateChart();
+    },
+
+    toggleDiagram() {
+      this.showDiagram = !this.showDiagram;
+      if (this.showDiagram) {
+        this.$nextTick(() => this.createChart());
       } else {
-        this.character.talents.push(talent);
+        if (this.chart) { this.chart.destroy(); this.chart = null; }
       }
+    },
+
+    createChart() {
+      const canvas = this.$refs.statChart;
+      if (!canvas) {
+        console.error("Canvas not found!");
+        return;
+      }
+      const ctx = canvas.getContext("2d");
+
+      if (this.chart) this.chart.destroy();
+
+      // Define per-stat colors
+      const statColors = [
+        'rgba(54, 162, 235, 0.6)', // Intelligence
+        'rgba(255, 99, 132, 0.6)', // Strength
+        'rgba(255, 206, 86, 0.6)', // Charisma
+        'rgba(75, 192, 192, 0.6)', // Creativity
+        'rgba(153, 102, 255, 0.6)', // Wealth
+        'rgba(255, 159, 64, 0.6)', // Luck
+        'rgba(99, 255, 132, 0.6)', // Health
+        'rgba(200, 200, 200, 0.6)' // Morality
+      ];
+
+      this.chart = new Chart(ctx, {
+        type: "radar",
+        data: {
+          labels: Object.keys(this.character.stats),
+          datasets: [
+            {
+              label: "Stats",
+              data: Object.values(this.effectiveStats.visible),
+              backgroundColor: "rgba(0, 200, 255, 0.2)",
+              borderColor: "rgba(0, 200, 255, 0.8)",
+              pointBackgroundColor: statColors,
+              pointRadius: 4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false }, // hide legend
+            tooltip: { enabled: true }
+          },
+          scales: {
+            r: {
+              beginAtZero: true,
+              max: 100,
+              ticks: { display: false }, // hide numbers
+              grid: { color: function (context) { return context.index % 2 === 0 ? "#FFFFFF" : "#00a000"; } },
+              angleLines: { color: "#00a000" }
+            }
+          }
+        }
+      });
+    },
+
+    updateChart() {
+      if (this.chart) {
+        this.chart.data.datasets[0].data = Object.values(this.effectiveStats.visible);
+        this.chart.data.datasets[1].data = Object.values(this.effectiveStats.hidden);
+        this.chart.update();
+      }
+    },
+
+    nextSkillCard() {
+      this.skillIndex = (this.skillIndex + 1) % this.skills.length;
+    },
+    prevSkillCard() {
+      this.skillIndex = (this.skillIndex - 1 + this.skills.length) % this.skills.length;
+    },
+    nextTalentCard() {
+      this.talentIndex = (this.talentIndex + 1) % this.talents.length;
+    },
+    prevTalentCard() {
+      this.talentIndex = (this.talentIndex - 1 + this.talents.length) % this.talents.length;
     },
     finalizeCharacter() {
       if (!this.character.name) {
-        alert("Please enter a character name!")
-        return
+        this.popupMessage = "⚠ Please enter a character name!";
+        this.showPopup = true;
+        return;
       }
       if (!this.character.ageGroup || this.character.ageGroup === "None") {
-        alert("Please select an age group!")
-        return
+        this.popupMessage = "⚠ Please select an age group!";
+        this.showPopup = true;
+        return;
       }
       if (!this.character.gender || this.character.gender === "None") {
-        alert("Please select a gender!")
-        return
+        this.popupMessage = "⚠ Please select a gender!";
+        this.showPopup = true;
+        return;
       }
       if (this.remainingPoints !== 0) {
-        alert("You must allocate all points!")
-        return
+        this.popupMessage = "⚠ You must allocate all points!";
+        this.showPopup = true;
+        return;
       }
 
       console.log("Character finalized:", {
         ...this.character,
         effectiveStats: this.effectiveStats
-      })
+      });
     },
     quitGame() {
       localStorage.removeItem('user')
       this.$router.push('/home')
     }
   }
-}
-
+};
 </script>
