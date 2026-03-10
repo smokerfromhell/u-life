@@ -34,11 +34,19 @@
               START
             </v-btn>
 
+            <!-- Google Sign-In Button -->
+            <div id="google-signin-button" class="mt-4"></div>
+
             <!-- Secondary actions row -->
              <div class="d-flex justify-center gap-6 mt-2">
     <v-btn variant="text" class="retro-link" @click="goToRegister">
       <v-icon start>mdi-account-plus</v-icon>
       Need an account?
+    </v-btn>
+    
+    <v-btn variant="text" class="retro-link" @click="goToForgotPassword">
+      <v-icon start>mdi-lock-reset</v-icon>
+      Forgot password?
     </v-btn>
 
             </div>
@@ -57,7 +65,7 @@
 
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 
@@ -69,6 +77,7 @@ const showPassword = ref(false)
 const loading = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
+const googleClientId = ref(import.meta.env.VITE_GOOGLE_CLIENT_ID || '')
 
 // Snackbar state
 const showSnackbar = ref(false)
@@ -78,6 +87,110 @@ const snackbarColor = ref('success')
 const isLoginEnabled = computed(() =>
   email.value && password.value
 )
+
+// Handle Google Sign-In response
+const handleCredentialResponse = async (response) => {
+  loading.value = true
+  console.log('Google Sign-In response received:', response)
+  
+  try {
+    const res = await axios.post('/auth/google', {
+      token: response.credential
+    })
+    
+    console.log('Google auth response:', res.data)
+    
+    successMessage.value = 'Successfully logged in with Google!'
+    snackbarMessage.value = 'Successfully logged in with Google!'
+    snackbarColor.value = 'success'
+    showSnackbar.value = true
+    
+    // Check if user has a character, redirect accordingly
+    const hasCharacter = res.data.has_character
+    const redirectPath = hasCharacter ? '/game' : '/character-creation'
+    setTimeout(() => {
+      console.log('Redirecting to ' + redirectPath)
+      router.push(redirectPath)
+    }, 1500)
+  } catch (error) {
+    console.error('Google authentication error:', error)
+    const errorMsg = error.response?.data?.message || error.message || 'Google login failed'
+    errorMessage.value = errorMsg
+    snackbarMessage.value = errorMsg
+    snackbarColor.value = 'error'
+    showSnackbar.value = true
+  } finally {
+    loading.value = false
+  }
+}
+
+// Make handleCredentialResponse globally available for Google Sign-In callback
+window.handleCredentialResponse = handleCredentialResponse
+
+// Initialize Google Sign-In
+onMounted(() => {
+  console.log('Mounting Home.vue, Google Client ID:', googleClientId.value)
+  
+  // Check if script already exists
+  if (window.google?.accounts?.id) {
+    console.log('Google library already loaded')
+    initializeGoogleSignIn()
+    return
+  }
+  
+  // Load the Google Sign-In script
+  const script = document.createElement('script')
+  script.src = 'https://accounts.google.com/gsi/client'
+  script.async = true
+  script.defer = true
+  script.onload = () => {
+    console.log('Google Sign-In script loaded')
+    initializeGoogleSignIn()
+  }
+  script.onerror = () => {
+    console.error('Failed to load Google Sign-In script')
+  }
+  document.head.appendChild(script)
+})
+
+const initializeGoogleSignIn = () => {
+  try {
+    if (!window.google?.accounts?.id) {
+      console.error('Google Sign-In library not available')
+      return
+    }
+    
+    if (!googleClientId.value) {
+      console.error('Google Client ID not configured')
+      return
+    }
+    
+    console.log('Initializing Google Sign-In with client ID:', googleClientId.value)
+    
+    window.google.accounts.id.initialize({
+      client_id: googleClientId.value,
+      callback: handleCredentialResponse,
+      auto_select: false
+    })
+    
+    const buttonElement = document.getElementById('google-signin-button')
+    if (buttonElement) {
+      console.log('Rendering Google Sign-In button')
+      window.google.accounts.id.renderButton(
+        buttonElement,
+        { 
+          theme: 'filled_blue',
+          size: 'large',
+          text: 'signin_with'
+        }
+      )
+    } else {
+      console.error('Google Sign-In button element not found')
+    }
+  } catch (error) {
+    console.error('Error initializing Google Sign-In:', error)
+  }
+}
 
 const login = async () => {
   loading.value = true
@@ -96,7 +209,12 @@ const login = async () => {
     snackbarColor.value = 'success'
     showSnackbar.value = true
 
-    router.push('/character-creation')
+    // Check if user has a character, redirect accordingly
+    const hasCharacter = response.data.has_character
+    const redirectPath = hasCharacter ? '/game' : '/character-creation'
+    setTimeout(() => {
+      router.push(redirectPath)
+    }, 1000)
   } catch (error) {
     errorMessage.value = error.response?.data?.message || 'Login failed'
 
@@ -110,6 +228,10 @@ const login = async () => {
 }
 const goToRegister = () => {
   router.push({ path: '/create' })
+}
+
+const goToForgotPassword = () => {
+  router.push({ path: '/forgot-password' })
 }
 </script>
 
@@ -196,5 +318,15 @@ const goToRegister = () => {
 
 .retro-link:hover {
   color: #82f582;
+}
+
+#google-signin-button {
+  display: flex;
+  justify-content: center;
+  margin: 10px 0;
+}
+
+::v-deep(#g_id_signin > div) {
+  margin: 0 auto !important;
 }
 </style>
