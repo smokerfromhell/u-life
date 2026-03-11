@@ -139,10 +139,10 @@
     <!-- Start Game button -->
     <div class="button-bar">
       <div class="start-button-container">
-        <button @click="finalizeCharacter">Start Game</button>
+        <button @click="finalizeCharacter" :disabled="isSaving">{{ isSaving ? 'Creating...' : 'Start Game' }}</button>
       </div>
       <div class="logout-button-container">
-        <button @click="quitGame">Logout</button>
+        <button @click="quitGame" :disabled="isSaving">Logout</button>
       </div>
     </div>
   </div>
@@ -160,10 +160,12 @@
 
 <script>
 import Chart from 'chart.js/auto';
+import axios from 'axios';
 export default {
   data() {
     return {
       totalPoints: 30,
+      isSaving: false,
       character: {
         name: "",
         ageGroup: "None",
@@ -520,10 +522,42 @@ export default {
         return;
       }
 
-      console.log("Character finalized:", {
-        ...this.character,
-        effectiveStats: this.effectiveStats
-      });
+      this.isSaving = true;
+
+      const characterData = {
+        name: this.character.name,
+        age_group: this.character.ageGroup,
+        gender: this.character.gender,
+        stats: this.character.stats,
+        hidden_stats: this.character.hiddenStats,
+        skills: this.character.skills.map(skill => skill.name),
+        talents: this.character.talents.map(talent => talent.name),
+        effective_stats: this.effectiveStats.visible
+      };
+
+      axios.post('/api/characters', characterData)
+        .then(response => {
+          console.log('Character creation response:', response);
+          this.isSaving = false;
+          this.popupMessage = "✓ Character created successfully!";
+          this.showPopup = true;
+          setTimeout(() => {
+            this.$router.push('/game');
+          }, 1500);
+        })
+        .catch(error => {
+          this.isSaving = false;
+          console.error("Error saving character:", error);
+          console.error("Response data:", error.response?.data);
+          
+          let errorMessage = error.response?.data?.message || error.message;
+          if (error.response?.data?.errors) {
+            errorMessage = Object.values(error.response.data.errors).flat().join(', ');
+          }
+          
+          this.popupMessage = "✗ Error creating character: " + errorMessage;
+          this.showPopup = true;
+        });
     },
     quitGame() {
       localStorage.removeItem('user')
@@ -875,6 +909,13 @@ export default {
   background: linear-gradient(180deg, #ffd700, #ff8800);
   color: #000;
   box-shadow: 3px 3px #222;
+}
+
+.button-bar button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  background: linear-gradient(180deg, #7dff7d, #014e05);
 }
 
 
