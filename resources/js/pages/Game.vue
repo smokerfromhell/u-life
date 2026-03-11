@@ -1,111 +1,125 @@
 <template>
-  <v-container fluid class="game-screen">
-    <!-- Header Section -->
-    <v-row class="mb-8">
-      <v-col cols="12" md="4" lg="3">
-        <div class="character-card pa-6 text-center h-100">
-          <div class="avatar-container mb-4">
-            <v-img :src="character.image" alt="player portrait" class="character-avatar" />
-            <div class="avatar-glow"></div>
-          </div>
-          <h2 class="character-name mb-2">{{ character.name }}</h2>
-          
-          <!-- Age & Day Counter -->
-          <div class="age-info mb-4">
-            <span class="age-label">{{ character.ageGroup }} | Day {{ character.currentDay }}</span>
+  <div class="game-screen">
+    <!-- Animated Background -->
+    <div class="bg-particles">
+      <div v-for="n in 30" :key="n" class="particle" :style="getParticleStyle(n)"></div>
+    </div>
+    <div class="bg-grid"></div>
+    
+    <!-- Main Game Container - Fixed View -->
+    <div class="game-container">
+      <!-- Header Section -->
+      <div class="game-header">
+        <div class="character-panel">
+          <div class="character-card-enhanced">
+            <div class="avatar-wrapper">
+              <v-img :src="character.image" alt="player portrait" class="character-avatar" />
+              <div class="avatar-ring"></div>
+            </div>
+            <div class="character-info">
+              <h2 class="character-name">{{ character.name }}</h2>
+              <div class="character-meta">
+                <span class="meta-badge">{{ character.ageGroup }}</span>
+                <span class="meta-divider">|</span>
+                <span class="day-counter">Day {{ character.currentDay }}</span>
+              </div>
+            </div>
+            <v-btn
+              variant="tonal"
+              size="small"
+              class="stats-toggle-btn"
+              @click="toggleStats"
+              prepend-icon="mdi-account"
+            >
+              {{ showStats ? 'Hide' : 'Show' }} Info
+            </v-btn>
           </div>
 
-          <v-btn
-            variant="tonal"
-            size="small"
-            class="stats-btn mb-4"
-            @click="toggleStats"
-            prepend-icon="mdi-account"
-          >
-            Player Info
-          </v-btn>
-
-          <!-- Player Info Expansion Panel -->
+          <!-- Stats Panel - Collapsible -->
           <v-expand-transition>
-            <div v-if="showStats" class="w-full stats-panel mt-4" :key="statsPanelKey">
-              <v-divider class="mb-4" />
-              
-              <!-- Profile Info -->
-              <div class="stat-item mb-3">
-                <span class="stat-label">Gender:</span>
-                <span class="stat-value ml-2">{{ character.gender }}</span>
-              </div>
-              <div class="stat-item mb-3">
-                <span class="stat-label">Age Group:</span>
-                <span class="stat-value ml-2">{{ character.ageGroup }}</span>
-              </div>
-              <div class="stat-item mb-4">
-                <span class="stat-label">Profession:</span>
-                <span class="stat-value ml-2">{{ character.profession || 'None' }}</span>
-              </div>
-                  
-              <!-- Stats Display -->
-              <h4 class="stats-title mb-3">STATS</h4>
-              <div v-for="(value, stat) in effectiveStats.visible" :key="stat" class="stat-bar-row mb-3">
-                <div class="d-flex align-center gap-2">
-                  <span class="stat-icon">{{ getStatIcon(stat) }}</span>
-                  <span class="stat-label grow">{{ stat }}</span>
-                  <span class="stat-value">{{ value }}%</span>
+            <div v-if="showStats" class="stats-panel-enhanced">
+              <div class="profile-section">
+                <div class="stat-row">
+                  <span class="stat-label">Gender</span>
+                  <span class="stat-value">{{ character.gender }}</span>
                 </div>
-                <v-progress-linear
-                  :model-value="value"
-                  :color="getStatColor(value)"
-                  height="8"
-                  class="mt-1"
-                />
+                <div class="stat-row">
+                  <span class="stat-label">Age Group</span>
+                  <span class="stat-value">{{ character.ageGroup }}</span>
+                </div>
+                <div class="stat-row">
+                  <span class="stat-label">Profession</span>
+                  <span class="stat-value">{{ character.profession || 'None' }}</span>
+                </div>
+              </div>
+              
+              <v-divider class="my-3" />
+              
+              <!-- Stats Bars -->
+              <div class="stats-section">
+                <h4 class="section-title">STATISTICS</h4>
+                <div v-for="(value, stat) in effectiveStats.visible" :key="stat" class="stat-bar-container">
+                  <div class="stat-bar-header">
+                    <span class="stat-icon">{{ getStatIcon(stat) }}</span>
+                    <span class="stat-name">{{ stat }}</span>
+                    <span class="stat-percent">{{ value }}%</span>
+                  </div>
+                  <div class="stat-bar-track">
+                    <div 
+                      class="stat-bar-fill" 
+                      :style="{ width: value + '%', background: getStatGradient(value) }"
+                    ></div>
+                  </div>
+                </div>
               </div>
 
-              <v-divider class="my-4" />
+              <v-divider class="my-3" />
 
-              <!-- Skills -->
-              <h4 class="stats-title mb-3">SKILLS</h4>
-              <div class="skill-tags mb-4">
-                <v-chip
-                  v-for="skill in character.skills"
-                  :key="skill.name"
-                  class="skill-chip"
-                  label
-                  prepend-icon="mdi-star"
-                >
-                  {{ skill.name }}
-                </v-chip>
-              </div>
-
-              <!-- Talents -->
-              <h4 class="stats-title mb-3">TALENTS</h4>
-              <div class="talent-tags">
-                <v-chip
-                  v-for="talent in character.talents"
-                  :key="talent.name"
-                  class="talent-chip"
-                  label
-                  prepend-icon="mdi-sparkles"
-                >
-                  {{ talent.name }}
-                </v-chip>
+              <!-- Skills & Talents -->
+              <div class="badges-section">
+                <div class="badges-group">
+                  <h4 class="section-title">SKILLS</h4>
+                  <div class="badge-list">
+                    <v-chip
+                      v-for="skill in character.skills"
+                      :key="skill.name"
+                      class="badge-chip skill-badge"
+                      size="small"
+                    >
+                      <v-icon start size="12">mdi-star</v-icon>
+                      {{ skill.name }}
+                    </v-chip>
+                  </div>
+                </div>
+                <div class="badges-group mt-3">
+                  <h4 class="section-title">TALENTS</h4>
+                  <div class="badge-list">
+                    <v-chip
+                      v-for="talent in character.talents"
+                      :key="talent.name"
+                      class="badge-chip talent-badge"
+                      size="small"
+                    >
+                      <v-icon start size="12">mdi-sparkles</v-icon>
+                      {{ talent.name }}
+                    </v-chip>
+                  </div>
+                </div>
               </div>
             </div>
           </v-expand-transition>
         </div>
-      </v-col>
 
-      <!-- Right Side: Actions and Game Info -->
-      <v-col cols="12" md="8" lg="9" class="pl-md-4">
-        <!-- Menu Bar -->
-        <div class="d-flex justify-end gap-3 mb-4 flex-wrap">
+        <!-- Header Actions -->
+        <div class="header-actions">
           <v-btn
             variant="outlined"
             size="small"
             prepend-icon="mdi-pencil"
             @click="editProfile"
-            class="menu-btn"
+            class="action-btn-header"
           >
-            Edit Profile
+            Edit
           </v-btn>
           <v-btn
             variant="outlined"
@@ -114,9 +128,9 @@
             prepend-icon="mdi-content-save"
             @click="saveGame"
             :loading="isSavingGame"
-            class="menu-btn"
+            class="action-btn-header"
           >
-            Save Game
+            Save
           </v-btn>
           <v-btn
             variant="outlined"
@@ -124,207 +138,197 @@
             color="error"
             prepend-icon="mdi-logout"
             @click="logout"
-            class="menu-btn"
+            class="action-btn-header"
           >
-            Logout
+            Exit
+          </v-btn>
+        </div>
+      </div>
+
+      <!-- Main Content Area - Scrollable -->
+      <div class="game-content">
+        <!-- Narration Box -->
+        <div class="narration-panel">
+          <div class="narration-header">
+            <v-icon class="narration-icon">mdi-script-text</v-icon>
+            <h4 class="narration-title">LIFE LOG</h4>
+          </div>
+          <div class="narration-body">
+            <p v-if="narrationHistory.length === 0" class="narration-empty">
+              Select an event to begin your journey...
+            </p>
+            <div class="narration-entries">
+              <p v-for="(entry, i) in narrationHistory" :key="i" class="narration-entry">
+                <span class="entry-bullet">▸</span>
+                {{ entry }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Random Event Button -->
+        <div class="action-section">
+          <v-btn
+            block
+            size="large"
+            class="random-event-btn"
+            prepend-icon="mdi-dice-multiple"
+            @click="randomEvent"
+            :disabled="selectedEvent || loading"
+          >
+            🎲 Random Event
           </v-btn>
         </div>
 
-        <!-- Narration Box -->
-        <v-card class="narration-card px-6 py-4 mb-4">
-          <h4 class="narration-title mb-3">📜 GAME LOG</h4>
-          <div class="narration-scroll">
-            <p v-if="narrationHistory.length === 0" class="text-center text-muted">
-              Start by selecting an event...
-            </p>
-            <p v-for="(entry, i) in narrationHistory" :key="i" class="narration-text mb-2">
-              {{ entry }}
-            </p>
-          </div>
-        </v-card>
-
-        <!-- Action Buttons -->
-        <v-row justify="center" class="mb-4">
-          <v-col cols="12" sm="6" md="4">
-            <v-btn
-              block
-              size="large"
-              class="action-btn-primary"
-              prepend-icon="mdi-dice-5"
-              @click="randomEvent"
-              :disabled="selectedEvent || loading"
-            >
-              🎲 Random Event
-            </v-btn>
-          </v-col>
-        </v-row>
-      </v-col>
-    </v-row>
-
-    <!-- Event Sections - Horizontal Scroll Cards -->
-    <v-row class="mb-6">
-      <v-col cols="12">
-        
-        <!-- Daily Occurrences Section -->
-        <div v-if="availableEvents.daily && availableEvents.daily.length > 0" class="mb-8">
-          <h2 class="event-section-title mb-6">⭐ DAILY OCCURRENCES</h2>
-          <div class="events-scroll-container">
-            <div class="events-track">
+        <!-- Events Grid - Fixed Card Sizes -->
+        <div class="events-area">
+          
+          <!-- Daily Occurrences -->
+          <div v-if="availableEvents.daily && availableEvents.daily.length > 0" class="event-section">
+            <h3 class="section-header daily">
+              <v-icon class="header-icon">mdi-calendar-today</v-icon>
+              DAILY OCCURRENCES
+            </h3>
+            <div class="events-grid">
               <div
                 v-for="(event, index) in availableEvents.daily"
                 :key="`daily-${index}`"
-                class="event-card-wrapper"
+                class="event-card-item"
+                @click="!selectedEvent && selectEvent(event)"
+                :class="{ 'disabled': selectedEvent }"
               >
-                <v-card
-                  class="event-card"
-                  :class="{ 'opacity-50 pointer-events-none': selectedEvent }"
-                  @click="!selectedEvent && selectEvent(event)"
-                >
-                  <div class="card-image-container">
-                    <v-img :src="event.image" height="160" cover class="card-image" />
-                    <div class="card-overlay"></div>
-                  </div>
-                  <v-card-title class="event-card-title">{{ event.title }}</v-card-title>
-                  <v-card-text class="event-card-text">
-                    {{ event.description }}
-                  </v-card-text>
-                  <div class="card-badge">Daily</div>
-                </v-card>
+                <div class="card-visual">
+                  <v-img :src="event.image" cover class="card-img" />
+                  <div class="card-type-badge daily">Daily</div>
+                </div>
+                <div class="card-content">
+                  <h4 class="card-title">{{ event.title }}</h4>
+                  <p class="card-desc">{{ event.description }}</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Cultural Events Section -->
-        <div v-if="availableEvents.cultural && availableEvents.cultural.length > 0" class="mb-8">
-          <h2 class="event-section-title mb-6">🎭 CULTURAL EVENTS</h2>
-          <div class="events-scroll-container">
-            <div class="events-track">
+          <!-- Cultural Events -->
+          <div v-if="availableEvents.cultural && availableEvents.cultural.length > 0" class="event-section">
+            <h3 class="section-header cultural">
+              <v-icon class="header-icon">mdi-theater</v-icon>
+              CULTURAL EVENTS
+            </h3>
+            <div class="events-grid">
               <div
                 v-for="(event, index) in availableEvents.cultural"
                 :key="`cultural-${index}`"
-                class="event-card-wrapper"
+                class="event-card-item"
+                @click="!selectedEvent && selectEvent(event)"
+                :class="{ 'disabled': selectedEvent }"
               >
-                <v-card
-                  class="event-card"
-                  :class="{ 'opacity-50 pointer-events-none': selectedEvent }"
-                  @click="!selectedEvent && selectEvent(event)"
-                >
-                  <div class="card-image-container">
-                    <v-img :src="event.image" height="160" cover class="card-image" />
-                    <div class="card-overlay"></div>
-                  </div>
-                  <v-card-title class="event-card-title">{{ event.title }}</v-card-title>
-                  <v-card-text class="event-card-text">
-                    {{ event.description }}
-                  </v-card-text>
-                  <div class="card-badge cultural">Cultural</div>
-                </v-card>
+                <div class="card-visual">
+                  <v-img :src="event.image" cover class="card-img" />
+                  <div class="card-type-badge cultural">Cultural</div>
+                </div>
+                <div class="card-content">
+                  <h4 class="card-title">{{ event.title }}</h4>
+                  <p class="card-desc">{{ event.description }}</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Age-Specific Events Section -->
-        <div v-if="availableEvents.ageSpecific && availableEvents.ageSpecific.length > 0" class="mb-8">
-          <h2 class="event-section-title mb-6">🎯 YOUR STORY</h2>
-          <div class="events-scroll-container">
-            <div class="events-track">
+          <!-- Age-Specific Events -->
+          <div v-if="availableEvents.ageSpecific && availableEvents.ageSpecific.length > 0" class="event-section">
+            <h3 class="section-header story">
+              <v-icon class="header-icon">mdi-account-heart</v-icon>
+              YOUR STORY
+            </h3>
+            <div class="events-grid">
               <div
                 v-for="(event, index) in availableEvents.ageSpecific"
                 :key="`ageSpecific-${index}`"
-                class="event-card-wrapper"
+                class="event-card-item"
+                @click="!selectedEvent && selectEvent(event)"
+                :class="{ 'disabled': selectedEvent }"
               >
-                <v-card
-                  class="event-card"
-                  :class="{ 'opacity-50 pointer-events-none': selectedEvent }"
-                  @click="!selectedEvent && selectEvent(event)"
-                >
-                  <div class="card-image-container">
-                    <v-img :src="event.image" height="160" cover class="card-image" />
-                    <div class="card-overlay"></div>
-                  </div>
-                  <v-card-title class="event-card-title">{{ event.title }}</v-card-title>
-                  <v-card-text class="event-card-text">
-                    {{ event.description }}
-                  </v-card-text>
-                  <div class="card-badge story">Story</div>
-                </v-card>
+                <div class="card-visual">
+                  <v-img :src="event.image" cover class="card-img" />
+                  <div class="card-type-badge story">Story</div>
+                </div>
+                <div class="card-content">
+                  <h4 class="card-title">{{ event.title }}</h4>
+                  <p class="card-desc">{{ event.description }}</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Profession Events Section (Adults only) -->
-        <div v-if="availableEvents.profession && availableEvents.profession.length > 0" class="mb-8">
-          <h2 class="event-section-title mb-6">💼 PROFESSIONAL PATH</h2>
-          <div class="events-scroll-container">
-            <div class="events-track">
+          <!-- Profession Events -->
+          <div v-if="availableEvents.profession && availableEvents.profession.length > 0" class="event-section">
+            <h3 class="section-header career">
+              <v-icon class="header-icon">mdi-briefcase</v-icon>
+              PROFESSIONAL PATH
+            </h3>
+            <div class="events-grid">
               <div
                 v-for="(event, index) in availableEvents.profession"
                 :key="`profession-${index}`"
-                class="event-card-wrapper"
+                class="event-card-item"
+                @click="!selectedEvent && selectEvent(event)"
+                :class="{ 'disabled': selectedEvent }"
               >
-                <v-card
-                  class="event-card"
-                  :class="{ 'opacity-50 pointer-events-none': selectedEvent }"
-                  @click="!selectedEvent && selectEvent(event)"
-                >
-                  <div class="card-image-container">
-                    <v-img :src="event.image" height="160" cover class="card-image" />
-                    <div class="card-overlay"></div>
-                  </div>
-                  <v-card-title class="event-card-title">{{ event.title }}</v-card-title>
-                  <v-card-text class="event-card-text">
-                    {{ event.description }}
-                  </v-card-text>
-                  <div class="card-badge profession">Career</div>
-                </v-card>
+                <div class="card-visual">
+                  <v-img :src="event.image" cover class="card-img" />
+                  <div class="card-type-badge career">Career</div>
+                </div>
+                <div class="card-content">
+                  <h4 class="card-title">{{ event.title }}</h4>
+                  <p class="card-desc">{{ event.description }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Milestone -->
+          <div v-if="availableEvents.milestone" class="event-section">
+            <h3 class="section-header milestone">
+              <v-icon class="header-icon">mdi-star-circle</v-icon>
+              LIFE MILESTONE
+            </h3>
+            <div class="events-grid milestone-grid">
+              <div
+                class="event-card-item milestone-card"
+                @click="showMilestone(availableEvents.milestone)"
+              >
+                <div class="card-visual">
+                  <v-img :src="availableEvents.milestone.image || '/css/images/milestone.jpg'" cover class="card-img" />
+                  <div class="card-type-badge milestone">Milestone</div>
+                </div>
+                <div class="card-content">
+                  <h4 class="card-title">{{ availableEvents.milestone.title }}</h4>
+                  <p class="card-desc">{{ availableEvents.milestone.description }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Game Over -->
+          <div v-if="gameOver" class="event-section">
+            <h3 class="section-header game-over">
+              <v-icon class="header-icon">mdi-skull</v-icon>
+              GAME OVER
+            </h3>
+            <div class="game-over-panel">
+              <div class="game-over-content">
+                <h3 class="game-over-title">Your journey has ended.</h3>
+                <p class="game-over-text">You lived until Day {{ character.currentDay }} as a {{ character.ageGroup }}.</p>
+                <v-btn color="primary" size="large" class="new-game-btn" @click="startNewGame">
+                  Start New Life
+                </v-btn>
               </div>
             </div>
           </div>
         </div>
-
-        <!-- Milestone Event Section -->
-        <div v-if="availableEvents.milestone" class="mb-8">
-          <h2 class="event-section-title mb-6">🌟 LIFE MILESTONE</h2>
-          <div class="events-scroll-container">
-            <div class="events-track justify-center">
-              <div class="event-card-wrapper milestone-wrapper">
-                <v-card
-                  class="event-card milestone-card"
-                  @click="showMilestone(availableEvents.milestone)"
-                >
-                  <div class="card-image-container">
-                    <v-img src="/css/images/milestone.jpg" height="180" cover class="card-image" />
-                    <div class="card-overlay"></div>
-                  </div>
-                  <v-card-title class="event-card-title">{{ availableEvents.milestone.title }}</v-card-title>
-                  <v-card-text class="event-card-text">
-                    {{ availableEvents.milestone.description }}
-                  </v-card-text>
-                  <div class="card-badge milestone">Milestone</div>
-                </v-card>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Game Over Section -->
-        <div v-if="gameOver" class="mb-8">
-          <h2 class="event-section-title mb-6 text-error">💀 GAME OVER</h2>
-          <v-row justify="center">
-            <v-col cols="12" sm="8" md="6">
-              <v-card class="pa-6 text-center game-over-card">
-                <h3 class="text-h5 mb-4 game-over-title">Your journey has ended.</h3>
-                <p class="mb-4 game-over-text">You lived until Day {{ character.currentDay }} as a {{ character.ageGroup }}.</p>
-                <v-btn color="primary" size="large" class="new-game-btn" @click="startNewGame">Start New Game</v-btn>
-              </v-card>
-            </v-col>
-          </v-row>
-        </div>
-      </v-col>
-    </v-row>
+      </div>
+    </div>
 
 
     <v-dialog v-model="showEventDialog" max-width="700" rounded="xl" @after-leave="onDialogClosed">
@@ -383,33 +387,32 @@
       <v-card class="profile-dialog">
         <v-card-title class="text-center text-h5 dialog-title-main">Edit Profile</v-card-title>
         <v-card-text class="py-6">
+          <!-- Profile Image Upload -->
+          <div class="mb-6 text-center">
+            <div class="avatar-upload-container">
+              <v-img
+                :src="previewImage || editedCharacter.image || '/css/images/player.jpg'"
+                class="avatar-preview"
+              />
+              <div class="avatar-upload-overlay" @click="triggerImageUpload">
+                <v-icon size="32" color="white">mdi-camera</v-icon>
+                <span class="upload-text">Change Photo</span>
+              </div>
+            </div>
+            <input
+              ref="imageInput"
+              type="file"
+              accept="image/*"
+              @change="handleImageChange"
+              style="display: none"
+            />
+          </div>
+
           <div class="mb-4">
             <label class="text-subtitle2 mb-2 d-block">Character Name</label>
             <v-text-field
               v-model="editedCharacter.name"
               placeholder="Enter your character name"
-              variant="outlined"
-              dense
-              :disabled="isSavingProfile"
-            />
-          </div>
-
-          <div class="mb-4">
-            <label class="text-subtitle2 mb-2 d-block">Gender</label>
-            <v-select
-              v-model="editedCharacter.gender"
-              :items="['male', 'female', 'non-binary', 'transgender']"
-              variant="outlined"
-              dense
-              :disabled="isSavingProfile"
-            />
-          </div>
-
-          <div class="mb-4">
-            <label class="text-subtitle2 mb-2 d-block">Age Group</label>
-            <v-select
-              v-model="editedCharacter.ageGroup"
-              :items="['child', 'teenager', 'adult', 'old']"
               variant="outlined"
               dense
               :disabled="isSavingProfile"
@@ -436,7 +439,7 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
-  </v-container>
+  </div>
 </template>
 
 
@@ -448,6 +451,27 @@ import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
 const router = useRouter()
+
+// Generate random particle styles for background
+const getParticleStyle = (n) => {
+  const random = (min, max) => Math.random() * (max - min) + min
+  return {
+    left: random(0, 100) + '%',
+    top: random(0, 100) + '%',
+    animationDelay: random(0, 5) + 's',
+    animationDuration: random(3, 8) + 's',
+    width: random(2, 6) + 'px',
+    height: random(2, 6) + 'px',
+    opacity: random(0.3, 0.8)
+  }
+}
+
+// Get gradient color based on stat value
+const getStatGradient = (value) => {
+  if (value > 70) return 'linear-gradient(90deg, #22c55e, #4ade80)'
+  if (value < 30) return 'linear-gradient(90deg, #ef4444, #f87171)'
+  return 'linear-gradient(90deg, #f59e0b, #fbbf24)'
+}
 
 const getRouteCharacterId = () => {
   const id = route.params.characterId
@@ -462,6 +486,10 @@ const showEventDialog = ref(false)
 const applyingOutcome = ref(false)
 const narrationHistory = ref([])
 const statsPanelKey = ref(0)
+
+// Image upload refs
+const imageInput = ref(null)
+const previewImage = ref(null)
 
 const character = ref({
   id: null,
@@ -496,8 +524,7 @@ const availableEvents = ref({
 const editProfileDialog = ref(false)
 const editedCharacter = ref({
   name: "",
-  gender: "male",
-  ageGroup: "adult"
+  image: ""
 })
 const isSavingProfile = ref(false)
 const isSavingGame = ref(false)
@@ -920,10 +947,29 @@ const saveStatsToDb = async () => {
 const editProfile = () => {
   editedCharacter.value = {
     name: character.value.name,
-    gender: character.value.gender,
-    ageGroup: character.value.ageGroup
+    image: character.value.image
   }
+  previewImage.value = null
   editProfileDialog.value = true
+}
+
+/**
+ * Trigger file input for image upload
+ */
+const triggerImageUpload = () => {
+  imageInput.value?.click()
+}
+
+/**
+ * Handle image file selection
+ */
+const handleImageChange = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    // Create preview URL
+    previewImage.value = URL.createObjectURL(file)
+    editedCharacter.value.image = file
+  }
 }
 
 /**
@@ -938,27 +984,47 @@ const saveProfile = async () => {
   try {
     isSavingProfile.value = true
 
-    const response = await fetch(`/api/characters/${character.value.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({
-        name: editedCharacter.value.name,
-        gender: editedCharacter.value.gender.toLowerCase(),
-        age_group: editedCharacter.value.ageGroup.toLowerCase()
+    // Check if there's a new image to upload
+    if (editedCharacter.value.image && editedCharacter.value.image instanceof File) {
+      // Upload image using the dedicated endpoint
+      const formData = new FormData()
+      formData.append('image', editedCharacter.value.image)
+      formData.append('name', editedCharacter.value.name)
+
+      const response = await fetch(`/api/characters/${character.value.id}/upload-image`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json'
+        },
+        body: formData
       })
-    })
 
-    if (!response.ok) throw new Error('Failed to save profile')
+      if (!response.ok) throw new Error('Failed to save profile')
 
-    const data = await response.json()
-    character.value.name = data.character.name
-    character.value.gender = data.character.gender
-    character.value.ageGroup = data.character.age_group
+      const data = await response.json()
+      character.value.name = data.character.name
+      character.value.image = data.character.image || character.value.image
+    } else {
+      // Just update name without image
+      const response = await fetch(`/api/characters/${character.value.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          name: editedCharacter.value.name
+        })
+      })
+
+      if (!response.ok) throw new Error('Failed to save profile')
+
+      const data = await response.json()
+      character.value.name = data.character.name
+    }
 
     editProfileDialog.value = false
+    previewImage.value = null
     narrationHistory.value.push("✓ Profile updated successfully!")
   } catch (error) {
     console.error('Error saving profile:', error)
@@ -1004,501 +1070,922 @@ const startNewGame = () => {
 
 
 <style scoped>
-/* Main Screen */
+/* ========================================
+   MAIN SCREEN - Enhanced Game Background
+   ======================================== */
 .game-screen {
-  background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f1428 100%);
-  min-height: 100vh;
-  padding: 24px;
-  font-family: 'Press Start 2P', monospace;
-}
-
-/* Character Card */
-.character-card {
-  background: linear-gradient(145deg, rgba(30, 35, 60, 0.9), rgba(15, 20, 40, 0.95)) !important;
-  border: 3px solid #53f06a !important;
-  border-radius: 16px !important;
-  backdrop-filter: blur(20px);
-  box-shadow: 0 8px 32px rgba(83, 240, 106, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.character-card:hover {
-  border-color: #82f582 !important;
-  box-shadow: 0 16px 48px rgba(83, 240, 106, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  transform: translateY(-4px);
-}
-
-/* Avatar Container with Glow */
-.avatar-container {
   position: relative;
-  display: inline-block;
+  background: linear-gradient(165deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* Animated Background Particles */
+.bg-particles {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.particle {
+  position: absolute;
+  background: radial-gradient(circle, rgba(134, 238, 135, 0.8), transparent);
+  border-radius: 50%;
+  animation: float-particle linear infinite;
+}
+
+@keyframes float-particle {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-100vh) scale(0.5);
+    opacity: 0;
+  }
+}
+
+/* Grid Pattern Overlay */
+.bg-grid {
+  position: fixed;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(134, 238, 135, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(134, 238, 135, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ========================================
+   GAME CONTAINER - Fixed View Layout
+   ======================================== */
+.game-container {
+  position: relative;
+  z-index: 2;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ========================================
+   GAME HEADER - Character Panel
+   ======================================== */
+.game-header {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+  flex-shrink: 0;
+}
+
+.character-panel {
+  flex: 1;
+  background: linear-gradient(155deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+  border: 2px solid rgba(134, 238, 135, 0.4);
+  border-radius: 20px;
+  padding: 24px;
+  backdrop-filter: blur(20px);
+  box-shadow: 
+    0 10px 40px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(34, 197, 94, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  position: relative;
+}
+
+/* Player card corner decorations */
+.character-panel::before {
+  content: '♠';
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  font-size: 1.5rem;
+  color: rgba(34, 197, 94, 0.4);
+}
+
+.character-panel::after {
+  content: '♠';
+  position: absolute;
+  bottom: 12px;
+  right: 16px;
+  font-size: 1.5rem;
+  color: rgba(34, 197, 94, 0.4);
+  transform: rotate(180deg);
+}
+
+.character-card-enhanced {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.avatar-wrapper {
+  position: relative;
+  flex-shrink: 0;
 }
 
 .character-avatar {
-  height: 140px;
-  width: 140px;
-  border: 4px solid #53f06a;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
-  box-shadow: 0 0 30px rgba(83, 240, 106, 0.4), 0 0 60px rgba(83, 240, 106, 0.2);
-  transition: all 0.3s ease;
+  border: 3px solid #22c55e;
   object-fit: cover;
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
 }
 
-.character-avatar:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 40px rgba(83, 240, 106, 0.5), 0 0 80px rgba(83, 240, 106, 0.3);
-}
-
-.avatar-glow {
+.avatar-ring {
   position: absolute;
-  inset: -10px;
-  background: radial-gradient(circle, rgba(83, 240, 106, 0.3), transparent 70%);
+  inset: -6px;
   border-radius: 50%;
-  animation: pulse 2s ease-in-out infinite;
-  pointer-events: none;
+  border: 2px solid rgba(34, 197, 94, 0.5);
+  animation: ring-pulse 2s ease-in-out infinite;
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 0.8; transform: scale(1.1); }
+@keyframes ring-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.1); opacity: 0.2; }
+}
+
+.character-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .character-name {
-  font-family: 'Press Start 2P', monospace;
-  color: #53f06a;
-  font-size: 16px;
-  text-shadow: 0 0 20px rgba(83, 240, 106, 0.5), 2px 2px 0 rgba(0, 0, 0, 0.5);
-  text-align: center;
+  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #f0fdf4;
+  text-shadow: 0 2px 10px rgba(34, 197, 94, 0.3);
+  margin-bottom: 4px;
 }
 
-.age-info {
-  font-family: 'Press Start 2P', monospace;
-  color: #82f582;
-  font-size: 8px;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  padding: 10px 16px;
-  border: 2px solid #82f582;
-  border-radius: 8px;
-  text-align: center;
-  background: rgba(83, 240, 106, 0.1);
-}
-
-.age-label {
-  color: #82f582;
-}
-
-.stats-btn {
-  margin-top: 24px;
-  background: linear-gradient(135deg, #53f06a, #3ddc55) !important;
-  color: #000 !important;
-  font-family: 'Press Start 2P', monospace !important;
-  border: 2px solid #000 !important;
-  text-transform: uppercase;
-  font-size: 9px !important;
-  box-shadow: 0 4px 15px rgba(83, 240, 106, 0.4);
-}
-
-.stats-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(83, 240, 106, 0.5);
-}
-
-/* Stats Panel */
-.stats-panel {
-  background: rgba(0, 0, 0, 0.3);
-  border-left: 3px solid #53f06a;
-  padding: 16px;
-  border-radius: 8px;
-}
-
-.stats-title {
-  color: #53f06a;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.stat-item {
+.character-meta {
   display: flex;
+  align-items: center;
   gap: 8px;
-  color: #82f582;
+  flex-wrap: wrap;
 }
 
-.stat-label {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 9px;
-  color: #82f582;
+.meta-badge {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #000;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-transform: capitalize;
 }
 
-.stat-value {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 9px;
-  color: #53f06a;
-  font-weight: bold;
+.meta-divider {
+  color: rgba(255, 255, 255, 0.3);
 }
 
-.stat-bar-row {
+.day-counter {
+  color: #86efac;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.stats-toggle-btn {
+  background: rgba(34, 197, 94, 0.1) !important;
+  border: 1px solid rgba(34, 197, 94, 0.3) !important;
+  color: #22c55e !important;
+  font-size: 0.75rem !important;
+  text-transform: none !important;
+}
+
+.stats-toggle-btn:hover {
+  background: rgba(34, 197, 94, 0.2) !important;
+}
+
+/* ========================================
+   STATS PANEL - Enhanced
+   ======================================== */
+.stats-panel-enhanced {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(134, 238, 135, 0.2);
+}
+
+.profile-section {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
   background: rgba(0, 0, 0, 0.2);
-  padding: 10px;
-  border-radius: 6px;
-  border-left: 3px solid #53f06a;
+  border-radius: 8px;
+  border-left: 3px solid #22c55e;
+}
+
+.stat-row .stat-label {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.stat-row .stat-value {
+  color: #f0fdf4;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.section-title {
+  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #22c55e;
+  letter-spacing: 0.1em;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+/* Stats Bars */
+.stats-section {
+  margin-top: 16px;
+}
+
+.stat-bar-container {
+  margin-bottom: 12px;
+}
+
+.stat-bar-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
 }
 
 .stat-icon {
-  font-size: 14px;
-  min-width: 24px;
+  font-size: 0.9rem;
 }
 
-/* Chips for Skills and Talents */
-.skill-tags,
-.talent-tags {
+.stat-name {
+  flex: 1;
+  color: #cbd5e1;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.stat-percent {
+  color: #22c55e;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.stat-bar-track {
+  height: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.stat-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+  box-shadow: 0 0 10px currentColor;
+}
+
+/* Badges Section */
+.badges-section {
+  margin-top: 8px;
+}
+
+.badges-group {
+  margin-bottom: 8px;
+}
+
+.badge-list {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
 
-.skill-chip {
-  background: linear-gradient(135deg, #53f06a, #3ddc55) !important;
+.badge-chip {
+  font-size: 0.7rem !important;
+}
+
+.skill-badge {
+  background: linear-gradient(135deg, #22c55e, #16a34a) !important;
   color: #000 !important;
-  font-family: 'Press Start 2P', monospace !important;
-  font-size: 8px !important;
-  border: 1px solid #000 !important;
+  border: none !important;
 }
 
-.talent-chip {
-  background: linear-gradient(135deg, #ffd700, #ffed4a) !important;
+.talent-badge {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
   color: #000 !important;
-  font-family: 'Press Start 2P', monospace !important;
-  font-size: 8px !important;
-  border: 1px solid #000 !important;
+  border: none !important;
 }
 
-/* Menu Buttons */
-.menu-btn {
-  font-family: 'Press Start 2P', monospace !important;
-  font-size: 8px !important;
-}
-
-/* Narration Card */
-.narration-card {
-  background: linear-gradient(145deg, rgba(20, 25, 45, 0.9), rgba(10, 15, 30, 0.95)) !important;
-  border: 2px solid #82f582 !important;
-  border-radius: 12px !important;
-  backdrop-filter: blur(15px);
-  height: 280px;
+/* ========================================
+   HEADER ACTIONS
+   ======================================== */
+.header-actions {
   display: flex;
   flex-direction: column;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  gap: 8px;
 }
 
-.narration-title {
-  color: #53f06a;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 11px;
-  text-transform: uppercase;
-  text-shadow: 0 0 10px rgba(83, 240, 106, 0.5);
+.action-btn-header {
+  font-size: 0.75rem !important;
+  text-transform: none !important;
 }
 
-.narration-scroll {
+/* ========================================
+   GAME CONTENT - Scrollable Area
+   ======================================== */
+.game-content {
   flex: 1;
   overflow-y: auto;
   padding-right: 8px;
 }
 
-.narration-text {
-  color: #e0e0e0;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 8px;
-  line-height: 1.6;
-  animation: fadeInText 0.3s ease;
-  padding: 8px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
-  border-left: 2px solid #53f06a;
-}
-
-.narration-scroll::-webkit-scrollbar {
+.game-content::-webkit-scrollbar {
   width: 6px;
 }
 
-.narration-scroll::-webkit-scrollbar-track {
+.game-content::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.2);
   border-radius: 3px;
 }
 
-.narration-scroll::-webkit-scrollbar-thumb {
-  background: #53f06a;
+.game-content::-webkit-scrollbar-thumb {
+  background: #22c55e;
   border-radius: 3px;
 }
 
-/* Event Section */
-.event-section-title {
-  font-family: 'Press Start 2P', monospace;
-  color: #53f06a;
-  font-size: 18px;
-  text-align: center;
-  text-shadow: 0 0 20px rgba(83, 240, 106, 0.5), 3px 3px 0 rgba(0, 0, 0, 0.5);
-  margin-bottom: 24px;
-  padding: 12px;
-  background: linear-gradient(90deg, transparent, rgba(83, 240, 106, 0.1), transparent);
-  border-radius: 8px;
+/* ========================================
+   NARRATION PANEL - Game Log
+   ======================================== */
+.narration-panel {
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
+  border: 2px solid rgba(134, 238, 135, 0.3);
+  border-radius: 16px;
+  margin-bottom: 20px;
+  overflow: hidden;
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-/* Horizontal Scroll Container */
-.events-scroll-container {
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding: 20px 0;
-  margin: 0 -24px;
-  padding-left: 24px;
-  padding-right: 24px;
-  scroll-behavior: smooth;
-}
-
-.events-scroll-container::-webkit-scrollbar {
-  height: 8px;
-}
-
-.events-scroll-container::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
-}
-
-.events-scroll-container::-webkit-scrollbar-thumb {
-  background: linear-gradient(90deg, #53f06a, #82f582);
-  border-radius: 4px;
-}
-
-.events-track {
+.narration-header {
   display: flex;
-  gap: 20px;
-  padding-bottom: 10px;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  background: linear-gradient(90deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.05));
+  border-bottom: 2px solid rgba(34, 197, 94, 0.3);
 }
 
-.event-card-wrapper {
-  flex: 0 0 280px;
-  min-height: 320px;
+.narration-icon {
+  color: #22c55e !important;
 }
 
-.event-card {
-  background: linear-gradient(145deg, rgba(30, 35, 55, 0.9), rgba(15, 20, 35, 0.95)) !important;
-  border: 2px solid #82f582 !important;
-  border-radius: 16px !important;
-  overflow: hidden !important;
-  cursor: pointer !important;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  backdrop-filter: blur(15px);
+.narration-title {
+  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #22c55e;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.narration-body {
+  padding: 16px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.narration-empty {
+  color: #64748b;
+  text-align: center;
+  font-style: italic;
+  padding: 20px;
+}
+
+.narration-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.narration-entry {
+  color: #cbd5e1;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  border-left: 3px solid #22c55e;
+  animation: fadeInEntry 0.3s ease;
+}
+
+@keyframes fadeInEntry {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.entry-bullet {
+  color: #22c55e;
+  margin-right: 8px;
+}
+
+/* ========================================
+   ACTION SECTION - Draw Card Area
+   ======================================== */
+.action-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+  border: 2px solid rgba(134, 238, 135, 0.3);
+  border-radius: 16px;
+  text-align: center;
+}
+
+.random-event-btn {
+  background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+  color: #000 !important;
+  font-weight: 700 !important;
+  font-size: 1.1rem !important;
+  border-radius: 12px !important;
+  box-shadow: 
+    0 6px 20px rgba(34, 197, 94, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  transition: all 0.3s ease !important;
+  padding: 12px 32px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.random-event-btn:hover:not(:disabled) {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 
+    0 12px 40px rgba(34, 197, 94, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+}
+
+.random-event-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+/* ========================================
+   EVENTS AREA
+   ======================================== */
+.events-area {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.event-section {
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+  border: 2px solid rgba(134, 238, 135, 0.2);
+  border-radius: 20px;
+  padding: 24px;
   position: relative;
-  height: 100%;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  /* Card table felt effect */
+  box-shadow: 
+    inset 0 2px 10px rgba(0, 0, 0, 0.3),
+    0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
-.event-card::before {
+/* Card zone decorations */
+.event-section::before {
   content: '';
   position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(83, 240, 106, 0.15), rgba(130, 245, 130, 0.05));
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: 1;
-  pointer-events: none;
+  top: -1px;
+  left: 20px;
+  right: 20px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(34, 197, 94, 0.5), transparent);
+  border-radius: 2px;
 }
 
-.event-card:hover::before {
-  opacity: 1;
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #f0fdf4;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: linear-gradient(90deg, rgba(34, 197, 94, 0.15), transparent);
+  border-radius: 8px;
+  border-left: 4px solid #22c55e;
 }
 
-.event-card:hover {
-  border-color: #53f06a !important;
-  transform: translateY(-12px) scale(1.02);
-  box-shadow: 0 20px 50px rgba(83, 240, 106, 0.3);
+/* Card suit in header */
+.section-header::before {
+  content: '♠';
+  font-size: 1.2rem;
+  margin-right: 4px;
 }
 
-.card-image-container {
-  position: relative;
+.section-header.daily::before {
+  content: '♦';
+  color: #22c55e;
+}
+
+.section-header.cultural::before {
+  content: '♣';
+  color: #a855f7;
+}
+
+.section-header.story::before {
+  content: '♥';
+  color: #f59e0b;
+}
+
+.section-header.career::before {
+  content: '♠';
+  color: #3b82f6;
+}
+
+.section-header.milestone {
+  color: #fbbf24;
+}
+
+.section-header.game-over {
+  color: #ef4444;
+}
+
+.header-icon {
+  color: #22c55e !important;
+}
+
+.section-header.milestone .header-icon {
+  color: #fbbf24 !important;
+}
+
+.section-header.game-over .header-icon {
+  color: #ef4444 !important;
+}
+
+/* Events Grid - Card Hand Layout */
+.events-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+  padding: 10px;
+  /* Card hand effect - slight perspective */
+  perspective: 1000px;
+}
+
+.milestone-grid {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+/* Card stack effect - subtle offset shadows */
+.event-section .events-grid .event-card-item:nth-child(1) {
+  --card-offset: 0px;
+}
+
+.event-section .events-grid .event-card-item:nth-child(2) {
+  --card-offset: 2px;
+}
+
+.event-section .events-grid .event-card-item:nth-child(3) {
+  --card-offset: 4px;
+}
+
+/* Event Card Item - Playing Card Style */
+.event-card-item {
+  background: linear-gradient(155deg, #1e293b 0%, #0f172a 100%);
+  border: 2px solid rgba(134, 238, 135, 0.3);
+  border-radius: 16px;
   overflow: hidden;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  /* Card shadow for depth */
+  box-shadow: 
+    0 4px 6px rgba(0, 0, 0, 0.3),
+    0 1px 3px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-.card-image {
-  transition: transform 0.4s ease;
-}
-
-.event-card:hover .card-image {
-  transform: scale(1.1);
-}
-
-.card-overlay {
+/* Card corner decorations - like real playing cards */
+.event-card-item::before {
+  content: '';
   position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, transparent 50%);
-  pointer-events: none;
-}
-
-.card-badge {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background: linear-gradient(135deg, #53f06a, #3ddc55);
-  color: #000;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 7px;
-  padding: 6px 10px;
-  border-radius: 20px;
-  box-shadow: 0 4px 12px rgba(83, 240, 106, 0.4);
+  top: 8px;
+  left: 8px;
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(134, 238, 135, 0.3);
+  border-radius: 4px;
   z-index: 2;
 }
 
-.card-badge.cultural {
-  background: linear-gradient(135deg, #a855f7, #c084fc);
-  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
+.event-card-item::after {
+  content: '';
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(134, 238, 135, 0.3);
+  border-radius: 4px;
+  transform: rotate(180deg);
+  z-index: 2;
 }
 
-.card-badge.story {
-  background: linear-gradient(135deg, #f59e0b, #fbbf24);
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+/* Card hover effect - lift and glow like picking up a card */
+.event-card-item:hover:not(.disabled) {
+  border-color: #22c55e;
+  transform: translateY(-12px) scale(1.02) rotateX(5deg);
+  box-shadow: 
+    0 20px 40px rgba(34, 197, 94, 0.3),
+    0 8px 16px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  z-index: 10;
 }
 
-.card-badge.profession {
-  background: linear-gradient(135deg, #3b82f6, #60a5fa);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+/* Disabled state - face down card */
+.event-card-item.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(30%);
 }
 
-.card-badge.milestone {
-  background: linear-gradient(135deg, #ffd700, #ffed4a);
-  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
-  font-size: 8px;
+/* Card flip hint on hover */
+.event-card-item:hover:not(.disabled) .card-img {
+  transform: scale(1.05);
+  filter: brightness(1.1);
 }
 
-.event-card-title {
-  font-family: 'Press Start 2P', monospace !important;
-  color: #53f06a !important;
-  font-size: 10px !important;
-  text-transform: uppercase;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
-  padding: 12px 16px !important;
-}
-
-.event-card-text {
-  color: #a0c0a0 !important;
-  font-family: 'Press Start 2P', monospace !important;
-  font-size: 8px !important;
-  line-height: 1.5;
-  padding: 0 16px 16px !important;
-}
-
-.event-card.opacity-50 {
-  opacity: 0.4;
-}
-
-.pointer-events-none {
-  pointer-events: none;
-}
-
-/* Milestone Card Special */
 .milestone-card {
-  border-color: #ffd700 !important;
+  border-color: rgba(251, 191, 36, 0.5);
+  background: linear-gradient(155deg, #292222 0%, #1a1515 100%);
 }
 
-.milestone-card::before {
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 235, 59, 0.1));
+.milestone-card::before,
+.milestone-card::after {
+  border-color: rgba(251, 191, 36, 0.5);
 }
 
-.milestone-card:hover {
-  border-color: #ffd700 !important;
-  box-shadow: 0 20px 50px rgba(255, 215, 0, 0.3);
+.milestone-card:hover:not(.disabled) {
+  border-color: #fbbf24;
+  box-shadow: 
+    0 20px 40px rgba(251, 191, 36, 0.3),
+    0 8px 16px rgba(0, 0, 0, 0.4);
 }
 
-.milestone-wrapper {
-  flex: 0 0 320px;
-}
-
-/* Event Choices */
-.choices-container {
-  margin: 20px 0;
-  padding: 16px;
-  border: 2px solid #82f582;
-  border-radius: 12px;
-  background: rgba(83, 240, 106, 0.05);
-}
-
-.choices-title {
-  color: #53f06a !important;
-  font-family: 'Press Start 2P', monospace !important;
-  font-size: 9px !important;
-  text-transform: uppercase;
-}
-
-.choice-btn {
-  font-family: 'Press Start 2P', monospace !important;
-  font-size: 9px !important;
-  border-color: #82f582 !important;
-  color: #82f582 !important;
-}
-
-.choice-btn:hover {
-  background: rgba(83, 240, 106, 0.2) !important;
-  border-color: #53f06a !important;
-  color: #53f06a !important;
-}
-
-/* Action Buttons */
-.action-btn-primary {
-  background: linear-gradient(135deg, #53f06a, #3ddc55) !important;
-  color: #000 !important;
-  font-family: 'Press Start 2P', monospace !important;
-  border: 3px solid #000 !important;
-  text-transform: uppercase;
-  font-size: 10px !important;
-  box-shadow: 0 6px 20px rgba(83, 240, 106, 0.4);
-  transition: all 0.3s ease;
-}
-
-.action-btn-primary:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 30px rgba(83, 240, 106, 0.5);
-}
-
-.action-btn-primary:active {
-  transform: translateY(1px);
-  box-shadow: 0 3px 10px rgba(83, 240, 106, 0.3);
-}
-
-.action-btn {
-  background: #82f582 !important;
-  color: #000 !important;
-  font-family: 'Press Start 2P', monospace !important;
-  border: 2px solid #000 !important;
-  text-transform: uppercase;
-  font-size: 10px !important;
-  min-height: 44px !important;
-}
-
-.action-btn:hover {
-  background: #53f06a !important;
-  box-shadow: 0 4px 12px rgba(83, 240, 106, 0.3);
-}
-
-/* Dialog Styles */
-.event-dialog {
-  border: 3px solid #53f06a !important;
-  border-radius: 20px !important;
+/* Card Visual */
+.card-visual {
+  position: relative;
+  height: 140px;
   overflow: hidden;
+  /* Card image area */
+  border-bottom: 1px solid rgba(134, 238, 135, 0.1);
+}
+
+.card-img {
+  width: 100%;
+  height: 100%;
+  transition: transform 0.4s ease;
+}
+
+.event-card-item:hover:not(.disabled) .card-img {
+  transform: scale(1.1);
+}
+
+.card-type-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.card-type-badge.daily {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #000;
+}
+
+.card-type-badge.cultural {
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+  color: #fff;
+}
+
+.card-type-badge.story {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #000;
+}
+
+.card-type-badge.career {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+}
+
+.card-type-badge.milestone {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #000;
+  font-size: 0.7rem;
+}
+
+/* Card Content */
+.card-content {
+  padding: 14px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-title {
+  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #f0fdf4;
+  margin-bottom: 8px;
+  line-height: 1.3;
+}
+
+.card-desc {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  line-height: 1.5;
+  flex: 1;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* ========================================
+   GAME OVER PANEL
+   ======================================== */
+.game-over-panel {
+  background: linear-gradient(145deg, rgba(40, 20, 20, 0.9), rgba(20, 10, 10, 0.95));
+  border: 2px solid #ef4444;
+  border-radius: 16px;
+  padding: 40px;
+  text-align: center;
+}
+
+.game-over-content {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.game-over-title {
+  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ef4444;
+  margin-bottom: 12px;
+}
+
+.game-over-text {
+  color: #cbd5e1;
+  font-size: 1rem;
+  margin-bottom: 24px;
+}
+
+.new-game-btn {
+  background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+  color: #000 !important;
+  font-weight: 600 !important;
+}
+
+/* ========================================
+   DIALOG STYLES
+   ======================================== */
+.event-dialog {
+  border: 2px solid #22c55e !important;
+  border-radius: 16px !important;
+  overflow: hidden;
+}
+
+.profile-dialog {
+  border: 2px solid #22c55e !important;
+  border-radius: 16px !important;
+}
+
+.cancel-btn {
+  text-transform: none !important;
+}
+
+::v-deep(.v-dialog) {
+  border: 2px solid #22c55e !important;
+  border-radius: 16px !important;
+}
+
+::v-deep(.v-card) {
+  border-radius: 12px !important;
+  background: rgba(30, 41, 59, 0.98) !important;
+}
+
+::v-deep(.v-card-title) {
+  font-family: 'Instrument Sans', 'Segoe UI', sans-serif !important;
+  color: #22c55e !important;
+}
+
+::v-deep(.v-card-text) {
+  color: #cbd5e1 !important;
+}
+
+/* ========================================
+   EVENT DIALOG STYLES - Card Reveal Effect
+   ======================================== */
+.event-dialog {
+  border: 3px solid #22c55e !important;
+  border-radius: 24px !important;
+  overflow: hidden;
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
+  box-shadow: 
+    0 25px 80px rgba(0, 0, 0, 0.6),
+    0 0 40px rgba(34, 197, 94, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  animation: dialogReveal 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes dialogReveal {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .dialog-image-container {
   position: relative;
+  overflow: hidden;
 }
 
 .dialog-image {
-  transition: transform 0.4s ease;
+  transition: transform 0.6s ease;
+  filter: saturate(1.1);
+}
+
+/* Card glow effect on image */
+.dialog-image-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 50%,
+    rgba(15, 23, 42, 0.9) 100%
+  );
+  z-index: 1;
+  pointer-events: none;
 }
 
 .dialog-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, transparent 60%);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 50%);
+  z-index: 2;
+}
+
+/* Event card decorations */
+.dialog-image-container::after {
+  content: '';
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  border: 2px solid rgba(34, 197, 94, 0.3);
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 2;
 }
 
 .dialog-title-container {
@@ -1506,110 +1993,151 @@ const startNewGame = () => {
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 20px;
+  padding: 24px;
+  z-index: 3;
 }
 
 .dialog-title {
-  font-family: 'Press Start 2P', monospace !important;
-  color: #53f06a !important;
-  font-size: 16px !important;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  font-family: 'Instrument Sans', 'Segoe UI', sans-serif !important;
+  color: #22c55e !important;
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  text-shadow: 
+    2px 2px 4px rgba(0, 0, 0, 0.8),
+    0 0 20px rgba(34, 197, 94, 0.5) !important;
+  letter-spacing: 0.02em;
 }
 
 .dialog-text {
-  color: #c0e0c0 !important;
-  font-family: 'Press Start 2P', monospace !important;
-  font-size: 10px !important;
+  color: #e2e8f0 !important;
+  font-size: 1rem !important;
+  line-height: 1.7;
+  padding: 20px 28px !important;
+  background: rgba(0, 0, 0, 0.3);
+  margin: 0 !important;
 }
 
-.cancel-btn {
-  font-family: 'Press Start 2P', monospace !important;
-  font-size: 9px !important;
+/* Choice Cards */
+.choices-container {
+  margin: 24px 0;
+  padding: 20px;
+  border: 2px solid rgba(34, 197, 94, 0.4);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(34, 197, 94, 0.08), rgba(34, 197, 94, 0.02));
 }
 
-.profile-dialog {
-  border: 3px solid #53f06a !important;
-  border-radius: 16px !important;
+.choices-title {
+  color: #22c55e !important;
+  font-family: 'Instrument Sans', 'Segoe UI', sans-serif !important;
+  font-size: 0.9rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: 16px !important;
+  text-align: center;
+  text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
 }
 
-.dialog-title-main {
-  font-family: 'Press Start 2P', monospace !important;
-  color: #53f06a !important;
-  padding: 20px !important;
-}
-
-::v-deep(.v-dialog) {
-  border: 3px solid #53f06a !important;
-  border-radius: 16px !important;
-}
-
-::v-deep(.v-card) {
+.choice-btn {
+  font-family: 'Instrument Sans', 'Segoe UI', sans-serif !important;
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+  border: 2px solid rgba(34, 197, 94, 0.5) !important;
+  color: #e2e8f0 !important;
+  margin-bottom: 12px;
+  padding: 14px 20px !important;
   border-radius: 12px !important;
-  background: rgba(20, 24, 40, 0.98) !important;
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95)) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-::v-deep(.v-card-title) {
-  font-family: 'Press Start 2P', monospace !important;
-  color: #53f06a !important;
-  font-size: 16px !important;
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+.choice-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1)) !important;
+  border-color: #22c55e !important;
+  color: #22c55e !important;
+  transform: translateX(8px);
+  box-shadow: 
+    0 6px 20px rgba(34, 197, 94, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-::v-deep(.v-card-text) {
-  color: #c0e0c0 !important;
-  font-family: 'Press Start 2P', monospace !important;
-  font-size: 10px !important;
+.choice-btn:active:not(:disabled) {
+  transform: translateX(4px) scale(0.98);
 }
 
-/* Game Over Card */
-.game-over-card {
-  background: linear-gradient(145deg, rgba(40, 20, 20, 0.95), rgba(20, 10, 10, 0.98)) !important;
-  border: 3px solid #ef4444 !important;
+/* Cancel Button */
+.cancel-btn {
+  font-family: 'Instrument Sans', 'Segoe UI', sans-serif !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+  padding: 12px 32px !important;
+  border-radius: 12px !important;
 }
 
-.game-over-title {
-  font-family: 'Press Start 2P', monospace !important;
-  color: #ef4444 !important;
+/* Dialog Card corners */
+.event-dialog::before,
+.event-dialog::after {
+  content: '♠';
+  position: absolute;
+  font-size: 2rem;
+  color: rgba(34, 197, 94, 0.3);
+  z-index: 10;
 }
 
-.game-over-text {
-  font-family: 'Press Start 2P', monospace !important;
-  color: #c0c0c0 !important;
-  font-size: 10px;
+.event-dialog::before {
+  top: 20px;
+  left: 20px;
 }
 
-.new-game-btn {
-  font-family: 'Press Start 2P', monospace !important;
-  font-size: 10px !important;
+.event-dialog::after {
+  bottom: 20px;
+  right: 20px;
+  transform: rotate(180deg);
 }
 
-/* Animations */
-@keyframes fadeInText {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* ========================================
+   AVATAR UPLOAD STYLES
+   ======================================== */
+.avatar-upload-container {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  border: 3px solid #22c55e;
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
 }
 
-/* Scrollbar styling for other elements */
-::-webkit-scrollbar {
-  width: 8px;
+.avatar-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-::-webkit-scrollbar-track {
-  background: rgba(83, 240, 106, 0.1);
+.avatar-upload-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #53f06a;
-  border-radius: 4px;
+.avatar-upload-container:hover .avatar-upload-overlay {
+  opacity: 1;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #82f582;
+.upload-text {
+  color: white;
+  font-size: 0.7rem;
+  margin-top: 4px;
+  font-weight: 500;
 }
 </style>

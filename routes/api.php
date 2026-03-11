@@ -10,6 +10,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/characters', [CharacterController::class, 'index']);
     Route::get('/characters/{character}', [CharacterController::class, 'show']);
     Route::put('/characters/{character}', [CharacterController::class, 'update']);
+    Route::post('/characters/{character}/upload-image', [CharacterController::class, 'uploadImage']);
 
     // Event routes
     Route::get('/characters/{character}/events', [EventController::class, 'getAvailableEvents']);

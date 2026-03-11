@@ -208,4 +208,47 @@ class CharacterController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Upload character image
+     */
+    public function uploadImage(Request $request, Character $character)
+    {
+        // Check if user owns this character
+        if ($character->user_id !== Auth::id()) {
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'name' => 'string|max:255',
+        ]);
+
+        try {
+            // Store the image
+            $imagePath = $request->file('image')->store('character-images', 'public');
+            $imageUrl = '/storage/' . $imagePath;
+
+            // Update character with new image and name if provided
+            $updateData = ['image' => $imageUrl];
+            if ($request->has('name') && $request->name) {
+                $updateData['name'] = $request->name;
+            }
+            $character->update($updateData);
+
+            $character->load(['skills', 'talents']);
+
+            return response()->json([
+                'message' => 'Image uploaded successfully',
+                'character' => $character,
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('Image upload error:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'message' => 'Error uploading image: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
