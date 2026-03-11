@@ -57,6 +57,7 @@
       </v-form>
     </div>
   </v-container>
+  <v-snackbar v-model="showSnackbar" :color="snackbarColor" timeout="3000"> {{ snackbarMessage }} </v-snackbar>
 </template>
 
 
@@ -79,6 +80,9 @@ const loading = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
 const showSuccess = ref(false)
+const showSnackbar = ref(false)
+const snackbarMessage = ref('')
+const snackbarColor = ref('success')
 
 const canRegister = computed(() =>
   name.value &&
@@ -101,14 +105,27 @@ const register = async () => {
       password_confirmation: confirmPassword.value
     })
     successMessage.value = response.data.message || 'Registration successful'
-    showSuccess.value = true
-    router.push({ path: '/home', query: { accountCreated: true } })
+    
+    // Show success message and redirect
+    snackbarMessage.value = 'Account created successfully!'
+    snackbarColor.value = 'success'
+    showSnackbar.value = true
+    
+    setTimeout(() => {
+      router.push({ path: '/home', query: { accountCreated: true } })
+    }, 1500)
   } catch (error) {
     if (error.response?.data?.errors) {
       errorMessage.value = Object.values(error.response.data.errors).flat().join(', ')
     } else {
       errorMessage.value = error.response?.data?.message || 'Registration failed'
     }
+    
+    snackbarMessage.value = errorMessage.value
+    snackbarColor.value = 'error'
+    showSnackbar.value = true
+  } finally {
+    loading.value = false
   }
 }
 const goToHome = () => {
