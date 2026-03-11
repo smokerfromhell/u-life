@@ -710,5 +710,158 @@ class EventController extends Controller
             default => 'adult'
         };
     }
+
+    /**
+     * Re-draw all event cards - can only be used once per day
+     */
+    public function redrawEvents(Character $character)
+    {
+        try {
+            if ($character->user_id !== Auth::id()) {
+                return response()->json([
+                    'message' => 'Unauthorized',
+                ], 403);
+            }
+
+            // Check if re-draw was already used today
+            $today = now()->toDateString();
+            $lastRedrawDate = $character->last_redraw_date;
+
+            if ($lastRedrawDate === $today) {
+                return response()->json([
+                    'message' => 'Re-draw already used today',
+                    'last_redraw_date' => $lastRedrawDate,
+                    'available_at' => now()->addDay()->toDateString(),
+                    'can_redraw' => false
+                ], 400);
+            }
+
+            // Clear shown_event_ids to allow previously shown events to appear again
+            $character->shown_event_ids = [];
+            $character->last_redraw_date = $today;
+            $character->save();
+
+            // Fetch fresh events
+            $ageGroup = $character->age_group ?? 'adult';
+            
+            $dailyEvents = $this->getDailyEvents([], $ageGroup);
+            $culturalEvents = $this->getCulturalEvents([]);
+            
+            // Get age-specific events
+            $ageSpecificEvents = $this->getAgeSpecificEvents($ageGroup, []);
+            
+            // Get profession events if applicable
+            $professionEvents = [];
+            if ($ageGroup === 'adult' && $character->profession) {
+                $professionEvents = $this->getProfessionEvents($character->profession, []);
+            }
+
+            return response()->json([
+                'message' => 'Events re-drawn successfully',
+                'can_redraw' => false,
+                'last_redraw_date' => $today,
+                'events' => [
+                    'daily' => $dailyEvents,
+                    'cultural' => $culturalEvents,
+                    'ageSpecific' => $ageSpecificEvents,
+                    'profession' => $professionEvents,
+                    'milestone' => $this->checkMilestone($character)
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error in redrawEvents: ' . $e->getMessage(), [
+                'character_id' => $character->id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'message' => 'Error re-drawing events: ' . $e->getMessage(),
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Re-draw a specific type of events - can only be used once per day per type
+     */
+    public function redrawEventType(Request $request, Character $character)
+    {
+        try {
+            if ($character->user_id !== Auth::id()) {
+                return response()->json([
+                    'message' => 'Unauthorized',
+                ], 403);
+            }
+
+            $validated = $request->validate([
+                'event_type' => 'required|string|in:daily,cultural,ageSpecific,profession'
+            ]);
+
+            $eventType = $validated['event_type'];
+            
+            // Map event type to database column
+            $columnMap = [
+                'daily' => 'last_redraw_date_daily',
+                'cultural' => 'last_redraw_date_cultural',
+                'ageSpecific' => 'last_redraw_date_age_specific',
+                'profession' => 'last_redraw_date_profession'
+            ];
+            $column = $columnMap[$eventType];
+
+            // Check if re-draw was already used today for this specific type
+            $today = now()->toDateString();
+            $lastRedrawDate = $character->$column;
+
+            if ($lastRedrawDate === $today) {
+                return response()->json([
+                    'message' => 'Re-draw already used today for this category',
+                    'last_redraw_date' => $lastRedrawDate,
+                    'available_at' => now()->addDay()->toDateString(),
+                    'can_redraw' => false
+                ], 400);
+            }
+
+            // Clear shown_event_ids for the specific event type to allow re-drawing
+            $shownEventIds = $character->shown_event_ids ?? [];
+            // Remove events of this type from shown_event_ids
+            $shownEventIds = array_filter($shownEventIds, function($id) use ($eventType) {
+                return !str_starts_with($id, $eventType . '_');
+            });
+            $character->shown_event_ids = array_values($shownEventIds);
+            
+            // Update the specific event type's redraw date
+            $character->$column = $today;
+            $character->save();
+
+            // Fetch fresh events for the specific type
+            $ageGroup = $character->age_group ?? 'adult';
+            
+            $newEvents = match($eventType) {
+                'daily' => $this->getDailyEvents([], $ageGroup),
+                'cultural' => $this->getCulturalEvents([]),
+                'ageSpecific' => $this->getAgeSpecificEvents($ageGroup, []),
+                'profession' => $ageGroup === 'adult' && $character->profession 
+                    ? $this->getProfessionEvents($character->profession, []) 
+                    : [],
+                default => []
+            };
+
+            return response()->json([
+                'message' => ucfirst($eventType) . ' events re-drawn successfully',
+                'can_redraw' => true,
+                'last_redraw_date' => $today,
+                'event_type' => $eventType,
+                'events' => $newEvents
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error in redrawEventType: ' . $e->getMessage(), [
+                'character_id' => $character->id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'message' => 'Error re-drawing events: ' . $e->getMessage(),
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
 

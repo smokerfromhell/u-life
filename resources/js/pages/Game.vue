@@ -16,65 +16,84 @@
               <v-img :src="character.image" alt="player portrait" class="character-avatar" />
               <div class="avatar-ring"></div>
             </div>
-            <div class="character-info">
-              <h2 class="character-name">{{ character.name }}</h2>
-              <div class="character-meta">
-                <span class="meta-badge">{{ character.ageGroup }}</span>
-                <span class="meta-divider">|</span>
-                <span class="day-counter">Day {{ character.currentDay }}</span>
-              </div>
-            </div>
-            <v-btn
-              variant="tonal"
-              size="small"
-              class="stats-toggle-btn"
-              @click="toggleStats"
-              prepend-icon="mdi-account"
-            >
-              {{ showStats ? 'Hide' : 'Show' }} Info
-            </v-btn>
-          </div>
-
-          <!-- Stats Panel - Collapsible -->
-          <v-expand-transition>
-            <div v-if="showStats" class="stats-panel-enhanced">
-              <div class="profile-section">
-                <div class="stat-row">
-                  <span class="stat-label">Gender</span>
-                  <span class="stat-value">{{ character.gender }}</span>
-                </div>
-                <div class="stat-row">
-                  <span class="stat-label">Age Group</span>
-                  <span class="stat-value">{{ character.ageGroup }}</span>
-                </div>
-                <div class="stat-row">
-                  <span class="stat-label">Profession</span>
-                  <span class="stat-value">{{ character.profession || 'None' }}</span>
+            
+            <div class="character-main-info">
+              <div class="character-info">
+                <h2 class="character-name">{{ character.name }}</h2>
+                <div class="character-meta">
+                  <span class="meta-badge">{{ character.ageGroup }}</span>
+                  <span class="meta-divider">|</span>
+                  <span class="day-counter">Day {{ character.currentDay }}</span>
+                  <span class="meta-divider">|</span>
+                  <span class="profession-badge">{{ character.profession || 'No Profession' }}</span>
                 </div>
               </div>
               
-              <v-divider class="my-3" />
-              
-              <!-- Stats Bars -->
-              <div class="stats-section">
-                <h4 class="section-title">STATISTICS</h4>
-                <div v-for="(value, stat) in effectiveStats.visible" :key="stat" class="stat-bar-container">
-                  <div class="stat-bar-header">
-                    <span class="stat-icon">{{ getStatIcon(stat) }}</span>
-                    <span class="stat-name">{{ stat }}</span>
-                    <span class="stat-percent">{{ value }}%</span>
+              <!-- Stats Bars - Always Visible -->
+              <div class="header-stats">
+                <div v-for="(value, stat) in effectiveStats.visible" :key="stat" class="header-stat-bar">
+                  <div class="header-stat-header">
+                    <span class="header-stat-icon">{{ getStatIcon(stat) }}</span>
+                    <span class="header-stat-name">{{ stat }}</span>
+                    <span class="header-stat-value">{{ value }}%</span>
                   </div>
-                  <div class="stat-bar-track">
+                  <div class="header-stat-track">
                     <div 
-                      class="stat-bar-fill" 
+                      class="header-stat-fill" 
                       :style="{ width: value + '%', background: getStatGradient(value) }"
                     ></div>
                   </div>
                 </div>
               </div>
+            </div>
+            
+            <!-- Action Buttons in Upper Right -->
+            <div class="character-actions">
+              <v-btn
+                variant="tonal"
+                size="small"
+                class="stats-toggle-btn"
+                @click="toggleStats"
+                prepend-icon="mdi-account"
+              >
+                {{ showStats ? 'Hide' : 'Show' }} Skills
+              </v-btn>
+              <v-btn
+                variant="outlined"
+                size="x-small"
+                prepend-icon="mdi-pencil"
+                @click="editProfile"
+                class="action-btn-header"
+              >
+                Edit
+              </v-btn>
+              <v-btn
+                variant="outlined"
+                size="x-small"
+                color="warning"
+                prepend-icon="mdi-content-save"
+                @click="saveGame"
+                :loading="isSavingGame"
+                class="action-btn-header"
+              >
+                Save
+              </v-btn>
+              <v-btn
+                variant="outlined"
+                size="x-small"
+                color="error"
+                prepend-icon="mdi-logout"
+                @click="logout"
+                class="action-btn-header"
+              >
+                Exit
+              </v-btn>
+            </div>
+          </div>
 
-              <v-divider class="my-3" />
-
+          <!-- Collapsible Panel - Skills & Talents Only -->
+          <v-expand-transition>
+            <div v-if="showStats" class="stats-panel-enhanced">
               <!-- Skills & Talents -->
               <div class="badges-section">
                 <div class="badges-group">
@@ -89,6 +108,7 @@
                       <v-icon start size="12">mdi-star</v-icon>
                       {{ skill.name }}
                     </v-chip>
+                    <span v-if="!character.skills || character.skills.length === 0" class="no-skills">No skills yet</span>
                   </div>
                 </div>
                 <div class="badges-group mt-3">
@@ -103,45 +123,12 @@
                       <v-icon start size="12">mdi-sparkles</v-icon>
                       {{ talent.name }}
                     </v-chip>
+                    <span v-if="!character.talents || character.talents.length === 0" class="no-talents">No talents yet</span>
                   </div>
                 </div>
               </div>
             </div>
           </v-expand-transition>
-        </div>
-
-        <!-- Header Actions -->
-        <div class="header-actions">
-          <v-btn
-            variant="outlined"
-            size="small"
-            prepend-icon="mdi-pencil"
-            @click="editProfile"
-            class="action-btn-header"
-          >
-            Edit
-          </v-btn>
-          <v-btn
-            variant="outlined"
-            size="small"
-            color="warning"
-            prepend-icon="mdi-content-save"
-            @click="saveGame"
-            :loading="isSavingGame"
-            class="action-btn-header"
-          >
-            Save
-          </v-btn>
-          <v-btn
-            variant="outlined"
-            size="small"
-            color="error"
-            prepend-icon="mdi-logout"
-            @click="logout"
-            class="action-btn-header"
-          >
-            Exit
-          </v-btn>
         </div>
       </div>
 
@@ -185,10 +172,23 @@
           
           <!-- Daily Occurrences -->
           <div v-if="availableEvents.daily && availableEvents.daily.length > 0" class="event-section">
-            <h3 class="section-header daily">
-              <v-icon class="header-icon">mdi-calendar-today</v-icon>
-              DAILY OCCURRENCES
-            </h3>
+            <div class="section-header-wrapper">
+              <h3 class="section-header daily">
+                <v-icon class="header-icon">mdi-calendar-today</v-icon>
+                DAILY OCCURRENCES
+              </h3>
+              <v-btn
+                size="x-small"
+                variant="tonal"
+                color="info"
+                prepend-icon="mdi-refresh"
+                @click="redrawEventType('daily')"
+                :disabled="loading || !canRedrawDaily"
+                class="redraw-section-btn"
+              >
+                {{ canRedrawDaily ? 'Re-Draw' : 'Used' }}
+              </v-btn>
+            </div>
             <div class="events-grid">
               <div
                 v-for="(event, index) in availableEvents.daily"
@@ -211,10 +211,23 @@
 
           <!-- Cultural Events -->
           <div v-if="availableEvents.cultural && availableEvents.cultural.length > 0" class="event-section">
-            <h3 class="section-header cultural">
-              <v-icon class="header-icon">mdi-theater</v-icon>
-              CULTURAL EVENTS
-            </h3>
+            <div class="section-header-wrapper">
+              <h3 class="section-header cultural">
+                <v-icon class="header-icon">mdi-theater</v-icon>
+                CULTURAL EVENTS
+              </h3>
+              <v-btn
+                size="x-small"
+                variant="tonal"
+                color="info"
+                prepend-icon="mdi-refresh"
+                @click="redrawEventType('cultural')"
+                :disabled="loading || !canRedrawCultural"
+                class="redraw-section-btn"
+              >
+                {{ canRedrawCultural ? 'Re-Draw' : 'Used' }}
+              </v-btn>
+            </div>
             <div class="events-grid">
               <div
                 v-for="(event, index) in availableEvents.cultural"
@@ -237,10 +250,23 @@
 
           <!-- Age-Specific Events -->
           <div v-if="availableEvents.ageSpecific && availableEvents.ageSpecific.length > 0" class="event-section">
-            <h3 class="section-header story">
-              <v-icon class="header-icon">mdi-account-heart</v-icon>
-              YOUR STORY
-            </h3>
+            <div class="section-header-wrapper">
+              <h3 class="section-header story">
+                <v-icon class="header-icon">mdi-account-heart</v-icon>
+                YOUR STORY
+              </h3>
+              <v-btn
+                size="x-small"
+                variant="tonal"
+                color="info"
+                prepend-icon="mdi-refresh"
+                @click="redrawEventType('ageSpecific')"
+                :disabled="loading || !canRedrawAgeSpecific"
+                class="redraw-section-btn"
+              >
+                {{ canRedrawAgeSpecific ? 'Re-Draw' : 'Used' }}
+              </v-btn>
+            </div>
             <div class="events-grid">
               <div
                 v-for="(event, index) in availableEvents.ageSpecific"
@@ -263,10 +289,23 @@
 
           <!-- Profession Events -->
           <div v-if="availableEvents.profession && availableEvents.profession.length > 0" class="event-section">
-            <h3 class="section-header career">
-              <v-icon class="header-icon">mdi-briefcase</v-icon>
-              PROFESSIONAL PATH
-            </h3>
+            <div class="section-header-wrapper">
+              <h3 class="section-header career">
+                <v-icon class="header-icon">mdi-briefcase</v-icon>
+                PROFESSIONAL PATH
+              </h3>
+              <v-btn
+                size="x-small"
+                variant="tonal"
+                color="info"
+                prepend-icon="mdi-refresh"
+                @click="redrawEventType('profession')"
+                :disabled="loading || !canRedrawProfession"
+                class="redraw-section-btn"
+              >
+                {{ canRedrawProfession ? 'Re-Draw' : 'Used' }}
+              </v-btn>
+            </div>
             <div class="events-grid">
               <div
                 v-for="(event, index) in availableEvents.profession"
@@ -383,19 +422,22 @@
     </v-overlay>
 
     <!-- Edit Profile Dialog -->
-    <v-dialog v-model="editProfileDialog" max-width="500" rounded="xl">
+    <v-dialog v-model="editProfileDialog" max-width="450" rounded="xl">
       <v-card class="profile-dialog">
-        <v-card-title class="text-center text-h5 dialog-title-main">Edit Profile</v-card-title>
-        <v-card-text class="py-6">
+        <div class="profile-dialog-header">
+          <v-icon size="28" color="success">mdi-account-edit</v-icon>
+          <v-card-title class="dialog-title-main">Edit Profile</v-card-title>
+        </div>
+        <v-card-text class="profile-dialog-text">
           <!-- Profile Image Upload -->
-          <div class="mb-6 text-center">
-            <div class="avatar-upload-container">
+          <div class="mb-5 text-center">
+            <div class="avatar-upload-container-large">
               <v-img
                 :src="previewImage || editedCharacter.image || '/css/images/player.jpg'"
-                class="avatar-preview"
+                class="avatar-preview-large"
               />
-              <div class="avatar-upload-overlay" @click="triggerImageUpload">
-                <v-icon size="32" color="white">mdi-camera</v-icon>
+              <div class="avatar-upload-overlay-large" @click="triggerImageUpload">
+                <v-icon size="36" color="white">mdi-camera</v-icon>
                 <span class="upload-text">Change Photo</span>
               </div>
             </div>
@@ -409,21 +451,26 @@
           </div>
 
           <div class="mb-4">
-            <label class="text-subtitle2 mb-2 d-block">Character Name</label>
+            <label class="text-subtitle2 mb-2 d-block profile-label">Character Name</label>
             <v-text-field
               v-model="editedCharacter.name"
               placeholder="Enter your character name"
               variant="outlined"
-              dense
+              density="comfortable"
+              class="profile-input"
               :disabled="isSavingProfile"
+              bg-color="rgba(0,0,0,0.3)"
+              color="success"
             />
           </div>
         </v-card-text>
-        <v-card-actions class="justify-center gap-3 pb-6">
+        <v-card-actions class="profile-dialog-actions">
           <v-btn
             variant="outlined"
+            color="error"
             @click="closeEditProfile"
             :disabled="isSavingProfile"
+            class="profile-cancel-btn"
           >
             Cancel
           </v-btn>
@@ -433,6 +480,7 @@
             prepend-icon="mdi-content-save"
             @click="saveProfile"
             :loading="isSavingProfile"
+            class="profile-save-btn"
           >
             Save Changes
           </v-btn>
@@ -529,6 +577,10 @@ const editedCharacter = ref({
 const isSavingProfile = ref(false)
 const isSavingGame = ref(false)
 const gameOver = ref(false)
+const canRedrawDaily = ref(true)
+const canRedrawCultural = ref(true)
+const canRedrawAgeSpecific = ref(true)
+const canRedrawProfession = ref(true)
 
 // Fetch character and events on mount
 onMounted(async () => {
@@ -786,6 +838,118 @@ const randomEvent = async () => {
   } catch (error) {
     console.error('Error fetching random event:', error)
     narrationHistory.value.push('Error loading random event.')
+  } finally {
+    loading.value = false
+  }
+}
+
+/**
+ * Re-draw all event cards - can only be used once per day
+ */
+const redrawEvents = async () => {
+  try {
+    loading.value = true
+    
+    const response = await fetch(`/api/characters/${character.value.id}/redraw-events`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    })
+    
+    const data = await response.json()
+    
+    if (!response.ok) {
+      if (data.can_redraw === false) {
+        canRedraw.value = false
+        lastRedrawDate.value = data.last_redraw_date
+        narrationHistory.value.push('⚠️ Re-draw already used today! Come back tomorrow.')
+        return
+      }
+      throw new Error(data.message || 'Failed to re-draw events')
+    }
+    
+    // Update available events with new ones
+    if (data.events) {
+      availableEvents.value = {
+        daily: data.events.daily || [],
+        cultural: data.events.cultural || [],
+        ageSpecific: data.events.ageSpecific || [],
+        profession: data.events.profession || [],
+        milestone: data.events.milestone || null
+      }
+    }
+    
+    // Update re-draw state
+    canRedraw.value = false
+    lastRedrawDate.value = data.last_redraw_date
+    
+    narrationHistory.value.push('🔄 You shuffled the deck! New events have appeared.')
+  } catch (error) {
+    console.error('Error re-drawing events:', error)
+    narrationHistory.value.push('Error re-drawing events: ' + error.message)
+  } finally {
+    loading.value = false
+  }
+}
+
+/**
+ * Re-draw a specific type of events - can only be used once per day
+ */
+const redrawEventType = async (eventType) => {
+  try {
+    loading.value = true
+    
+    const response = await fetch(`/api/characters/${character.value.id}/redraw-event-type`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        event_type: eventType
+      })
+    })
+    
+    const data = await response.json()
+    
+    if (!response.ok) {
+      if (data.can_redraw === false) {
+        // Set the specific flag to false based on event type
+        if (eventType === 'daily') canRedrawDaily.value = false
+        if (eventType === 'cultural') canRedrawCultural.value = false
+        if (eventType === 'ageSpecific') canRedrawAgeSpecific.value = false
+        if (eventType === 'profession') canRedrawProfession.value = false
+        narrationHistory.value.push('⚠️ Re-draw already used today for this category!')
+        return
+      }
+      throw new Error(data.message || 'Failed to re-draw events')
+    }
+    
+    // Update available events with new ones for the specific type
+    if (data.events) {
+      const typeKey = eventType === 'ageSpecific' ? 'ageSpecific' : eventType
+      availableEvents.value[typeKey] = data.events
+    }
+    
+    // Set the specific flag to false based on event type
+    if (eventType === 'daily') canRedrawDaily.value = false
+    if (eventType === 'cultural') canRedrawCultural.value = false
+    if (eventType === 'ageSpecific') canRedrawAgeSpecific.value = false
+    if (eventType === 'profession') canRedrawProfession.value = false
+    
+    // Get friendly name for the event type
+    const typeNames = {
+      daily: 'Daily Occurrences',
+      cultural: 'Cultural Events',
+      ageSpecific: 'Your Story',
+      profession: 'Professional Path'
+    }
+    narrationHistory.value.push(`🔄 You shuffled ${typeNames[eventType] || eventType}! New events have appeared.`)
+  } catch (error) {
+    console.error('Error re-drawing events:', error)
+    narrationHistory.value.push('Error re-drawing events: ' + error.message)
   } finally {
     loading.value = false
   }
@@ -1185,7 +1349,7 @@ const startNewGame = () => {
 
 .character-card-enhanced {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 20px;
 }
 
@@ -1216,9 +1380,16 @@ const startNewGame = () => {
   50% { transform: scale(1.1); opacity: 0.2; }
 }
 
-.character-info {
+.character-main-info {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   min-width: 0;
+}
+
+.character-info {
+  flex-shrink: 0;
 }
 
 .character-name {
@@ -1257,6 +1428,75 @@ const startNewGame = () => {
   font-weight: 500;
 }
 
+.profession-badge {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-transform: capitalize;
+}
+
+/* Header Stats - Always Visible */
+.header-stats {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.header-stat-bar {
+  flex: 1;
+  min-width: 90px;
+  max-width: 120px;
+  display: flex;
+  flex-direction: column;
+}
+
+.header-stat-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 3px;
+}
+
+.header-stat-icon {
+  font-size: 0.7rem;
+}
+
+.header-stat-name {
+  color: #94a3b8;
+  font-size: 0.65rem;
+  font-weight: 500;
+  flex: 1;
+}
+
+.header-stat-value {
+  color: #22c55e;
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.header-stat-track {
+  height: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.header-stat-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.no-skills, .no-talents {
+  color: #64748b;
+  font-size: 0.75rem;
+  font-style: italic;
+}
+
 .stats-toggle-btn {
   background: rgba(34, 197, 94, 0.1) !important;
   border: 1px solid rgba(34, 197, 94, 0.3) !important;
@@ -1267,6 +1507,20 @@ const startNewGame = () => {
 
 .stats-toggle-btn:hover {
   background: rgba(34, 197, 94, 0.2) !important;
+}
+
+/* Character Actions - Upper Right */
+.character-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.character-actions .v-btn {
+  font-size: 0.65rem !important;
+  padding: 4px 8px !important;
+  min-width: auto;
 }
 
 /* ========================================
@@ -1598,6 +1852,18 @@ const startNewGame = () => {
   background: linear-gradient(90deg, rgba(34, 197, 94, 0.15), transparent);
   border-radius: 8px;
   border-left: 4px solid #22c55e;
+}
+
+.section-header-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.redraw-section-btn {
+  text-transform: none !important;
+  font-size: 0.7rem !important;
 }
 
 /* Card suit in header */
@@ -2139,5 +2405,122 @@ const startNewGame = () => {
   font-size: 0.7rem;
   margin-top: 4px;
   font-weight: 500;
+}
+
+/* ========================================
+   EDIT PROFILE DIALOG STYLES
+   ======================================== */
+.profile-dialog {
+  border: 2px solid #22c55e !important;
+  border-radius: 20px !important;
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%) !important;
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.6),
+    0 0 30px rgba(34, 197, 94, 0.2) !important;
+}
+
+.profile-dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 24px;
+  background: linear-gradient(90deg, rgba(34, 197, 94, 0.15), transparent);
+  border-bottom: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.dialog-title-main {
+  font-family: 'Instrument Sans', 'Segoe UI', sans-serif !important;
+  font-size: 1.3rem !important;
+  font-weight: 700 !important;
+  color: #22c55e !important;
+  text-shadow: 0 0 15px rgba(34, 197, 94, 0.4) !important;
+}
+
+.profile-dialog-text {
+  padding: 24px !important;
+  color: #e2e8f0 !important;
+}
+
+.profile-label {
+  color: #94a3b8 !important;
+  font-weight: 600 !important;
+  font-size: 0.85rem !important;
+}
+
+.profile-input .v-field {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border-radius: 10px !important;
+}
+
+.profile-input .v-field__outline {
+  border-color: rgba(34, 197, 94, 0.4) !important;
+}
+
+.profile-input .v-field--focused .v-field__outline {
+  border-color: #22c55e !important;
+}
+
+.avatar-upload-container-large {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  margin: 0 auto;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  border: 4px solid #22c55e;
+  box-shadow: 
+    0 0 25px rgba(34, 197, 94, 0.4),
+    inset 0 0 20px rgba(34, 197, 94, 0.1);
+}
+
+.avatar-preview-large {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-upload-overlay-large {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.avatar-upload-container-large:hover .avatar-upload-overlay-large {
+  opacity: 1;
+}
+
+.avatar-upload-overlay-large .upload-text {
+  font-size: 0.8rem;
+  margin-top: 8px;
+}
+
+.profile-dialog-actions {
+  padding: 16px 24px 24px !important;
+  display: flex;
+  justify-content: center;
+  gap: 16px !important;
+}
+
+.profile-cancel-btn {
+  flex: 1;
+  max-width: 140px;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  border-radius: 10px !important;
+}
+
+.profile-save-btn {
+  flex: 1;
+  max-width: 160px;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  border-radius: 10px !important;
 }
 </style>
