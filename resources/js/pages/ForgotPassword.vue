@@ -1,95 +1,134 @@
 <template>
-  <v-container
-    fluid
-    class="reset-screen d-flex align-center justify-center"
-    style="height: 100vh;
-      background-image: url('/css/images/login-bacg.jpg');
-      background-size: cover;
-      background-position: center;">
-
-    <div class="w-full max-w-md flex flex-col items-center">
-
-      <h1 class="retro-title text-center mb-8">
-        RESET PASSWORD
-      </h1>
-
-      <v-form class="retro-form w-full">
-        <v-card class="retro-card pa-12" elevation="12">
-
-          <div class="d-flex justify-center mb-6">
-            <v-img src="/css/images/ulife1.png" alt="U:LIFE Logo" max-width="80" contain />
-          </div>
-
-          <!-- Before sending -->
-          <v-card-text v-if="!resetLink" class="space-y-6">
-            <p class="text-center retro-link mb-4">
-              Enter your email address and we'll send you a link to reset your password.
-            </p>
-            <v-text-field 
-              v-model="email" 
-              label="EMAIL" 
-              variant="outlined" 
-              density="comfortable" 
-              class="retro-input"
-              type="email"
-            />
-          </v-card-text>
-
-          <!-- After sending - show the link -->
-          <v-card-text v-if="resetLink" class="space-y-4">
-            <p class="text-center retro-link mb-4" style="font-size: 14px; color: #555;">
-              Your password reset link is ready! Click or copy it to reset your password.
-            </p>
-            <v-card class="bg-yellow-100 pa-4 mb-4">
-              <p class="text-wrap" style="word-break: break-all; font-size: 12px; font-family: monospace;">
-                {{ resetLink }}
-              </p>
-            </v-card>
-          </v-card-text>
-
-          <v-card-actions class="flex flex-col items-center gap-4 mt-6">
-            <!-- Before sending -->
-            <template v-if="!resetLink">
-              <v-btn 
-                :disabled="!isEmailValid || loading" 
-                class="retro-btn" 
-                type="submit" 
-                @click.prevent="sendResetLink"
-              >
-                SEND LINK
-              </v-btn>
-            </template>
-
-            <!-- After sending -->
-            <template v-else>
-              <v-btn 
-                class="retro-btn" 
-                @click="copyToClipboard"
-              >
-                <v-icon start>mdi-content-copy</v-icon>
-                COPY LINK
-              </v-btn>
-              <v-btn 
-                class="retro-btn" 
-                @click="openResetLink"
-              >
-                <v-icon start>mdi-open-in-new</v-icon>
-                OPEN LINK
-              </v-btn>
-            </template>
-
-            <v-btn variant="text" class="retro-link" @click="goToHome">
-              <v-icon start size="16">mdi-arrow-left</v-icon>
-              Back to Login
-            </v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-form>
+  <div
+    class="galaxy-screen relative min-h-screen overflow-hidden"
+    style="background: linear-gradient(135deg, #0d0d1a 0%, #1a0a2e 30%, #0a1a2e 50%, #0a1a1a 70%, #0d0d1a 100%);"
+  >
+    <div class="starfield pointer-events-none fixed inset-0 z-0">
+      <div v-for="n in 80" :key="`star-${n}`" class="star absolute rounded-full" :style="getStarStyle(n)"></div>
     </div>
-  </v-container>
-  <v-snackbar v-model="showSnackbar" :color="snackbarColor" timeout="5000"> 
-    {{ snackbarMessage }} 
-  </v-snackbar>
+    <div class="nebula pointer-events-none fixed inset-0 z-5"></div>
+    <div class="grid-lines pointer-events-none fixed inset-0 z-10"></div>
+    <div class="scanlines pointer-events-none fixed inset-0 z-25"></div>
+
+    <v-container fluid class="relative z-20 flex items-center justify-center min-h-screen px-3 py-6">
+      <div class="w-full max-w-sm flex flex-col items-center">
+        <div class="title-wrapper mb-8 text-center">
+          <div class="title-container inline-block">
+            <h1
+              class="game-title relative uppercase whitespace-nowrap"
+              style="font-family: 'Press Start 2P', monospace; font-size: clamp(2.2rem, 10vw, 5.4rem); text-align: center; display: block;"
+            >
+              <span class="title-u">U</span><span class="title-colon">:</span><span class="glitch-title" data-text="LIFE">LIFE</span><span class="title-exclaim">!</span>
+            </h1>
+          </div>
+          <p
+            class="tagline mt-4 text-cyan-300 text-center text-[10px] md:text-[12px] uppercase tracking-[0.35em]"
+            style="font-family: 'VT323', monospace; font-size: 18px;"
+          >
+            Password Recovery
+          </p>
+        </div>
+
+        <v-form class="w-full" @submit.prevent="!resetLink && sendResetLink()">
+          <div class="galaxy-card relative">
+            <div class="card-glow absolute inset-0 rounded-2xl blur-3xl"></div>
+            <div class="card-bg absolute inset-0 rounded-2xl"></div>
+            <div class="card-border absolute inset-0 rounded-2xl"></div>
+
+            <div class="card-header relative pt-6 pb-4 px-6 text-center">
+              <div class="logo-wrapper mb-4 flex justify-center">
+                <v-img src="/css/images/ulife1.png" alt="U:LIFE" max-width="55" contain class="logo-img" />
+              </div>
+              <h2 class="card-title text-white text-lg font-medium tracking-wide" style="font-family: 'VT323', monospace; font-size: 24px;">
+                Forgot Password
+              </h2>
+              <p class="text-white/50 text-xs mt-1" style="font-family: 'VT323', monospace; font-size: 14px;">
+                We’ll generate a reset link for your email
+              </p>
+            </div>
+
+            <div class="card-body relative px-6 pb-6">
+              <div v-if="!resetLink" class="space-y-3">
+                <div class="text-white/70 text-center mb-1" style="font-family: 'VT323', monospace; font-size: 16px;">
+                  Enter your email address and we’ll send you a link to reset your password.
+                </div>
+
+                <div class="input-wrapper">
+                  <v-text-field
+                    v-model="email"
+                    label="Email Address"
+                    variant="outlined"
+                    density="comfortable"
+                    class="galaxy-input"
+                    type="email"
+                    hide-details="auto"
+                    bg-color="transparent"
+                    :disabled="loading"
+                  >
+                    <template #prepend-inner>
+                      <v-icon size="small" class="input-icon">mdi-email-outline</v-icon>
+                    </template>
+                  </v-text-field>
+                </div>
+
+                <v-btn :disabled="!isEmailValid || loading" class="login-btn w-full py-5 login-btn--center-content" type="submit">
+                  <span class="login-btn__content">
+                    <v-icon size="small">mdi-send</v-icon>
+                    <span class="login-btn__label">{{ loading ? 'Generating...' : 'Send Reset Link' }}</span>
+                  </span>
+                </v-btn>
+              </div>
+
+              <div v-else class="space-y-3">
+                <div class="text-white/70 text-center" style="font-family: 'VT323', monospace; font-size: 16px;">
+                  Your reset link is ready. Copy it or open it in a new tab.
+                </div>
+
+                <div class="link-box">
+                  <div class="link-box-title">Reset Link</div>
+                  <div class="link-box-value">{{ resetLink }}</div>
+                </div>
+
+                <div class="d-flex flex-column gap-3 mt-2">
+                  <v-btn class="secondary-btn w-full" variant="outlined" :disabled="loading" @click="copyToClipboard">
+                    <v-icon start>mdi-content-copy</v-icon>
+                    Copy Link
+                  </v-btn>
+                  <v-btn class="secondary-btn w-full" variant="outlined" :disabled="loading" @click="openResetLink">
+                    <v-icon start>mdi-open-in-new</v-icon>
+                    Open Link
+                  </v-btn>
+                </div>
+              </div>
+
+              <div class="mt-5 text-center">
+                <v-btn variant="text" class="back-link px-1" :disabled="loading" @click="goToHome">
+                  <v-icon start size="16">mdi-arrow-left</v-icon>
+                  Back to Login
+                </v-btn>
+              </div>
+            </div>
+          </div>
+        </v-form>
+      </div>
+    </v-container>
+
+    <v-snackbar
+      v-model="showSnackbar"
+      location="center"
+      rounded="xl"
+      timeout="4500"
+      class="floating-snackbar"
+      :class="snackbarColor === 'error' ? 'floating-snackbar--error' : 'floating-snackbar--success'"
+    >
+      <div class="toast-content">
+        <v-icon class="toast-icon" size="20">
+          {{ snackbarColor === 'error' ? 'mdi-alert-circle-outline' : 'mdi-check-circle-outline' }}
+        </v-icon>
+        <div class="toast-text">{{ snackbarMessage }}</div>
+      </div>
+    </v-snackbar>
+  </div>
 </template>
 
 <script setup>
@@ -105,6 +144,42 @@ const showSnackbar = ref(false)
 const snackbarMessage = ref('')
 const snackbarColor = ref('success')
 const resetLink = ref('')
+
+const seededRandom = (seed) => {
+  const x = Math.sin(seed) * 10000
+  return x - Math.floor(x)
+}
+
+const getStarStyle = (n) => {
+  const colors = [
+    '#00ffcc',
+    '#ff00ff',
+    '#00ccff',
+    '#8b5cf6',
+    '#ffffff',
+    '#00d4aa',
+  ]
+
+  const color = colors[n % colors.length]
+  const left = seededRandom(n * 17.13) * 100
+  const top = seededRandom(n * 31.77) * 100
+  const size = seededRandom(n * 7.91) * 2.6 + 1
+  const duration = seededRandom(n * 11.03) * 5 + 3
+  const delay = seededRandom(n * 23.41) * 4
+  const opacity = seededRandom(n * 5.37) * 0.55 + 0.25
+
+  return {
+    left: `${left}%`,
+    top: `${top}%`,
+    width: `${size}px`,
+    height: `${size}px`,
+    background: color,
+    boxShadow: `0 0 ${size * 2}px ${color}`,
+    opacity,
+    animationDuration: `${duration}s`,
+    animationDelay: `${delay}s`,
+  }
+}
 
 const isEmailValid = computed(() => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -161,85 +236,355 @@ const goToHome = () => {
 </script>
 
 <style scoped>
-@keyframes beat {
-  0%,
-  100% {
-    transform: scale(1);
-    text-shadow: 2px 2px #000, 0 0 10px #00ff66;
-  }
-
-  50% {
-    transform: scale(1.15);
-    text-shadow: 4px 4px #000, 0 0 20px #00ff66;
-  }
+.galaxy-screen {
+  color: #e0e0e0;
+  min-height: 100vh;
 }
 
-.retro-form {
-  width: 600px;
+.star {
+  animation: twinkle 4s ease-in-out infinite, drift 20s linear infinite;
 }
 
-.retro-card {
-  background: #ececec8c !important;
-  border-radius: 20px !important;
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+@keyframes drift {
+  0% { transform: translateY(0) translateX(0); }
+  100% { transform: translateY(30px) translateX(20px); }
+}
+
+.nebula {
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(139, 92, 246, 0.18) 0%, transparent 40%),
+    radial-gradient(ellipse at 80% 80%, rgba(0, 212, 170, 0.10) 0%, transparent 40%),
+    radial-gradient(ellipse at 60% 40%, rgba(0, 206, 209, 0.10) 0%, transparent 35%),
+    radial-gradient(ellipse at 40% 70%, rgba(255, 0, 255, 0.08) 0%, transparent 35%);
+  animation: nebula-drift 30s ease-in-out infinite;
+}
+
+@keyframes nebula-drift {
+  0%, 100% { transform: translateX(0) translateY(0); opacity: 0.8; }
+  25% { transform: translateX(20px) translateY(-10px); opacity: 1; }
+  50% { transform: translateX(-10px) translateY(20px); opacity: 0.9; }
+  75% { transform: translateX(-20px) translateY(-15px); opacity: 1; }
+}
+
+.grid-lines {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: grid-scroll 20s linear infinite;
+}
+
+@keyframes grid-scroll {
+  0% { background-position: 0 0; }
+  100% { background-position: 60px 60px; }
+}
+
+.scanlines {
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.04),
+    rgba(0, 0, 0, 0.04) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+.game-title {
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+}
+
+.title-u {
+  color: #00ffcc;
+  text-shadow: 0 0 30px #00ffcc, 0 0 60px #00ffcc, 4px 4px 0 #004444;
+}
+
+.title-colon {
+  color: #ffffff;
+  text-shadow: 3px 3px 0 #000;
+}
+
+.glitch-title {
+  position: relative;
+  color: #ff00ff;
+  text-shadow: 0 0 30px #ff00ff, 0 0 60px #ff00ff, 4px 4px 0 #440044;
+  animation: glitch-effect 2.5s infinite;
+  display: inline-block;
+}
+
+.glitch-title::before,
+.glitch-title::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.glitch-title::before {
+  color: #00ffcc;
+  animation: glitch-1 2.5s infinite;
+  clip-path: polygon(0 0, 100% 0, 100% 30%, 0 30%);
+  left: -2px;
+}
+
+.glitch-title::after {
+  color: #00ccff;
+  animation: glitch-2 2.5s infinite;
+  clip-path: polygon(0 70%, 100% 70%, 100% 100%, 0 100%);
+  left: 2px;
+}
+
+@keyframes glitch-effect {
+  0%, 90%, 100% { transform: translate(0); opacity: 1; }
+  92% { transform: translate(-3px, 1px); opacity: 0.8; }
+  94% { transform: translate(3px, -1px); opacity: 0.9; }
+  96% { transform: translate(-2px, 2px); opacity: 0.7; }
+}
+
+@keyframes glitch-1 {
+  0%, 85%, 100% { transform: translate(0); opacity: 0; }
+  90% { transform: translate(-4px, 1px); opacity: 0.8; }
+}
+
+@keyframes glitch-2 {
+  0%, 85%, 100% { transform: translate(0); opacity: 0; }
+  92% { transform: translate(4px, -1px); opacity: 0.8; }
+}
+
+.title-exclaim {
+  color: #00ffcc;
+  text-shadow: 0 0 30px #00ffcc, 4px 4px 0 #004444;
+}
+
+.galaxy-card {
+  background: rgba(20, 15, 35, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow:
+    0 25px 80px rgba(0, 0, 0, 0.5),
+    0 0 60px rgba(138, 43, 226, 0.1),
+    0 0 60px rgba(0, 255, 204, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  overflow: hidden;
+}
+
+.card-glow {
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(138, 43, 226, 0.2) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(0, 255, 204, 0.15) 0%, transparent 50%);
+}
+
+.card-bg {
+  background: linear-gradient(180deg, rgba(25, 20, 45, 0.95) 0%, rgba(15, 15, 30, 0.95) 100%);
+}
+
+.card-border {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(135deg, rgba(138, 43, 226, 0.4) 0%, transparent 40%, transparent 60%, rgba(0, 255, 204, 0.3) 100%) border-box,
+    linear-gradient(225deg, rgba(0, 255, 204, 0.3) 0%, transparent 40%, transparent 60%, rgba(138, 43, 226, 0.4) 100%) border-box;
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+.logo-img {
+  filter: drop-shadow(0 0 12px rgba(0, 255, 204, 0.6)) drop-shadow(0 0 24px rgba(138, 43, 226, 0.3));
+}
+
+.input-wrapper {
+  position: relative;
+}
+
+.galaxy-input :deep(.v-field) {
+  background: rgba(10, 10, 25, 0.7) !important;
+  border: 1px solid rgba(138, 43, 226, 0.3) !important;
+  border-radius: 12px !important;
+  transition: all 0.25s ease;
+}
+
+.galaxy-input :deep(.v-field:hover) {
+  border-color: rgba(138, 43, 226, 0.5) !important;
+  background: rgba(10, 10, 25, 0.85) !important;
+}
+
+.galaxy-input :deep(.v-field--focused) {
+  border-color: #00ffcc !important;
+  background: rgba(10, 10, 25, 0.95) !important;
+  box-shadow: 0 0 0 3px rgba(0, 255, 204, 0.15), 0 0 20px rgba(0, 255, 204, 0.1);
+}
+
+.galaxy-input :deep(input),
+.galaxy-input :deep(.v-label) {
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  color: #e0e0e0 !important;
+  letter-spacing: 1px;
+}
+
+.galaxy-input :deep(.v-label) {
+  color: #8888aa !important;
+  font-size: 15px;
+}
+
+.input-icon {
+  color: #8888aa !important;
+}
+
+.login-btn {
+  font-family: 'VT323', monospace !important;
+  font-size: 18px !important;
+  font-weight: 500;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 50%, #00d4aa 100%) !important;
+  color: #ffffff !important;
+  border-radius: 12px !important;
+  box-shadow:
+    0 4px 20px rgba(139, 92, 246, 0.3),
+    0 0 30px rgba(0, 212, 170, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.25s ease;
+}
+
+.login-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.login-btn:disabled {
+  background: #2a2a40 !important;
+  color: #555577 !important;
+  box-shadow: none;
+}
+
+.secondary-btn {
+  font-family: 'VT323', monospace !important;
+  letter-spacing: 0.08em;
+  border-color: rgba(0, 255, 204, 0.35) !important;
+  color: rgba(0, 255, 204, 0.95) !important;
+}
+
+.secondary-btn:hover:not(:disabled) {
+  border-color: rgba(0, 255, 204, 0.6) !important;
+  box-shadow: 0 0 18px rgba(0, 255, 204, 0.18);
+}
+
+.back-link {
+  font-size: 14px !important;
+  color: #00ffcc !important;
+  text-transform: none;
+  font-weight: 500;
+  font-family: 'VT323', monospace;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+  text-shadow: 0 0 10px #00ffcc;
+}
+
+.link-box {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(10, 10, 25, 0.6), rgba(0, 0, 0, 0.25));
+  border-radius: 14px;
+  padding: 12px 12px 10px;
+  overflow: hidden;
+}
+
+.link-box-title {
   font-family: 'Press Start 2P', monospace;
-}
-
-.retro-title {
-  width: 1500px;
-  font-family: "Press Start 2P", cursive;
-  font-size: 70px;
-  color: #53f06a;
-  margin-bottom: 40px;
-  text-shadow: 6px 6px #ffffff;
-  animation: beat 1s infinite;
-}
-
-/* Inputs */
-.retro-input input {
-  font-family: 'Press Start 2P', monospace;
-  color: #89df00;
-}
-
-::v-deep(.v-field) {
-  border-radius: 0 !important;
-  border: 3px solid #048519;
-  background-color: #82f582;
-}
-
-.retro-input label {
   font-size: 10px;
+  letter-spacing: 0.14em;
+  color: rgba(0, 255, 204, 0.9);
+  margin-bottom: 8px;
+  text-transform: uppercase;
 }
 
-.retro-btn {
-  font-family: 'Press Start 2P', monospace;
-  background: #008516 !important;
-  color: #000 !important;
-  border: 3px solid #000000;
-  border-radius: 5px !important;
-  padding: 4px 28px;
-  box-shadow: 4px 4px #000;
-}
-
-.retro-btn:hover {
-  transform: translate(2px, 2px);
-  box-shadow: 2px 2px #000;
-}
-
-.retro-btn:disabled {
-  background: #555 !important;
-  color: #222 !important;
-}
-
-.retro-link {
-  margin-top: 10px;
-  font-family: 'Press Start 2P', monospace;
+.link-box-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-size: 12px;
-  color: #000000;
-  cursor: pointer;
-  text-shadow: 2px 2px #f7fff9;
+  color: rgba(255, 255, 255, 0.85);
+  word-break: break-all;
+  line-height: 1.35;
 }
 
-.retro-link:hover {
-  color: #82f582;
+.snackbar-text {
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+}
+
+.floating-snackbar {
+  --toast-glow: 0, 255, 204;
+}
+
+.floating-snackbar--error {
+  --toast-glow: 239, 68, 68;
+}
+
+.floating-snackbar :deep(.v-snackbar__wrapper) {
+  background: linear-gradient(180deg, rgba(25, 20, 45, 0.94) 0%, rgba(10, 10, 25, 0.92) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow:
+    0 25px 80px rgba(0, 0, 0, 0.55),
+    0 0 45px rgba(var(--toast-glow), 0.18);
+  backdrop-filter: blur(18px);
+  max-width: min(560px, calc(100vw - 24px));
+}
+
+.floating-snackbar :deep(.v-snackbar__content) {
+  padding: 14px 16px !important;
+}
+
+.toast-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.toast-icon {
+  color: rgb(var(--toast-glow)) !important;
+  filter: drop-shadow(0 0 14px rgba(var(--toast-glow), 0.25));
+}
+
+.toast-text {
+  line-height: 1.25;
+}
+
+.login-btn :deep(.v-btn__content) {
+  width: 100%;
+  justify-content: center;
+}
+
+.login-btn--center-content :deep(.v-btn__content) {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-btn__content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  line-height: 1;
+  margin-top: -10px;
+}
+
+.login-btn__label {
+  display: inline-block;
+  line-height: 1;
 }
 </style>

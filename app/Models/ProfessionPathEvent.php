@@ -19,6 +19,8 @@ class ProfessionPathEvent extends Model
         'choices',
         'image',
         'weight',
+        'required_stat',
+        'stat_threshold',
     ];
 
     /**

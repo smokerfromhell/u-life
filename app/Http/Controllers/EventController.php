@@ -3,13 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\Character;
+use App\Models\SharedDecisionLog;
 use App\Models\DailyEvent;
 use App\Models\CulturalEvent;
 use App\Models\AgeSpecificEvent;
 use App\Models\ProfessionPathEvent;
+use App\Models\StatTriggerCondition;
+use App\Support\Privacy;
 use App\Services\EventService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class EventController extends Controller
 {
@@ -42,6 +47,9 @@ class EventController extends Controller
 
             // Check and apply age progression
             $this->checkAndApplyAgeProgression($character);
+
+            // FSM action: unlock profession when adult requirements are met
+            $professionUnlocked = $this->maybeUnlockProfession($character);
             
             $ageGroup = $character->age_group ?? 'adult';
             $shownEventIds = $character->shown_event_ids ?? [];
@@ -50,26 +58,42 @@ class EventController extends Controller
             $narrativeData = $this->eventService->getEventsForNarrativePath($character, $ageGroup, $shownEventIds);
             
             // Get standard events
-            $dailyEvents = $this->getDailyEvents($shownEventIds, $ageGroup);
-            $culturalEvents = $this->getCulturalEvents($shownEventIds);
+            $dailyEvents = $this->getDailyEvents($character, $shownEventIds, $ageGroup);
+            $culturalEvents = $this->getCulturalEvents($character, $shownEventIds);
             
             // Get age-specific events with branching logic
             $ageSpecificEvents = $this->getAgeSpecificEventsWithBranching($character, $ageGroup, $shownEventIds);
+
+            // Stat-trigger events (fold into main story deck)
+            $triggerEvents = $this->getTriggeredStatEvents($character, $shownEventIds);
+            if (!empty($triggerEvents)) {
+                $remainingSlots = max(0, 5 - count($triggerEvents));
+                $ageSpecificEvents = array_slice($ageSpecificEvents, 0, $remainingSlots);
+                $ageSpecificEvents = array_merge($triggerEvents, $ageSpecificEvents);
+            }
             
+            $milestone = $this->checkMilestone($character);
+            if ($professionUnlocked) {
+                $milestone = $this->mergeMilestones($milestone, $this->professionUnlockMilestone($professionUnlocked));
+            }
+
             $events = [
                 'daily' => $dailyEvents,
                 'cultural' => $culturalEvents,
                 'ageSpecific' => $ageSpecificEvents,
-                'milestone' => $this->checkMilestone($character),
+                'milestone' => $milestone,
                 // Add narrative events from branching system
-                'narrative' => $narrativeData['narrative_events'] ?? [],
+                'narrative' => array_map(
+                    fn($e) => $this->formatEvent($e, 'ageSpecific'),
+                    $narrativeData['narrative_events'] ?? []
+                ),
                 'activePaths' => $narrativeData['active_paths'] ?? [],
                 'currentNarrative' => $narrativeData['current_narrative'] ?? null,
             ];
 
             // Add profession events if character is adult with profession
             if ($ageGroup === 'adult' && $character->profession) {
-                $events['profession'] = $this->getProfessionEvents($character->profession, $shownEventIds);
+                $events['profession'] = $this->getProfessionEvents($character, $shownEventIds);
             }
 
             return response()->json($events);
@@ -125,39 +149,59 @@ class EventController extends Controller
             }
         }
         
-        // Prioritize chain events if there are active paths
-        $prioritizedEvents = [];
-        if (!empty($activePaths)) {
-            // Add chain events first
-            foreach ($chainEvents as $event) {
-                $prioritizedEvents[] = $this->formatEvent($event, 'ageSpecific');
-            }
-            
-            // Fill remaining slots with standalone events (multiple events)
-            $remainingSlots = 5 - count($prioritizedEvents);
-            if ($remainingSlots > 0 && !empty($standaloneEvents)) {
-                $standaloneCollection = collect($standaloneEvents);
-                for ($i = 0; $i < $remainingSlots && !$standaloneCollection->isEmpty(); $i++) {
-                    $standaloneSelected = $this->eventService->getRandomEventByWeight($standaloneCollection);
-                    if ($standaloneSelected) {
-                        $prioritizedEvents[] = $this->formatEvent($standaloneSelected, 'ageSpecific');
-                        $standaloneCollection = $standaloneCollection->reject(fn($e) => $e->id === $standaloneSelected->id);
-                    }
+        $selectedEvents = [];
+
+        // If we have active paths, bias toward chain events but keep randomness via weights.
+        if (!empty($activePaths) && !empty($chainEvents)) {
+            $chainCollection = collect($chainEvents)->map(function ($event) use ($activePaths) {
+                $boost = 1.0;
+                if (!empty($event->event_category) && in_array($event->event_category, $activePaths)) {
+                    $boost = 1.6;
+                } elseif (!empty($event->parent_category) && in_array($event->parent_category, $activePaths)) {
+                    $boost = 1.35;
                 }
-            }
-        } else {
-            // No active chains - use weighted random selection for standalone events
-            $maxEvents = min(5, $events->count());
-            for ($i = 0; $i < $maxEvents && !$events->isEmpty(); $i++) {
-                $event = $this->eventService->getRandomEventByWeight($events);
-                if ($event) {
-                    $prioritizedEvents[] = $this->formatEvent($event, 'ageSpecific');
-                    $events = $events->reject(fn($e) => $e->id === $event->id);
+
+                $event->weight = ($event->weight ?? 1) * $boost;
+                return $event;
+            });
+
+            $maxChain = min(3, $chainCollection->count());
+            for ($i = 0; $i < $maxChain && !$chainCollection->isEmpty(); $i++) {
+                $picked = $this->eventService->getRandomEventByWeight($chainCollection);
+                if ($picked) {
+                    $selectedEvents[] = $this->formatEvent($picked, 'ageSpecific');
+                    $chainCollection = $chainCollection->reject(fn($e) => $e->id === $picked->id);
                 }
             }
         }
-        
-        return $prioritizedEvents;
+
+        // Fill remaining slots with standalone events (weighted).
+        $remaining = 5 - count($selectedEvents);
+        if ($remaining > 0 && !empty($standaloneEvents)) {
+            $standaloneCollection = collect($standaloneEvents);
+            for ($i = 0; $i < $remaining && !$standaloneCollection->isEmpty(); $i++) {
+                $picked = $this->eventService->getRandomEventByWeight($standaloneCollection);
+                if ($picked) {
+                    $selectedEvents[] = $this->formatEvent($picked, 'ageSpecific');
+                    $standaloneCollection = $standaloneCollection->reject(fn($e) => $e->id === $picked->id);
+                }
+            }
+        }
+
+        // If nothing selected yet, do a general weighted draw across all eligible events.
+        if (empty($selectedEvents)) {
+            $pool = collect(array_merge($chainEvents, $standaloneEvents));
+            $maxEvents = min(5, $pool->count());
+            for ($i = 0; $i < $maxEvents && !$pool->isEmpty(); $i++) {
+                $picked = $this->eventService->getRandomEventByWeight($pool);
+                if ($picked) {
+                    $selectedEvents[] = $this->formatEvent($picked, 'ageSpecific');
+                    $pool = $pool->reject(fn($e) => $e->id === $picked->id);
+                }
+            }
+        }
+
+        return $selectedEvents;
     }
 
     /**
@@ -169,7 +213,7 @@ class EventController extends Controller
         $currentAgeGroup = $character->age_group;
         
         // Normalize the current age group to ensure consistency
-        $normalizedCurrentAgeGroup = $this->normalizeAgeGroup($currentAgeGroup);
+        $normalizedCurrentAgeGroup = $this->normalizeAgeGroupForCharacter($currentAgeGroup);
         
         // Determine the appropriate age group based on current day
         $newAgeGroup = $this->getAgeGroupForDay($currentDay);
@@ -189,7 +233,7 @@ class EventController extends Controller
     private function getAgeGroupForDay(int $day): string
     {
         if ($day <= 30) return 'child';
-        if ($day <= 60) return 'teen';
+        if ($day <= 60) return 'teenager';
         if ($day <= 90) return 'adult';
         return 'old';
     }
@@ -204,12 +248,12 @@ class EventController extends Controller
         
         if ($previousAgeGroup !== $currentAgeGroup) {
             $milestoneMessages = [
-                'child_to_teen' => [
+                'child_to_teenager' => [
                     'title' => 'Growing Up!',
                     'description' => 'You have grown from a child to a teenager! New adventures await you.',
                     'is_milestone' => true
                 ],
-                'teen_to_adult' => [
+                'teenager_to_adult' => [
                     'title' => 'Becoming an Adult!',
                     'description' => 'You have transitioned into adulthood! Time to face new challenges and opportunities.',
                     'is_milestone' => true
@@ -222,16 +266,105 @@ class EventController extends Controller
             ];
 
             $key = $previousAgeGroup . '_to_' . $currentAgeGroup;
-            return $milestoneMessages[$key] ?? null;
+            $milestone = $milestoneMessages[$key] ?? null;
+
+            // Ensure the milestone is only shown once.
+            $character->previous_age_group = $currentAgeGroup;
+            $character->save();
+
+            return $milestone;
         }
         
         return null;
     }
 
     /**
+     * FSM action: unlock a profession when character is adult and meets requirements.
+     */
+    private function maybeUnlockProfession(Character $character): ?string
+    {
+        if (($character->age_group ?? null) !== 'adult') {
+            return null;
+        }
+
+        if (!empty($character->profession)) {
+            return null;
+        }
+
+        $unlocked = $this->eventService->checkProfessionUnlock($character);
+        if (empty($unlocked)) {
+            return null;
+        }
+
+        $picked = $unlocked[array_rand($unlocked)];
+        $profession = $picked->profession ?? null;
+        if (!$profession) {
+            return null;
+        }
+
+        $character->profession = $profession;
+        $character->save();
+
+        return $profession;
+    }
+
+    private function professionUnlockMilestone(string $profession): array
+    {
+        return [
+            'title' => 'Profession Unlocked!',
+            'description' => "You unlocked the {$profession} path. Professional Path cards are now available.",
+            'is_milestone' => true,
+        ];
+    }
+
+    private function mergeMilestones(?array $a, ?array $b): ?array
+    {
+        if (!$a) return $b;
+        if (!$b) return $a;
+
+        return [
+            'title' => $a['title'] ?? $b['title'],
+            'description' => trim(($a['description'] ?? '') . ' ' . ($b['description'] ?? '')),
+            'is_milestone' => true,
+        ];
+    }
+
+    /**
+     * Get stat-triggered events (based on current effective stats)
+     * These are formatted as type "trigger" so they can be applied via apply-event.
+     */
+    private function getTriggeredStatEvents(Character $character, array $shownEventIds = []): array
+    {
+        $triggered = collect($this->eventService->checkStatTriggers($character));
+
+        if ($triggered->isEmpty()) {
+            return [];
+        }
+
+        if (!empty($shownEventIds)) {
+            $triggered = $triggered->filter(function ($event) use ($shownEventIds) {
+                return !in_array('trigger_' . $event->id, $shownEventIds);
+            });
+        }
+
+        $selected = [];
+        $maxEvents = min(2, $triggered->count());
+
+        for ($i = 0; $i < $maxEvents && !$triggered->isEmpty(); $i++) {
+            $event = $this->eventService->getRandomEventByWeight($triggered);
+            if ($event) {
+                $selected[] = $this->formatEvent($event, 'trigger');
+                $triggered = $triggered->reject(fn($e) => $e->id === $event->id);
+            }
+        }
+
+        return $selected;
+    }
+
+    /**
      * Get random daily events (excluding shown events, filtered by age)
      */
-    public function getDailyEvents(array $shownEventIds = [], string $ageGroup = 'adult')
+    public function getDailyEvents(Character $character, array $shownEventIds = [], string $ageGroup = 'adult')
     {
         // Normalize age group for daily events
         $normalizedAge = $this->normalizeAgeGroupForDaily($ageGroup);
@@ -243,6 +376,24 @@ class EventController extends Controller
         if (!empty($shownEventIds)) {
             $events = $events->filter(function($event) use ($shownEventIds) {
                 return !in_array('daily_' . $event->id, $shownEventIds);
+            });
+        }
+
+        // Apply branching/stat prerequisites
+        $events = $events->filter(fn($event) => $this->eventService->checkEventPrerequisites($event, $character));
+
+        // Bias toward current narrative/active paths, but keep it weighted.
+        $activePaths = $character->active_event_paths ?? [];
+        if (!empty($activePaths)) {
+            $events = $events->map(function ($event) use ($activePaths) {
+                $boost = 1.0;
+                if (!empty($event->event_category) && in_array($event->event_category, $activePaths)) {
+                    $boost = 1.25;
+                } elseif (!empty($event->parent_category) && in_array($event->parent_category, $activePaths)) {
+                    $boost = 1.15;
+                }
+                $event->weight = ((float) ($event->weight ?? 1)) * $boost;
+                return $event;
             });
         }
         
@@ -276,9 +427,49 @@ class EventController extends Controller
     }
 
     /**
+     * Normalize character age_group values for storage in the characters table.
+     * (Keeps compatibility with the characters.age_group enum values.)
+     */
+    private function normalizeAgeGroupForCharacter(?string $ageGroup): string
+    {
+        $ageGroup = (string) $ageGroup;
+
+        return match ($ageGroup) {
+            'child', 'children' => 'child',
+            'teen', 'teenager', 'adolescent' => 'teenager',
+            'adult' => 'adult',
+            'old', 'elder', 'elderly' => 'old',
+            default => 'adult',
+        };
+    }
+
+    /**
+     * Pick a key by weighted probability (values <= 0 are ignored).
+     */
+    private function pickWeightedKey(array $weights): string
+    {
+        $weights = array_filter($weights, fn($w) => is_numeric($w) && $w > 0);
+        if (empty($weights)) {
+            return 'daily';
+        }
+
+        $total = array_sum($weights);
+        $roll = (mt_rand() / mt_getrandmax()) * $total;
+
+        foreach ($weights as $key => $weight) {
+            $roll -= $weight;
+            if ($roll <= 0) {
+                return (string) $key;
+            }
+        }
+
+        return (string) array_key_first($weights);
+    }
+
+    /**
      * Get random cultural events (excluding shown events)
      */
-    public function getCulturalEvents(array $shownEventIds = [])
+    public function getCulturalEvents(Character $character, array $shownEventIds = [])
     {
         $events = CulturalEvent::all();
         
@@ -286,6 +477,24 @@ class EventController extends Controller
         if (!empty($shownEventIds)) {
             $events = $events->filter(function($event) use ($shownEventIds) {
                 return !in_array('cultural_' . $event->id, $shownEventIds);
+            });
+        }
+
+        // Apply branching/stat prerequisites
+        $events = $events->filter(fn($event) => $this->eventService->checkEventPrerequisites($event, $character));
+
+        // Bias toward current narrative/active paths, but keep it weighted.
+        $activePaths = $character->active_event_paths ?? [];
+        if (!empty($activePaths)) {
+            $events = $events->map(function ($event) use ($activePaths) {
+                $boost = 1.0;
+                if (!empty($event->event_category) && in_array($event->event_category, $activePaths)) {
+                    $boost = 1.25;
+                } elseif (!empty($event->parent_category) && in_array($event->parent_category, $activePaths)) {
+                    $boost = 1.15;
+                }
+                $event->weight = ((float) ($event->weight ?? 1)) * $boost;
+                return $event;
             });
         }
         
@@ -307,40 +516,28 @@ class EventController extends Controller
     /**
      * Get random age-specific events (excluding shown events)
      */
-    public function getAgeSpecificEvents(string $ageGroup, array $shownEventIds = [])
+    public function getAgeSpecificEvents(Character $character, string $ageGroup, array $shownEventIds = [])
     {
-        // Normalize age_group
-        $normalizedAgeGroup = $this->normalizeAgeGroup($ageGroup);
-        
-        $events = AgeSpecificEvent::where('age_group', $normalizedAgeGroup)->get();
-        
-        // Filter out already shown events
-        if (!empty($shownEventIds)) {
-            $events = $events->filter(function($event) use ($shownEventIds) {
-                return !in_array('ageSpecific_' . $event->id, $shownEventIds);
-            });
-        }
-        
-        $selected = [];
-        
-        // Get 5 random weighted events
-        $maxEvents = min(5, $events->count());
-        for ($i = 0; $i < $maxEvents && !$events->isEmpty(); $i++) {
-            $event = $this->eventService->getRandomEventByWeight($events);
-            if ($event) {
-                $selected[] = $this->formatEvent($event, 'ageSpecific');
-                $events = $events->reject(fn($e) => $e->id === $event->id);
-            }
+        $events = $this->getAgeSpecificEventsWithBranching($character, $ageGroup, $shownEventIds);
+
+        $triggerEvents = $this->getTriggeredStatEvents($character, $shownEventIds);
+        if (!empty($triggerEvents)) {
+            $remainingSlots = max(0, 5 - count($triggerEvents));
+            $events = array_slice($events, 0, $remainingSlots);
+            $events = array_merge($triggerEvents, $events);
         }
 
-        return $selected;
+        return $events;
     }
 
     /**
      * Get profession-specific events (excluding shown events)
      */
-    public function getProfessionEvents(string $profession, array $shownEventIds = [])
+    public function getProfessionEvents(Character $character, array $shownEventIds = [])
     {
+        $profession = $character->profession;
+        if (!$profession) return [];
+
         $events = ProfessionPathEvent::where('profession', $profession)->get();
         
         // Filter out already shown events
@@ -350,6 +547,9 @@ class EventController extends Controller
             });
         }
         
+        // Gate by prerequisites (e.g., required_stat / threshold)
+        $events = $events->filter(fn($event) => $this->eventService->checkEventPrerequisites($event, $character));
+
         $selected = [];
         
         // Get 5 random weighted events
@@ -376,25 +576,56 @@ class EventController extends Controller
             ], 403);
         }
 
-        // Check age progression
         $this->checkAndApplyAgeProgression($character);
+        $this->maybeUnlockProfession($character);
 
-        $ageGroup = $character->age_group;
+        $ageGroup = $character->age_group ?? 'adult';
         $shownEventIds = $character->shown_event_ids ?? [];
-        
-        // Randomly pick from available event types
-        $eventTypes = ['daily', 'cultural', 'ageSpecific'];
-        if ($ageGroup === 'adult' && $character->profession) {
-            $eventTypes[] = 'profession';
+
+        $normalizedAge = $this->normalizeAgeGroupForDaily($ageGroup);
+        $dailyPool = DailyEvent::whereIn('age_group', [$normalizedAge, 'all'])->get();
+        $dailyPool = $dailyPool
+            ->filter(fn($event) => !in_array('daily_' . $event->id, $shownEventIds))
+            ->filter(fn($event) => $this->eventService->checkEventPrerequisites($event, $character));
+
+        $culturalPool = CulturalEvent::all();
+        $culturalPool = $culturalPool
+            ->filter(fn($event) => !in_array('cultural_' . $event->id, $shownEventIds))
+            ->filter(fn($event) => $this->eventService->checkEventPrerequisites($event, $character));
+
+        $ageSpecificPool = AgeSpecificEvent::where('age_group', $this->normalizeAgeGroup($ageGroup))->get();
+        $ageSpecificPool = $ageSpecificPool
+            ->filter(fn($event) => !in_array('ageSpecific_' . $event->id, $shownEventIds))
+            ->filter(fn($event) => $this->eventService->checkEventPrerequisites($event, $character));
+
+        $triggerPool = collect($this->eventService->checkStatTriggers($character));
+        $triggerPool = $triggerPool->filter(fn($event) => !in_array('trigger_' . $event->id, $shownEventIds));
+
+        $professionPool = collect();
+        if (($character->age_group ?? null) === 'adult' && !empty($character->profession)) {
+            $professionPool = ProfessionPathEvent::where('profession', $character->profession)->get();
+            $professionPool = $professionPool
+                ->filter(fn($event) => !in_array('profession_' . $event->id, $shownEventIds))
+                ->filter(fn($event) => $this->eventService->checkEventPrerequisites($event, $character));
         }
 
-        $type = $eventTypes[array_rand($eventTypes)];
-        
-        $event = match($type) {
-            'daily' => $this->getFilteredRandomDailyEvent($shownEventIds, $ageGroup),
-            'cultural' => $this->getFilteredRandomCulturalEvent($shownEventIds),
-            'ageSpecific' => $this->getFilteredRandomAgeSpecificEvent($this->normalizeAgeGroup($ageGroup), $shownEventIds),
-            'profession' => $this->getFilteredRandomProfessionEvent($character->profession, $shownEventIds),
+        $typeWeights = [
+            'daily' => $dailyPool->isEmpty() ? 0 : 0.40,
+            'cultural' => $culturalPool->isEmpty() ? 0 : 0.22,
+            'ageSpecific' => $ageSpecificPool->isEmpty() ? 0 : 0.22,
+            'trigger' => $triggerPool->isEmpty() ? 0 : 0.18,
+            'profession' => $professionPool->isEmpty() ? 0 : 0.22,
+        ];
+
+        $type = $this->pickWeightedKey($typeWeights);
+
+        $event = match ($type) {
+            'daily' => $this->eventService->getRandomEventByWeight($dailyPool),
+            'cultural' => $this->eventService->getRandomEventByWeight($culturalPool),
+            'ageSpecific' => $this->eventService->getRandomEventByWeight($ageSpecificPool),
+            'trigger' => $this->eventService->getRandomEventByWeight($triggerPool),
+            'profession' => $this->eventService->getRandomEventByWeight($professionPool),
+            default => null,
         };
 
         return response()->json([
@@ -489,6 +720,15 @@ class EventController extends Controller
                 'choice_index' => 'required|integer|min:0'
             ]);
 
+            $beforeSnapshot = [
+                'day' => $character->current_day,
+                'stats' => $character->stats,
+                'hidden_stats' => $character->hidden_stats,
+                'effective_stats' => $character->effective_stats,
+                'narrative' => $character->current_narrative,
+                'active_event_paths' => $character->active_event_paths,
+            ];
+
             // Get the event
             $event = $this->getEventById($validated['event_type'], $validated['event_id']);
             
@@ -497,7 +737,7 @@ class EventController extends Controller
             }
 
             // Get the choice
-            $choices = $this->formatChoices($event->choices);
+            $choices = $this->formatChoices($event->choices ?? null);
             $choice = $choices[$validated['choice_index']] ?? null;
 
             if (!$choice) {
@@ -533,8 +773,76 @@ class EventController extends Controller
                 $gameOver = true;
             }
 
+            // Advance the simulation by one day (server-authoritative)
+            $character->current_day = ($character->current_day ?? 1) + 1;
+            $character->save();
+
+            // Apply any age progression based on the new day
+            $this->checkAndApplyAgeProgression($character);
+
+            // FSM action: profession unlock becomes available in adult stage
+            $this->maybeUnlockProfession($character);
+
             // Refresh the character to get updated data
             $character->refresh();
+
+            $afterSnapshot = [
+                'day' => $character->current_day,
+                'stats' => $character->stats,
+                'hidden_stats' => $character->hidden_stats,
+                'effective_stats' => $character->effective_stats,
+                'narrative' => $character->current_narrative,
+                'active_event_paths' => $character->active_event_paths,
+            ];
+
+            $effectiveDelta = [];
+            $beforeEffective = is_array($beforeSnapshot['effective_stats']) ? $beforeSnapshot['effective_stats'] : [];
+            $afterEffective = is_array($afterSnapshot['effective_stats']) ? $afterSnapshot['effective_stats'] : [];
+            foreach ($afterEffective as $stat => $value) {
+                $effectiveDelta[$stat] = $value - ($beforeEffective[$stat] ?? 0);
+            }
+
+            try {
+                $authUser = Auth::user();
+                $shouldLog = $authUser && ($authUser->share_consent === true);
+
+                if ($shouldLog && Schema::hasTable('shared_decision_logs')) {
+                    SharedDecisionLog::create([
+                        'anon_user_id' => Privacy::anonymize('user', $authUser->id),
+                        'anon_character_id' => Privacy::anonymize('character', $character->id),
+                        'is_guest' => (bool) ($authUser->is_guest ?? false),
+                        'day' => $beforeSnapshot['day'],
+                        'event_type' => $validated['event_type'],
+                        'event_id' => $validated['event_id'],
+                        'choice_index' => $validated['choice_index'],
+                        'data' => [
+                            'event_title' => $event->event_choice ?? $event->title ?? null,
+                            'event_description' => $event->outcome ?? $event->description ?? null,
+                            'choice_text' => $choice['text'] ?? null,
+                            'stat_effects_text' => $statEffects,
+                            'effects' => $effects,
+                            'stats_before' => $beforeSnapshot['stats'],
+                            'stats_after' => $afterSnapshot['stats'],
+                            'hidden_stats_before' => $beforeSnapshot['hidden_stats'],
+                            'hidden_stats_after' => $afterSnapshot['hidden_stats'],
+                            'effective_stats_before' => $beforeSnapshot['effective_stats'],
+                            'effective_stats_after' => $afterSnapshot['effective_stats'],
+                            'effective_stats_delta' => $effectiveDelta,
+                            'narrative_before' => $beforeSnapshot['narrative'],
+                            'narrative_after' => $afterSnapshot['narrative'],
+                            'active_event_paths_before' => $beforeSnapshot['active_event_paths'],
+                            'active_event_paths_after' => $afterSnapshot['active_event_paths'],
+                        ],
+                    ]);
+                }
+            } catch (\Throwable $logError) {
+                Log::warning('Failed to log character decision', [
+                    'character_id' => $character->id,
+                    'event_type' => $validated['event_type'] ?? null,
+                    'event_id' => $validated['event_id'] ?? null,
+                    'error' => $logError->getMessage(),
+                ]);
+            }
 
             return response()->json([
                 'message' => 'Event outcome applied',
@@ -638,6 +946,7 @@ class EventController extends Controller
             'cultural' => CulturalEvent::find($id),
             'ageSpecific' => AgeSpecificEvent::find($id),
             'profession' => ProfessionPathEvent::find($id),
+            'trigger' => StatTriggerCondition::find($id),
             default => null
         };
     }
@@ -655,7 +964,7 @@ class EventController extends Controller
             'image' => $event->image ?? '/css/images/event-placeholder.jpg',
             'outcome' => $event->outcome,
             'statEffects' => $event->stat_effects,
-            'choices' => $this->formatChoices($event->choices),
+            'choices' => $this->formatChoices($event->choices ?? null),
             'weight' => $event->weight,
         ];
     }
@@ -744,16 +1053,16 @@ class EventController extends Controller
             // Fetch fresh events
             $ageGroup = $character->age_group ?? 'adult';
             
-            $dailyEvents = $this->getDailyEvents([], $ageGroup);
-            $culturalEvents = $this->getCulturalEvents([]);
+            $dailyEvents = $this->getDailyEvents($character, [], $ageGroup);
+            $culturalEvents = $this->getCulturalEvents($character, []);
             
             // Get age-specific events
-            $ageSpecificEvents = $this->getAgeSpecificEvents($ageGroup, []);
+            $ageSpecificEvents = $this->getAgeSpecificEvents($character, $ageGroup, []);
             
             // Get profession events if applicable
             $professionEvents = [];
             if ($ageGroup === 'adult' && $character->profession) {
-                $professionEvents = $this->getProfessionEvents($character->profession, []);
+                $professionEvents = $this->getProfessionEvents($character, []);
             }
 
             return response()->json([
@@ -836,11 +1145,11 @@ class EventController extends Controller
             $ageGroup = $character->age_group ?? 'adult';
             
             $newEvents = match($eventType) {
-                'daily' => $this->getDailyEvents([], $ageGroup),
-                'cultural' => $this->getCulturalEvents([]),
-                'ageSpecific' => $this->getAgeSpecificEvents($ageGroup, []),
+                'daily' => $this->getDailyEvents($character, [], $ageGroup),
+                'cultural' => $this->getCulturalEvents($character, []),
+                'ageSpecific' => $this->getAgeSpecificEvents($character, $ageGroup, []),
                 'profession' => $ageGroup === 'adult' && $character->profession 
-                    ? $this->getProfessionEvents($character->profession, []) 
+                    ? $this->getProfessionEvents($character, []) 
                     : [],
                 default => []
             };
@@ -864,4 +1173,3 @@ class EventController extends Controller
         }
     }
 }
-

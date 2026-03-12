@@ -164,7 +164,7 @@
                 class="register-btn w-full py-5 mt-4"
                 type="submit"
               >
-                <span class="flex items-center gap-2 text-center">
+                <span class="flex items-center justify-center gap-2 w-full text-center">
                   <v-icon size="small">mdi-account-plus</v-icon>
                   {{ loading ? 'Creating Account...' : 'Create Account' }}
                 </span>
@@ -205,9 +205,19 @@
   </div>
 
   <!-- Snackbar -->
-  <v-snackbar v-model="showSnackbar" :color="snackbarColor" timeout="3000">
-    <div class="text-center snackbar-text">
-      {{ snackbarMessage }}
+  <v-snackbar
+    v-model="showSnackbar"
+    location="center"
+    rounded="xl"
+    timeout="3500"
+    class="floating-snackbar"
+    :class="snackbarColor === 'error' ? 'floating-snackbar--error' : 'floating-snackbar--success'"
+  >
+    <div class="toast-content">
+      <v-icon class="toast-icon" size="20">
+        {{ snackbarColor === 'error' ? 'mdi-alert-circle-outline' : 'mdi-check-circle-outline' }}
+      </v-icon>
+      <div class="toast-text">{{ snackbarMessage }}</div>
     </div>
   </v-snackbar>
 </template>
@@ -848,6 +858,54 @@ const goToHome = () => {
   font-size: 16px;
 }
 
+.floating-snackbar {
+  --toast-glow: 0, 255, 204;
+}
+
+.floating-snackbar--error {
+  --toast-glow: 239, 68, 68;
+}
+
+.floating-snackbar :deep(.v-snackbar__wrapper) {
+  background: linear-gradient(180deg, rgba(25, 20, 45, 0.94) 0%, rgba(10, 10, 25, 0.92) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow:
+    0 25px 80px rgba(0, 0, 0, 0.55),
+    0 0 45px rgba(var(--toast-glow), 0.18);
+  backdrop-filter: blur(18px);
+  max-width: min(560px, calc(100vw - 24px));
+}
+
+.floating-snackbar :deep(.v-snackbar__content) {
+  padding: 14px 16px !important;
+}
+
+.toast-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.toast-icon {
+  color: rgb(var(--toast-glow)) !important;
+  filter: drop-shadow(0 0 14px rgba(var(--toast-glow), 0.25));
+}
+
+.toast-text {
+  line-height: 1.25;
+}
+
+.register-btn :deep(.v-btn__content) {
+  width: 100%;
+  justify-content: center;
+}
+
 /* ============================================
    VERSION
    ============================================ */
@@ -873,4 +931,3 @@ const goToHome = () => {
   }
 }
 </style>
-

@@ -19,6 +19,10 @@ class DailyEvent extends Model
         'image',
         'weight',
         'age_group',
+        'event_category',
+        'chain_order',
+        'parent_category',
+        'required_choice_outcome',
     ];
 
     /**

@@ -498,6 +498,29 @@
                     bg-color="rgba(0,0,0,0.3)"
                     color="#00ffcc"
                   />
+
+                  <div class="mb-2">
+                    <label class="text-subtitle2 mb-2 d-block profile-label">Data Sharing</label>
+                    <v-switch
+                      v-model="shareConsent"
+                      inset
+                      color="#00ffcc"
+                      :disabled="isSavingProfile || savingConsent"
+                      @update:modelValue="updateShareConsent"
+                    >
+                      <template #label>
+                        <span style="font-family: 'VT323', monospace; font-size: 16px; color: rgba(255,255,255,0.75);">
+                          {{ shareConsent ? 'Sharing enabled' : 'Private mode' }}
+                        </span>
+                      </template>
+                    </v-switch>
+                    <div class="profile-help">
+                      Private mode skips decision logging. Sharing records your choices + stat changes to help improve the game.
+                    </div>
+                    <div v-if="isGuestUser" class="profile-help">
+                      Guest sessions in private mode are deleted when you exit.
+                    </div>
+                  </div>
                   <div class="profile-help">Keep it short — it shows on your main HUD.</div>
                 </div>
               </div>
@@ -597,6 +620,9 @@ const showEventDialog = ref(false)
 const applyingOutcome = ref(false)
 const narrationHistory = ref([])
 const statsPanelKey = ref(0)
+const isGuestUser = ref(false)
+const shareConsent = ref(false)
+const savingConsent = ref(false)
 
 // If the dialog is closed via scrim click / ESC, ensure cards are clickable again.
 watch(showEventDialog, (isOpen) => {
@@ -652,6 +678,8 @@ const canRedrawProfession = ref(true)
 
 // Fetch character and events on mount
 onMounted(async () => {
+  await refreshSessionUser()
+
   // First fetch the character data
   await fetchCharacter()
   
@@ -660,6 +688,48 @@ onMounted(async () => {
     await fetchEvents()
   }
 })
+
+const refreshSessionUser = async () => {
+  try {
+    const response = await fetch('/api/me', {
+      headers: {
+        'Accept': 'application/json'
+      }
+    })
+    if (!response.ok) return
+
+    const data = await response.json()
+    isGuestUser.value = !!data?.user?.is_guest
+    shareConsent.value = data?.user?.share_consent === true
+  } catch (error) {
+    console.error('Error fetching session user:', error)
+  }
+}
+
+const updateShareConsent = async (value) => {
+  const previousValue = shareConsent.value
+  shareConsent.value = value
+
+  try {
+    savingConsent.value = true
+    const response = await fetch('/api/consent', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        share_consent: !!value
+      })
+    })
+    if (!response.ok) throw new Error('Failed to update consent')
+  } catch (error) {
+    console.error('Error updating share consent:', error)
+    shareConsent.value = previousValue
+  } finally {
+    savingConsent.value = false
+  }
+}
 
 /**
  * Fetch character data
@@ -845,11 +915,16 @@ const applyChoice = async (choiceIndex) => {
       character.value.stats = { ...(data.character.stats || {}) }
       character.value.hiddenStats = { ...(data.character.hidden_stats || {}) }
       character.value.effectiveStats = { ...(data.character.effective_stats || {}) }
+      character.value.profession = data.character.profession || character.value.profession
+      character.value.ageGroup = data.character.age_group || character.value.ageGroup
+      character.value.currentDay = data.character.current_day || data.current_day || character.value.currentDay
       console.log('Updated character effectiveStats:', character.value.effectiveStats)
       
       // Update effective stats from backend response
       updateEffectiveStats()
     }
+
+    gameOver.value = data.game_over === true
     
     // Log the choice and effects
     narrationHistory.value.push(`You chose: "${choiceText}"`)
@@ -876,7 +951,6 @@ const applyChoice = async (choiceIndex) => {
  * Continue to next round - refresh events and increment day
  */
 const continueGame = async () => {
-  character.value.currentDay++
   narrationHistory.value.push(`Day ${character.value.currentDay} begins...`)
   
   // Clear selectedEvent to re-enable card clicking
@@ -1183,6 +1257,7 @@ const editProfile = () => {
   }
   previewImage.value = null
   editProfileDialog.value = true
+  refreshSessionUser()
 }
 
 /**
@@ -1276,8 +1351,19 @@ const closeEditProfile = () => {
 /**
  * Logout handler
  */
-const logout = () => {
-  window.location.href = '/logout'
+const logout = async () => {
+  try {
+    await fetch('/api/guest/exit', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json'
+      }
+    })
+  } catch (error) {
+    console.error('Error logging out:', error)
+  } finally {
+    router.push('/home')
+  }
 }
 
 /**

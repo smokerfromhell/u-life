@@ -64,12 +64,28 @@ class EventService
             return null;
         }
 
-        $totalWeight = $events->sum('weight');
-        $random = rand(1, $totalWeight);
-        $current = 0;
+        $totalWeight = 0.0;
+        foreach ($events as $event) {
+            $weight = (float) ($event->weight ?? 1);
+            if ($weight > 0) {
+                $totalWeight += $weight;
+            }
+        }
+
+        if ($totalWeight <= 0) {
+            return $events->first();
+        }
+
+        $random = (mt_rand() / mt_getrandmax()) * $totalWeight;
+        $current = 0.0;
 
         foreach ($events as $event) {
-            $current += $event->weight;
+            $weight = (float) ($event->weight ?? 1);
+            if ($weight <= 0) {
+                continue;
+            }
+
+            $current += $weight;
             if ($random <= $current) {
                 return $event;
             }
@@ -196,7 +212,7 @@ class EventService
     public function checkStatTriggers(Character $character): array
     {
         $triggeredEvents = [];
-        $stats = $character->stats ?? [];
+        $stats = $character->effective_stats ?? $character->stats ?? [];
 
         $triggers = StatTriggerCondition::all();
 
@@ -223,7 +239,7 @@ class EventService
     public function checkProfessionUnlock(Character $character): array
     {
         $unlockedProfessions = [];
-        $stats = $character->stats ?? [];
+        $stats = $character->effective_stats ?? $character->stats ?? [];
 
         $professions = \App\Models\ProfessionTrigger::all();
 
@@ -338,34 +354,32 @@ class EventService
      */
     public function checkEventPrerequisites($event, Character $character): bool
     {
-        if (!isset($event->parent_category) || empty($event->parent_category)) {
-            return true;
-        }
-
         $completedChains = $character->completed_event_chains ?? [];
-        
-        if (!in_array($event->parent_category, $completedChains)) {
-            return false;
-        }
-        
-        if (isset($event->required_choice_outcome) && !empty($event->required_choice_outcome)) {
-            $outcomeKey = $event->parent_category . '_outcome';
-            $actualOutcome = $character->$outcomeKey ?? null;
-            
-            if ($actualOutcome !== $event->required_choice_outcome) {
+
+        if (!empty($event->parent_category)) {
+            if (!in_array($event->parent_category, $completedChains)) {
                 return false;
             }
+
+            if (!empty($event->required_choice_outcome)) {
+                $outcomeKey = $event->parent_category . '_outcome';
+                $actualOutcome = $character->$outcomeKey ?? null;
+
+                if ($actualOutcome !== $event->required_choice_outcome) {
+                    return false;
+                }
+            }
         }
-        
-        if (isset($event->required_stat) && !empty($event->required_stat)) {
+
+        if (!empty($event->required_stat)) {
             $stats = $character->effective_stats ?? $character->stats ?? [];
             $threshold = $event->stat_threshold ?? 50;
-            
+
             if (($stats[$event->required_stat] ?? 0) < $threshold) {
                 return false;
             }
         }
-        
+
         return true;
     }
 
@@ -472,4 +486,3 @@ class EventService
         $character->save();
     }
 }
-

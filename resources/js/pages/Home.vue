@@ -132,7 +132,7 @@
                 class="login-btn w-full py-5"
                 type="submit"
               >
-                <span class="flex items-center gap-2 text-center">
+                <span class="flex items-center justify-center gap-2 w-full text-center">
                   <v-icon size="small">mdi-rocket-launch</v-icon>
                   {{ loading ? 'Loading...' : 'Start Living' }}
                 </span>
@@ -150,12 +150,47 @@
                 <div id="google-signin-button"></div>
               </div>
 
+              <!-- Guest Mode -->
+              <div class="mt-4">
+                <v-btn
+                  class="guest-btn w-full"
+                  variant="outlined"
+                  :disabled="loading"
+                  prepend-icon="mdi-incognito"
+                  @click="guestDialog = true"
+                >
+                  Play as Guest
+                </v-btn>
+                <p
+                  class="text-white/40 text-[11px] mt-2 text-center"
+                  style="font-family: 'VT323', monospace;"
+                >
+                  No account needed. Choose your privacy.
+                </p>
+              </div>
+
               <!-- Create Account -->
               <div class="signup-link mt-5 text-center">
                 <span class="text-white/50 text-sm">New player? </span>
                 <v-btn variant="text" class="create-btn px-1" @click="goToRegister">
                   Create account
                 </v-btn>
+              </div>
+
+              <!-- Professional Access Request -->
+              <div class="mt-2 text-center">
+                <v-btn
+                  variant="text"
+                  class="professional-link px-1"
+                  :disabled="loading"
+                  prepend-icon="mdi-chart-box-outline"
+                  @click="openProfessionalRequest"
+                >
+                  Request Analytics Dashboard Access
+                </v-btn>
+                <div class="text-white/40 text-[11px]" style="font-family: 'VT323', monospace;">
+                  For professionals. Approved by Super Admin.
+                </div>
               </div>
             </div>
           </div>
@@ -173,11 +208,138 @@
   </div>
 
   <!-- Snackbar -->
-  <v-snackbar v-model="showSnackbar" :color="snackbarColor" timeout="3000">
-    <div class="text-center snackbar-text">
-      {{ snackbarMessage }}
+  <v-snackbar
+    v-model="showSnackbar"
+    location="center"
+    rounded="xl"
+    timeout="3500"
+    class="floating-snackbar"
+    :class="snackbarColor === 'error' ? 'floating-snackbar--error' : 'floating-snackbar--success'"
+  >
+    <div class="toast-content">
+      <v-icon class="toast-icon" size="20">
+        {{ snackbarColor === 'error' ? 'mdi-alert-circle-outline' : 'mdi-check-circle-outline' }}
+      </v-icon>
+      <div class="toast-text">{{ snackbarMessage }}</div>
     </div>
   </v-snackbar>
+
+  <!-- Guest Mode Dialog -->
+  <v-dialog v-model="guestDialog" max-width="520" rounded="xl">
+    <v-card class="guest-dialog-card">
+      <v-card-title class="guest-dialog-title text-center">
+        <span class="glitch-title" data-text="GUEST MODE">GUEST MODE</span>
+      </v-card-title>
+      <v-card-text class="guest-dialog-text text-center">
+        <p class="mb-3">Play without an account.</p>
+        <p class="text-white/60 text-sm" style="font-family: 'VT323', monospace; font-size: 16px;">
+          Share your gameplay data (choices + stat changes) to help improve the game?
+        </p>
+      </v-card-text>
+      <v-card-actions class="justify-center gap-3 pb-6 px-6">
+        <v-btn
+          variant="outlined"
+          color="white"
+          class="guest-private-btn"
+          :disabled="loading"
+          @click="startGuest(false)"
+        >
+          Play Private
+        </v-btn>
+        <v-btn
+          variant="elevated"
+          color="#00ffcc"
+          class="guest-share-btn"
+          :disabled="loading"
+          @click="startGuest(true)"
+        >
+          Play & Share
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- Professional Account Request Dialog -->
+  <v-dialog v-model="professionalDialog" max-width="520" rounded="xl">
+    <v-card class="guest-dialog-card">
+      <v-card-title class="guest-dialog-title text-center">
+        <span class="glitch-title" data-text="PRO ACCESS">PRO ACCESS</span>
+      </v-card-title>
+      <v-card-text class="guest-dialog-text">
+        <div class="text-center mb-4">
+          Request access to the analytics dashboard. Your account can only be created/approved by the Super Admin.
+        </div>
+
+        <div class="space-y-3">
+          <v-text-field
+            v-model="proRequest.name"
+            label="Full Name"
+            variant="outlined"
+            density="comfortable"
+            class="galaxy-input"
+            hide-details="auto"
+            bg-color="transparent"
+            :disabled="loading"
+          />
+
+          <v-text-field
+            v-model="proRequest.email"
+            label="Email Address"
+            variant="outlined"
+            density="comfortable"
+            class="galaxy-input"
+            hide-details="auto"
+            bg-color="transparent"
+            :disabled="loading"
+          />
+
+          <v-text-field
+            v-model="proRequest.organization"
+            label="Organization (optional)"
+            variant="outlined"
+            density="comfortable"
+            class="galaxy-input"
+            hide-details="auto"
+            bg-color="transparent"
+            :disabled="loading"
+          />
+
+          <v-textarea
+            v-model="proRequest.message"
+            label="Message (optional)"
+            variant="outlined"
+            density="comfortable"
+            class="galaxy-input"
+            hide-details="auto"
+            bg-color="transparent"
+            rows="3"
+            auto-grow
+            :disabled="loading"
+          />
+        </div>
+      </v-card-text>
+      <v-card-actions class="justify-center gap-3 pb-6 px-6">
+        <v-btn
+          variant="outlined"
+          color="white"
+          class="guest-private-btn"
+          :disabled="loading"
+          @click="professionalDialog = false"
+        >
+          Cancel
+        </v-btn>
+        <v-btn
+          variant="elevated"
+          color="#00ffcc"
+          class="guest-share-btn"
+          :disabled="loading"
+          @click="submitProfessionalRequest"
+        >
+          Submit Request
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 
@@ -205,6 +367,14 @@ const googleClientId = ref(import.meta.env.VITE_GOOGLE_CLIENT_ID || '')
 const showSnackbar = ref(false)
 const snackbarMessage = ref('')
 const snackbarColor = ref('success')
+const guestDialog = ref(false)
+const professionalDialog = ref(false)
+const proRequest = ref({
+  name: '',
+  email: '',
+  organization: '',
+  message: '',
+})
 
 const isLoginEnabled = computed(() =>
   email.value && password.value
@@ -366,6 +536,75 @@ const login = async () => {
 
     // Show error popup
     snackbarMessage.value = 'Invalid email or password'
+    snackbarColor.value = 'error'
+    showSnackbar.value = true
+  } finally {
+    loading.value = false
+  }
+}
+
+const startGuest = async (shareConsent) => {
+  loading.value = true
+  try {
+    const response = await axios.post('/api/guest/start', {
+      share_consent: shareConsent
+    })
+
+    guestDialog.value = false
+
+    snackbarMessage.value = shareConsent
+      ? 'Guest mode started (sharing enabled).'
+      : 'Guest mode started (private).'
+    snackbarColor.value = 'success'
+    showSnackbar.value = true
+
+    const hasCharacter = response.data.has_character
+    router.push(hasCharacter ? '/game' : '/character-creation')
+  } catch (error) {
+    const errorMsg = error.response?.data?.message || error.message || 'Failed to start guest mode'
+    snackbarMessage.value = errorMsg
+    snackbarColor.value = 'error'
+    showSnackbar.value = true
+  } finally {
+    loading.value = false
+  }
+}
+
+const openProfessionalRequest = () => {
+  proRequest.value = {
+    name: proRequest.value.name || '',
+    email: proRequest.value.email || email.value || '',
+    organization: proRequest.value.organization || '',
+    message: proRequest.value.message || '',
+  }
+  professionalDialog.value = true
+}
+
+const submitProfessionalRequest = async () => {
+  loading.value = true
+  try {
+    const res = await axios.post('/api/professional-account-requests', {
+      name: proRequest.value.name,
+      email: proRequest.value.email,
+      organization: proRequest.value.organization || null,
+      message: proRequest.value.message || null,
+    })
+
+    professionalDialog.value = false
+
+    snackbarMessage.value = res.data?.message || 'Request submitted'
+    snackbarColor.value = 'success'
+    showSnackbar.value = true
+  } catch (error) {
+    const errorMsg =
+      error.response?.data?.message ||
+      (error.response?.data?.errors
+        ? Object.values(error.response.data.errors).flat().join(' ')
+        : null) ||
+      error.message ||
+      'Failed to submit request'
+
+    snackbarMessage.value = errorMsg
     snackbarColor.value = 'error'
     showSnackbar.value = true
   } finally {
@@ -824,11 +1063,118 @@ const goToForgotPassword = () => {
   font-size: 16px;
 }
 
+.floating-snackbar {
+  --toast-glow: 0, 255, 204;
+}
+
+.floating-snackbar--error {
+  --toast-glow: 239, 68, 68;
+}
+
+.floating-snackbar :deep(.v-snackbar__wrapper) {
+  background: linear-gradient(180deg, rgba(25, 20, 45, 0.94) 0%, rgba(10, 10, 25, 0.92) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow:
+    0 25px 80px rgba(0, 0, 0, 0.55),
+    0 0 45px rgba(var(--toast-glow), 0.18);
+  backdrop-filter: blur(18px);
+  max-width: min(560px, calc(100vw - 24px));
+}
+
+.floating-snackbar :deep(.v-snackbar__content) {
+  padding: 14px 16px !important;
+}
+
+.toast-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.toast-icon {
+  color: rgb(var(--toast-glow)) !important;
+  filter: drop-shadow(0 0 14px rgba(var(--toast-glow), 0.25));
+}
+
+.toast-text {
+  line-height: 1.25;
+}
+
+.login-btn :deep(.v-btn__content) {
+  width: 100%;
+  justify-content: center;
+}
+
 /* ============================================
    VERSION
    ============================================ */
 .version {
   font-family: 'Press Start 2P', monospace;
+}
+
+/* ============================================
+   GUEST MODE
+   ============================================ */
+.guest-btn {
+  border-color: rgba(0, 255, 204, 0.35) !important;
+  color: rgba(0, 255, 204, 0.95) !important;
+  font-family: 'VT323', monospace !important;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.guest-btn:hover {
+  border-color: rgba(0, 255, 204, 0.6) !important;
+  box-shadow: 0 0 18px rgba(0, 255, 204, 0.18);
+}
+
+.guest-dialog-card {
+  background: linear-gradient(180deg, rgba(25, 20, 45, 0.96) 0%, rgba(15, 15, 30, 0.96) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.55), 0 0 45px rgba(0, 255, 204, 0.10);
+  overflow: hidden;
+}
+
+.guest-dialog-title {
+  font-family: 'Press Start 2P', monospace !important;
+  color: #ffffff !important;
+  padding-top: 18px !important;
+}
+
+.guest-dialog-text {
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-family: 'VT323', monospace;
+  font-size: 1.05rem;
+}
+
+.guest-private-btn,
+.guest-share-btn {
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 0.7rem !important;
+  letter-spacing: 0.08em !important;
+  border-radius: 12px !important;
+}
+
+.guest-private-btn {
+  border-color: rgba(255, 255, 255, 0.22) !important;
+}
+
+.guest-share-btn {
+  color: #00110d !important;
+  box-shadow: 0 10px 28px rgba(0, 255, 204, 0.18);
+}
+
+.professional-link {
+  color: rgba(0, 255, 204, 0.95) !important;
+  font-family: 'VT323', monospace !important;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 /* ============================================

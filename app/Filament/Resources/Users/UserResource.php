@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Users;
 use App\Filament\Resources\Users\Pages\CreateUser;
 use App\Filament\Resources\Users\Pages\EditUser;
 use App\Filament\Resources\Users\Pages\ListUsers;
+use App\Filament\Resources\Users\RelationManagers\CharactersRelationManager;
 use App\Filament\Resources\Users\Schemas\UserForm;
 use App\Filament\Resources\Users\Tables\UsersTable;
 use App\Models\User;
@@ -36,7 +37,7 @@ class UserResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            CharactersRelationManager::class,
         ];
     }
 
@@ -51,7 +52,12 @@ class UserResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        return Auth::user()->hasRole('Professional');
+        return (bool) Auth::user()?->hasRole('Super Admin');
+    }
+
+    public static function canViewAny(): bool
+    {
+        return (bool) Auth::user()?->hasRole('Super Admin');
     }
     
 }

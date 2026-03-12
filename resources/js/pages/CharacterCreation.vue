@@ -235,11 +235,14 @@
 
     <!-- Popup -->
     <div v-if="showPopup" class="popup-overlay" @click.self="showPopup = false">
-      <div class="popup-box">
+      <div class="popup-box" :class="`popup-box--${popupVariant}`">
         <v-img src="/css/images/ulife1.png" alt="U:LIFE Logo" max-width="120" contain class="popup-icon" />
-        <h3>Notice</h3>
+        <div class="popup-badge" aria-hidden="true">
+          <v-icon size="24">{{ popupIcon }}</v-icon>
+        </div>
+        <h3>{{ popupTitle }}</h3>
         <p>{{ popupMessage }}</p>
-        <v-btn color="success" @click="showPopup = false">OK</v-btn>
+        <v-btn class="popup-btn" @click="showPopup = false">OK</v-btn>
       </div>
     </div>
   </div>
@@ -387,6 +390,31 @@ export default {
   computed: {
     remainingPoints() {
       return this.totalPoints - Object.values(this.character.stats).reduce((a, b) => a + b, 0);
+    },
+    popupVariant() {
+      const msg = String(this.popupMessage || '').trim();
+      if (msg.startsWith('✓')) return 'success';
+      if (msg.startsWith('✗')) return 'error';
+      if (msg.startsWith('⚠')) return 'warn';
+      return 'info';
+    },
+    popupIcon() {
+      const map = {
+        success: 'mdi-check-circle-outline',
+        error: 'mdi-alert-circle-outline',
+        warn: 'mdi-alert-outline',
+        info: 'mdi-information-outline',
+      };
+      return map[this.popupVariant] || map.info;
+    },
+    popupTitle() {
+      const map = {
+        success: 'Success',
+        error: 'Error',
+        warn: 'Notice',
+        info: 'Notice',
+      };
+      return map[this.popupVariant] || 'Notice';
     },
     effectiveStats() {
       let stats = { ...this.character.stats };
@@ -1787,18 +1815,21 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.72);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 999;
   animation: fadeIn 0.3s ease;
-  backdrop-filter: blur(5px);
+  backdrop-filter: blur(10px);
 }
 
 .popup-box {
-  background: linear-gradient(180deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98));
-  border: 3px solid #00ffcc;
+  --popup-glow: 0, 255, 204;
+  background:
+    linear-gradient(180deg, rgba(25, 20, 45, 0.96) 0%, rgba(10, 10, 25, 0.94) 100%) padding-box,
+    linear-gradient(135deg, rgba(139, 92, 246, 0.45), rgba(var(--popup-glow), 0.35), rgba(139, 92, 246, 0.35)) border-box;
+  border: 2px solid transparent;
   border-radius: 24px;
   padding: 40px;
   width: 90%;
@@ -1806,13 +1837,19 @@ export default {
   text-align: center;
   box-shadow: 
     0 20px 60px rgba(0, 0, 0, 0.6),
-    0 0 40px rgba(0, 255, 204, 0.3),
-    0 0 80px rgba(0, 255, 204, 0.15),
+    0 0 45px rgba(var(--popup-glow), 0.22),
+    0 0 85px rgba(var(--popup-glow), 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   animation: popup-appear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   position: relative;
   overflow: hidden;
+  backdrop-filter: blur(18px);
 }
+
+.popup-box--success { --popup-glow: 0, 255, 204; }
+.popup-box--info { --popup-glow: 0, 204, 255; }
+.popup-box--warn { --popup-glow: 245, 158, 11; }
+.popup-box--error { --popup-glow: 239, 68, 68; }
 
 .popup-box::before {
   content: '';
@@ -1821,7 +1858,7 @@ export default {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(0, 255, 204, 0.1) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(var(--popup-glow), 0.14) 0%, transparent 70%);
   animation: pulse-bg 3s ease-in-out infinite;
 }
 
@@ -1833,19 +1870,38 @@ export default {
 .popup-icon {
   margin: 0 auto 20px auto;
   display: block;
-  filter: drop-shadow(0 0 12px rgba(0, 255, 204, 0.6));
+  filter: drop-shadow(0 0 12px rgba(var(--popup-glow), 0.35));
   animation: pulse-glow 2s infinite;
   position: relative;
   z-index: 1;
+}
+
+.popup-badge {
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 12px;
+  display: grid;
+  place-items: center;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 30% 20%, rgba(var(--popup-glow), 0.18), rgba(0, 0, 0, 0.35));
+  border: 1px solid rgba(var(--popup-glow), 0.35);
+  box-shadow: 0 0 22px rgba(var(--popup-glow), 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  position: relative;
+  z-index: 1;
+}
+
+.popup-badge :deep(.v-icon) {
+  color: rgb(var(--popup-glow)) !important;
+  filter: drop-shadow(0 0 12px rgba(var(--popup-glow), 0.22));
 }
 
 .popup-box h3 {
   font-family: 'VT323', monospace;
   font-size: 24px;
   font-weight: 700;
-  color: #00ffcc;
+  color: rgba(255, 255, 255, 0.95);
   margin-bottom: 20px;
-  text-shadow: 0 0 20px rgba(0, 255, 204, 0.8), 0 0 40px rgba(0, 255, 204, 0.4);
+  text-shadow: 0 0 22px rgba(var(--popup-glow), 0.25);
   position: relative;
   z-index: 1;
   letter-spacing: 0.1em;
@@ -1853,40 +1909,31 @@ export default {
 }
 
 .popup-box h3::before {
-  content: '⚠';
-  display: block;
-  font-size: 2rem;
-  margin-bottom: 8px;
-  animation: shake 0.5s ease-in-out infinite;
+  content: '';
+  display: none;
 }
 
-@keyframes shake {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-5deg); }
-  75% { transform: rotate(5deg); }
-}
 
 .popup-box p {
   font-family: 'VT323', monospace;
   font-size: 16px;
-  color: #fef3c7;
+  color: rgba(255, 255, 255, 0.86);
   margin-bottom: 28px;
   line-height: 1.7;
   position: relative;
   z-index: 1;
   padding: 16px 20px;
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.1));
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.10));
   border-radius: 12px;
-  border: 1px solid rgba(251, 191, 36, 0.4);
-  box-shadow: inset 0 0 20px rgba(251, 191, 36, 0.1), 0 0 15px rgba(251, 191, 36, 0.2);
-  text-shadow: 0 0 10px rgba(254, 243, 199, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.25);
 }
 
-.popup-box .v-btn {
+.popup-btn {
   position: relative;
   z-index: 1;
-  background: linear-gradient(135deg, #00d4aa, #00a884) !important;
-  color: #000 !important;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.85), rgba(99, 102, 241, 0.70), rgba(var(--popup-glow), 0.75)) !important;
+  color: #ffffff !important;
   font-family: 'VT323', monospace !important;
   font-weight: 700 !important;
   font-size: 16px !important;
@@ -1895,18 +1942,18 @@ export default {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   box-shadow: 
-    0 4px 15px rgba(0, 255, 204, 0.4),
-    0 0 25px rgba(0, 255, 204, 0.2),
+    0 4px 18px rgba(var(--popup-glow), 0.22),
+    0 0 30px rgba(var(--popup-glow), 0.14),
     inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
   transition: all 0.3s ease !important;
-  border: 2px solid #00ffcc !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
 }
 
-.popup-box .v-btn:hover {
+.popup-btn:hover {
   transform: translateY(-2px) scale(1.02);
   box-shadow: 
-    0 8px 25px rgba(0, 255, 204, 0.5),
-    0 0 40px rgba(0, 255, 204, 0.3),
+    0 10px 30px rgba(var(--popup-glow), 0.26),
+    0 0 45px rgba(var(--popup-glow), 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
 }
 
@@ -1933,9 +1980,9 @@ export default {
 }
 
 @keyframes pulse-glow {
-  0% { filter: drop-shadow(0 0 8px rgba(0, 255, 204, 0.5)); }
-  50% { filter: drop-shadow(0 0 16px rgba(0, 255, 204, 0.8)); }
-  100% { filter: drop-shadow(0 0 8px rgba(0, 255, 204, 0.5)); }
+  0% { filter: drop-shadow(0 0 8px rgba(var(--popup-glow), 0.28)); }
+  50% { filter: drop-shadow(0 0 16px rgba(var(--popup-glow), 0.45)); }
+  100% { filter: drop-shadow(0 0 8px rgba(var(--popup-glow), 0.28)); }
 }
 
 /* ========================================
@@ -2264,4 +2311,3 @@ export default {
   }
 }
 </style>
-
