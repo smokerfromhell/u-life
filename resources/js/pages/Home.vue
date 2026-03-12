@@ -1,62 +1,183 @@
 <template>
-  <v-container fluid class="retro-screen d-flex align-center justify-center"
-    style="height: 100vh; background-image: url('/css/images/login-bacg.jpg'); background-size: cover; background-position: center;">
-    <div class="w-full max-w-md d-flex flex-col align-center">
-      <!-- Title above the form, outside the card -->
-      <h1 class="retro-title text-center mb-6">
-        WELCOME TO U:LIFE!
-      </h1>
-
-      <!-- Form card -->
-      <v-form class="retro-form w-full">
-        <v-card class="retro-card pa-12" elevation="12">
-
-          <!-- Logo above inputs -->
-          <div class="d-flex justify-center mb-6">
-            <v-img src="/css/images/ulife1.png" alt="U:LIFE Logo" max-width="70" contain />
-          </div>
-
-          <v-card-text class="space-y-6">
-            <v-text-field v-model="email" label="EMAIL" variant="outlined" density="comfortable" class="retro-input" />
-
-            <v-text-field v-model="password" :type="showPassword ? 'text' : 'password'" label="PASSWORD"
-              variant="outlined" density="comfortable" class="retro-input">
-              <template #append-inner>
-                <v-icon @click="showPassword = !showPassword" class="cursor-pointer retro-icon">
-                  {{ showPassword ? 'mdi-eye' : 'mdi-eye-off' }}
-                </v-icon>
-              </template>
-            </v-text-field>
-          </v-card-text>
-
-          <v-card-actions class="flex flex-col items-center gap-4 mt-6">
-            <v-btn :disabled="!isLoginEnabled || loading" class="retro-btn" type="submit" @click.prevent="login">
-              START
-            </v-btn>
-
-            <!-- Google Sign-In Button -->
-            <div id="google-signin-button" class="mt-4"></div>
-
-            <!-- Secondary actions row -->
-             <div class="d-flex justify-center gap-6 mt-2">
-    <v-btn variant="text" class="retro-link" @click="goToRegister">
-      <v-icon start>mdi-account-plus</v-icon>
-      Need an account?
-    </v-btn>
+  <!-- Galaxy Background Screen -->
+  <div class="galaxy-screen relative min-h-screen overflow-hidden"
+    style="background: linear-gradient(135deg, #0d0d1a 0%, #1a0a2e 30%, #0a1a2e 50%, #0a1a1a 70%, #0d0d1a 100%);">
     
-    <v-btn variant="text" class="retro-link" @click="goToForgotPassword">
-      <v-icon start>mdi-lock-reset</v-icon>
-      Forgot password?
-    </v-btn>
-
-            </div>
-          </v-card-actions>
-        </v-card>
-      </v-form>
+    <!-- Galaxy Starfield -->
+    <div class="starfield pointer-events-none fixed inset-0 z-0">
+      <div v-for="n in 80" :key="n" class="star absolute rounded-full"
+        :style="getStarStyle(n)">
+      </div>
     </div>
-  </v-container>
-  <v-snackbar v-model="showSnackbar" :color="snackbarColor" timeout="3000"> {{ snackbarMessage }} </v-snackbar>
+    
+    <!-- Nebula Clouds -->
+    <div class="nebula pointer-events-none fixed inset-0 z-5"></div>
+    
+    <!-- Grid Lines -->
+    <div class="grid-lines pointer-events-none fixed inset-0 z-10"></div>
+    
+    <!-- Scanlines -->
+    <div class="scanlines pointer-events-none fixed inset-0 z-25"></div>
+    
+    <!-- Main Container -->
+    <v-container fluid class="relative z-20 flex items-center justify-center min-h-screen px-3 py-6">
+      <div class="w-full max-w-sm flex flex-col items-center">
+        
+        <!-- Game Title - BIG -->
+        <div class="title-wrapper mb-8 text-center">
+          <div class="title-container inline-block">
+            <h1 class="game-title relative uppercase whitespace-nowrap" 
+              style="font-family: 'Press Start 2P', monospace; font-size: clamp(2.5rem, 12vw, 8rem); text-align: center; display: block;">
+              <span class="title-u">U</span><span class="title-colon">:</span><span class="glitch-title" data-text="LIFE">LIFE</span><span class="title-exclaim">!</span>
+            </h1>
+          </div>
+          
+          <p class="tagline mt-4 text-cyan-300 text-center text-[10px] md:text-[12px] uppercase tracking-[0.35em]"
+            style="font-family: 'VT323', monospace; font-size: 18px;">
+            ◇ Play Your Life ◇
+          </p>
+        </div>
 
+        <!-- Login Card - Galaxy Theme -->
+        <v-form class="w-full" @submit.prevent="login">
+          <div class="galaxy-card relative">
+            <!-- Card Glow -->
+            <div class="card-glow absolute inset-0 rounded-2xl blur-3xl"></div>
+            
+            <!-- Card Background -->
+            <div class="card-bg absolute inset-0 rounded-2xl"></div>
+            
+            <!-- Card Border Gradient -->
+            <div class="card-border absolute inset-0 rounded-2xl"></div>
+
+            <!-- Card Header -->
+            <div class="card-header relative pt-6 pb-4 px-6 text-center">
+              <!-- Logo - Centered -->
+              <div class="logo-wrapper mb-4 flex justify-center">
+                <v-img src="/css/images/ulife1.png" alt="U:LIFE" max-width="55" contain class="logo-img" />
+              </div>
+              
+              <h2 class="card-title text-white text-lg font-medium tracking-wide"
+                style="font-family: 'VT323', monospace; font-size: 24px;">
+                Welcome Back, Player
+              </h2>
+              <p class="text-white/50 text-xs mt-1" style="font-family: 'VT323', monospace; font-size: 14px;">
+                Continue your journey
+              </p>
+            </div>
+
+            <!-- Card Body -->
+            <div class="card-body relative px-6 pb-6">
+<!-- Input Fields -->
+              <div class="inputs space-y-2.5">
+                <!-- Email -->
+                <div class="input-wrapper">
+                  <v-text-field 
+                    v-model="email" 
+                    label="Email Address"
+                    variant="outlined"
+                    density="comfortable" 
+                    class="galaxy-input"
+                    hide-details="auto"
+                    bg-color="transparent"
+                  >
+                    <template #prepend-inner>
+                      <v-icon size="small" class="input-icon">mdi-email-outline</v-icon>
+                    </template>
+                  </v-text-field>
+                </div>
+
+                <!-- Password -->
+                <div class="input-wrapper">
+                  <v-text-field 
+                    v-model="password" 
+                    :type="showPassword ? 'text' : 'password'" 
+                    label="Password"
+                    variant="outlined"
+                    density="comfortable" 
+                    class="galaxy-input"
+                    hide-details="auto"
+                    bg-color="transparent"
+                  >
+                    <template #prepend-inner>
+                      <v-icon size="small" class="input-icon">mdi-lock-outline</v-icon>
+                    </template>
+                    <template #append-inner>
+                      <v-icon @click="showPassword = !showPassword" class="eye-icon cursor-pointer">
+                        {{ showPassword ? 'mdi-eye' : 'mdi-eye-off' }}
+                      </v-icon>
+                    </template>
+                  </v-text-field>
+                </div>
+              </div>
+
+              <!-- Remember & Forgot -->
+              <div class="flex items-center justify-between mt-2 mb-4">
+                <v-checkbox
+                  v-model="rememberMe"
+                  label="Remember me"
+                  density="compact"
+                  hide-details
+                  class="remember-checkbox"
+                  color="#00ffcc"
+                ></v-checkbox>
+                <v-btn variant="text" class="forgot-btn" @click="goToForgotPassword">
+                  Forgot?
+                </v-btn>
+              </div>
+
+              <!-- Login Button -->
+              <v-btn 
+                :disabled="!isLoginEnabled || loading" 
+                class="login-btn w-full py-5"
+                type="submit"
+              >
+                <span class="flex items-center gap-2 text-center">
+                  <v-icon size="small">mdi-rocket-launch</v-icon>
+                  {{ loading ? 'Loading...' : 'Start Living' }}
+                </span>
+              </v-btn>
+
+<!-- Divider -->
+              <div class="divider mt-5 flex items-center gap-3">
+                <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+                <span class="text-white/40 text-[10px]" style="font-family: 'Press Start 2P', monospace;">OR</span>
+                <div class="flex-1 h-px bg-gradient-to-l from-transparent via-white/20 to-transparent"></div>
+              </div>
+
+              <!-- Google Sign-In -->
+              <div class="google-wrapper mt-4 flex justify-center">
+                <div id="google-signin-button"></div>
+              </div>
+
+              <!-- Create Account -->
+              <div class="signup-link mt-5 text-center">
+                <span class="text-white/50 text-sm">New player? </span>
+                <v-btn variant="text" class="create-btn px-1" @click="goToRegister">
+                  Create account
+                </v-btn>
+              </div>
+            </div>
+          </div>
+        </v-form>
+
+        <!-- Footer -->
+        <div class="footer mt-5 text-center">
+          <p class="version text-cyan-400/50 text-[7px] uppercase tracking-widest" 
+            style="font-family: 'Press Start 2P', monospace;">
+            v1.0 • Galaxy Edition
+          </p>
+        </div>
+      </div>
+    </v-container>
+  </div>
+
+  <!-- Snackbar -->
+  <v-snackbar v-model="showSnackbar" :color="snackbarColor" timeout="3000">
+    <div class="text-center snackbar-text">
+      {{ snackbarMessage }}
+    </div>
+  </v-snackbar>
 </template>
 
 
@@ -75,6 +196,7 @@ const email = ref('')
 const password = ref('')
 const showPassword = ref(false)
 const loading = ref(false)
+const rememberMe = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
 const googleClientId = ref(import.meta.env.VITE_GOOGLE_CLIENT_ID || '')
@@ -87,6 +209,28 @@ const snackbarColor = ref('success')
 const isLoginEnabled = computed(() =>
   email.value && password.value
 )
+
+// Generate galaxy star positions with varied colors
+const getStarStyle = (n) => {
+  const colors = [
+    '#00ffcc', // cyan
+    '#ff00ff', // magenta/purple
+    '#00ff88', // green
+    '#ffcc00', // yellow
+    '#88ccff', // light blue
+    '#ff88ff', // pink
+    '#ffffff', // white
+    '#aaff00', // lime
+  ]
+  const color = colors[n % colors.length]
+  const left = Math.random() * 100
+  const top = Math.random() * 100
+  const size = Math.random() * 3 + 1
+  const duration = Math.random() * 5 + 3
+  const delay = Math.random() * 4
+  const opacity = Math.random() * 0.5 + 0.3
+  return `left: ${left}%; top: ${top}%; width: ${size}px; height: ${size}px; background: ${color}; box-shadow: 0 0 ${size * 2}px ${color}; opacity: ${opacity}; animation-duration: ${duration}s; animation-delay: ${delay}s;`
+}
 
 // Handle Google Sign-In response
 const handleCredentialResponse = async (response) => {
@@ -179,9 +323,11 @@ const initializeGoogleSignIn = () => {
       window.google.accounts.id.renderButton(
         buttonElement,
         { 
-          theme: 'filled_blue',
+          theme: 'dark',
           size: 'large',
-          text: 'signin_with'
+          width: '240',
+          text: 'continue_with',
+          shape: 'rectangular'
         }
       )
     } else {
@@ -236,97 +382,471 @@ const goToForgotPassword = () => {
 </script>
 
 <style scoped>
-@keyframes beat {
+/* ============================================
+   GALAXY BACKGROUND - MOVING STARS
+   ============================================ */
+.starfield {
+  background: transparent;
+}
 
-  0%,
+.star {
+  animation: twinkle 4s ease-in-out infinite, drift 20s linear infinite;
+}
+
+.star.shooting {
+  animation: shooting-star 3s ease-in-out infinite;
+}
+
+.star.fast {
+  animation: twinkle 3s ease-in-out infinite, drift-fast 15s linear infinite;
+}
+
+.star.slow {
+  animation: twinkle 5s ease-in-out infinite, drift-slow 30s linear infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+@keyframes drift {
+  0% { transform: translateY(0) translateX(0); }
+  100% { transform: translateY(30px) translateX(20px); }
+}
+
+@keyframes drift-fast {
+  0% { transform: translateY(0) translateX(0); }
+  100% { transform: translateY(50px) translateX(30px); }
+}
+
+@keyframes drift-slow {
+  0% { transform: translateY(0) translateX(0); }
+  100% { transform: translateY(20px) translateX(10px); }
+}
+
+@keyframes shooting-star {
+  0% {
+    transform: translateX(0) translateY(0);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
   100% {
-    transform: scale(1);
-    text-shadow: 2px 2px #000, 0 0 10px #00ff66;
-  }
-
-  50% {
-    transform: scale(1.15);
-    text-shadow: 4px 4px #000, 0 0 20px #00ff66;
+    transform: translateX(300px) translateY(300px);
+    opacity: 0;
   }
 }
 
-.retro-form {
-  width: 600px;
+.nebula {
+  background: 
+    radial-gradient(ellipse at 20% 20%, rgba(138, 43, 226, 0.15) 0%, transparent 40%),
+    radial-gradient(ellipse at 80% 80%, rgba(0, 255, 136, 0.1) 0%, transparent 40%),
+    radial-gradient(ellipse at 60% 40%, rgba(0, 206, 209, 0.1) 0%, transparent 35%),
+    radial-gradient(ellipse at 40% 70%, rgba(255, 0, 255, 0.08) 0%, transparent 35%);
+  animation: nebula-drift 30s ease-in-out infinite;
 }
 
-.retro-card {
-  background: #ececec8c !important;
-  border-radius: 20px !important;
+@keyframes nebula-drift {
+  0%, 100% { 
+    transform: translateX(0) translateY(0);
+    opacity: 0.8;
+  }
+  25% { 
+    transform: translateX(20px) translateY(-10px);
+    opacity: 1;
+  }
+  50% { 
+    transform: translateX(-10px) translateY(20px);
+    opacity: 0.9;
+  }
+  75% { 
+    transform: translateX(-20px) translateY(-15px);
+    opacity: 1;
+  }
+}
+
+.grid-lines {
+  background: 
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: grid-scroll 20s linear infinite;
+}
+
+@keyframes grid-scroll {
+  0% { background-position: 0 0; }
+  100% { background-position: 60px 60px; }
+}
+
+.scanlines {
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.04),
+    rgba(0, 0, 0, 0.04) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+/* ============================================
+   TITLE - BIG WITH GLITCH ON LIFE
+   ============================================ */
+.game-title {
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+}
+
+.title-u {
+  color: #00ffcc;
+  text-shadow: 0 0 30px #00ffcc, 0 0 60px #00ffcc, 4px 4px 0 #004444;
+}
+
+.title-colon {
+  color: #ffffff;
+  text-shadow: 3px 3px 0 #000;
+}
+
+.glitch-title {
+  position: relative;
+  color: #ff00ff;
+  text-shadow: 0 0 30px #ff00ff, 0 0 60px #ff00ff, 4px 4px 0 #440044;
+  animation: glitch-effect 2.5s infinite;
+  display: inline-block;
+}
+
+.glitch-title::before,
+.glitch-title::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.glitch-title::before {
+  color: #00ffcc;
+  animation: glitch-1 2.5s infinite;
+  clip-path: polygon(0 0, 100% 0, 100% 30%, 0 30%);
+  left: -2px;
+}
+
+.glitch-title::after {
+  color: #00ccff;
+  animation: glitch-2 2.5s infinite;
+  clip-path: polygon(0 70%, 100% 70%, 100% 100%, 0 100%);
+  left: 2px;
+}
+
+@keyframes glitch-effect {
+  0%, 90%, 100% { 
+    transform: translate(0);
+    opacity: 1;
+  }
+  92% { 
+    transform: translate(-3px, 1px);
+    opacity: 0.8;
+  }
+  94% { 
+    transform: translate(3px, -1px);
+    opacity: 0.9;
+  }
+  96% { 
+    transform: translate(-2px, 2px);
+    opacity: 0.7;
+  }
+}
+
+@keyframes glitch-1 {
+  0%, 85%, 100% { 
+    transform: translate(0);
+    opacity: 0;
+  }
+  90% { 
+    transform: translate(-4px, 1px);
+    opacity: 0.8;
+  }
+}
+
+@keyframes glitch-2 {
+  0%, 85%, 100% { 
+    transform: translate(0);
+    opacity: 0;
+  }
+  92% { 
+    transform: translate(4px, -1px);
+    opacity: 0.8;
+  }
+}
+
+.title-exclaim {
+  color: #00ffcc;
+  text-shadow: 0 0 30px #00ffcc, 4px 4px 0 #004444;
+  animation: exclaim-glow 2s ease-in-out infinite;
+}
+
+@keyframes exclaim-glow {
+  0%, 100% { text-shadow: 0 0 30px #00ffcc, 4px 4px 0 #004444; }
+  50% { text-shadow: 0 0 50px #00ffcc, 0 0 80px #00ffcc, 4px 4px 0 #004444; }
+}
+
+.tagline {
+  animation: tagline-shimmer 5s ease-in-out infinite;
+}
+
+@keyframes tagline-shimmer {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+/* ============================================
+   GALAXY CARD
+   ============================================ */
+.galaxy-card {
+  background: rgba(20, 15, 35, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 
+    0 25px 80px rgba(0, 0, 0, 0.5),
+    0 0 60px rgba(138, 43, 226, 0.1),
+    0 0 60px rgba(0, 255, 204, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  overflow: hidden;
+}
+
+.card-glow {
+  background: 
+    radial-gradient(ellipse at 30% 20%, rgba(138, 43, 226, 0.2) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(0, 255, 204, 0.15) 0%, transparent 50%);
+}
+
+.card-bg {
+  background: linear-gradient(180deg, rgba(25, 20, 45, 0.95) 0%, rgba(15, 15, 30, 0.95) 100%);
+}
+
+.card-border {
+  border: 1px solid transparent;
+  background: 
+    linear-gradient(135deg, rgba(138, 43, 226, 0.4) 0%, transparent 40%, transparent 60%, rgba(0, 255, 204, 0.3) 100%) border-box,
+    linear-gradient(225deg, rgba(0, 255, 204, 0.3) 0%, transparent 40%, transparent 60%, rgba(138, 43, 226, 0.4) 100%) border-box;
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+/* ============================================
+   CARD HEADER
+   ============================================ */
+.logo-img {
+  filter: drop-shadow(0 0 12px rgba(0, 255, 204, 0.6)) drop-shadow(0 0 24px rgba(138, 43, 226, 0.3));
+}
+
+.card-title {
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+/* ============================================
+   INPUT FIELDS
+   ============================================ */
+.input-wrapper {
+  position: relative;
+}
+
+.galaxy-input :deep(.v-field) {
+  background: rgba(10, 10, 25, 0.7) !important;
+  border: 1px solid rgba(138, 43, 226, 0.3) !important;
+  border-radius: 12px !important;
+  transition: all 0.25s ease;
+}
+
+.galaxy-input :deep(.v-field:hover) {
+  border-color: rgba(138,226, 0 43, .5) !important;
+  background: rgba(10, 10, 25, 0.85) !important;
+}
+
+.galaxy-input :deep(.v-field--focused) {
+  border-color: #00ffcc !important;
+  background: rgba(10, 10, 25, 0.95) !important;
+  box-shadow: 0 0 0 3px rgba(0, 255, 204, 0.15), 0 0 20px rgba(0, 255, 204, 0.1);
+}
+
+.galaxy-input :deep(input),
+.galaxy-input :deep(.v-label) {
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  color: #e0e0e0 !important;
+  letter-spacing: 1px;
+}
+
+.galaxy-input :deep(.v-label) {
+  color: #8888aa !important;
+  font-size: 15px;
+}
+
+.galaxy-input :deep(input::placeholder) {
+  color: #555577 !important;
+}
+
+.input-icon {
+  color: #8888aa !important;
+}
+
+.eye-icon {
+  color: #8888aa !important;
+  transition: all 0.2s ease;
+}
+
+.eye-icon:hover {
+  color: #00ffcc !important;
+  filter: drop-shadow(0 0 5px #00ffcc);
+}
+
+/* ============================================
+   REMEMBER & FORGOT
+   ============================================ */
+.remember-checkbox :deep(.v-label) {
+  color: #8888aa !important;
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+}
+
+.forgot-btn {
+  font-size: 12px !important;
+  color: #00ffcc !important;
+  text-transform: none;
+  font-family: 'VT323', monospace;
+}
+
+.forgot-btn:hover {
+  text-decoration: underline;
+  text-shadow: 0 0 10px #00ffcc;
+}
+
+/* ============================================
+   LOGIN BUTTON
+   ============================================ */
+.login-btn {
+  font-family: 'VT323', monospace !important;
+  font-size: 18px !important;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-align: center !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 50%, #00d4aa 100%) !important;
+  color: #ffffff !important;
+  border-radius: 12px !important;
+  box-shadow: 
+    0 4px 20px rgba(139, 92, 246, 0.3),
+    0 0 30px rgba(0, 212, 170, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.25s ease;
+}
+
+.login-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 6px 30px rgba(139, 92, 246, 0.4),
+    0 0 40px rgba(0, 212, 170, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.login-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.login-btn:disabled {
+  background: #2a2a40 !important;
+  color: #555577 !important;
+  box-shadow: none;
+}
+
+/* ============================================
+   DIVIDER
+   ============================================ */
+.divider span {
   font-family: 'Press Start 2P', monospace;
 }
 
-.retro-title {
-  width: 1500px;
-  font-family: "Press Start 2P", cursive;
-  font-size: 90px;
-  color: #53f06a;
-  margin-bottom: 40px;
-  text-shadow: 6px 6px #ffffff;
-  animation: beat 1s infinite;
-}
-
-/* Inputs */
-.retro-input input {
-  font-family: 'Press Start 2P', monospace;
-  color: #89df00;
-}
-
-::v-deep(.v-field) {
-  border-radius: 0 !important;
-  border: 3px solid #048519;
-  background-color: #82f582;
-}
-
-.retro-input label {
-  font-size: 10px;
-}
-
-.retro-btn {
-  font-family: 'Press Start 2P', monospace;
-  background: #008516 !important;
-  color: #000 !important;
-  border: 3px solid #000000;
-  border-radius: 5px !important;
-  padding: 4px 28px;
-  box-shadow: 4px 4px #000;
-}
-
-.retro-btn:hover {
-  transform: translate(2px, 2px);
-  box-shadow: 2px 2px #000;
-}
-
-/* Disabled state */
-.retro-btn:disabled {
-  background: #555 !important;
-  color: #222 !important;
-}
-
-.retro-link {
-  margin-top: 25px;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 12px;
-  color: #000000;
-  cursor: pointer;
-  text-shadow: 2px 2px #f7fff9;
-}
-
-.retro-link:hover {
-  color: #82f582;
+/* ============================================
+   GOOGLE BUTTON
+   ============================================ */
+.google-wrapper {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 #google-signin-button {
-  display: flex;
+  display: flex !important;
   justify-content: center;
-  margin: 10px 0;
+  width: 100%;
 }
 
-::v-deep(#g_id_signin > div) {
-  margin: 0 auto !important;
+#google-signin-button :deep(div) {
+  margin: 0 !important;
+}
+
+#google-signin-button :deep(.g_id_signin) {
+  display: flex;
+  justify-content: center;
+}
+
+#google-signin-button :deep(.g_id_signin > div) {
+  transform: scale(0.92);
+}
+
+/* ============================================
+   SIGNUP LINK
+   ============================================ */
+.create-btn {
+  font-size: 14px !important;
+  color: #00ffcc !important;
+  text-transform: none;
+  font-weight: 500;
+  font-family: 'VT323', monospace;
+}
+
+.create-btn:hover {
+  text-decoration: underline;
+  text-shadow: 0 0 10px #00ffcc;
+}
+
+/* ============================================
+   SNACKBAR
+   ============================================ */
+.snackbar-text {
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+}
+
+/* ============================================
+   VERSION
+   ============================================ */
+.version {
+  font-family: 'Press Start 2P', monospace;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 380px) {
+  .galaxy-card {
+    margin: 0 -4px;
+  }
+  
+  .card-header {
+    padding-top: 20px;
+    padding-bottom: 12px;
+  }
+  
+  .card-body {
+    padding: 20px;
+  }
 }
 </style>
+

@@ -1,14 +1,37 @@
 <template>
-  <div class="character-creation">
-    <!-- Animated Background -->
-    <div class="bg-particles">
-      <div v-for="n in 30" :key="n" class="particle" :style="getParticleStyle(n)"></div>
+  <!-- Galaxy Background Screen -->
+  <div class="galaxy-screen relative min-h-screen overflow-hidden"
+    style="background: linear-gradient(135deg, #0d0d1a 0%, #1a0a2e 30%, #0a1a2e 50%, #0a1a1a 70%, #0d0d1a 100%);">
+    
+    <!-- Galaxy Starfield -->
+    <div class="starfield pointer-events-none fixed inset-0 z-0">
+      <div v-for="n in 80" :key="n" class="star absolute rounded-full"
+        :style="getStarStyle(n)">
+      </div>
     </div>
-    <div class="bg-grid"></div>
+    
+    <!-- Nebula Clouds -->
+    <div class="nebula pointer-events-none fixed inset-0 z-5"></div>
+    
+    <!-- Grid Lines -->
+    <div class="grid-lines pointer-events-none fixed inset-0 z-10"></div>
+    
+    <!-- Scanlines -->
+    <div class="scanlines pointer-events-none fixed inset-0 z-25"></div>
 
     <!-- Main Container -->
-    <div class="creation-container">
-      <h2 class="page-title">Create Your Character</h2>
+    <div class="creation-container relative z-20">
+      <!-- Game Title -->
+      <div class="title-wrapper mb-6 text-center">
+        <h1 class="game-title relative uppercase" 
+          style="font-family: 'Press Start 2P', monospace; font-size: clamp(1.5rem, 6vw, 3rem); text-align: center; display: block;">
+          <span class="title-u">U</span><span class="title-colon">:</span><span class="glitch-title" data-text="LIFE">LIFE</span><span class="title-exclaim">!</span>
+        </h1>
+        <p class="tagline mt-3 text-cyan-300 text-center text-[10px] md:text-[12px] uppercase tracking-[0.35em]"
+          style="font-family: 'VT323', monospace; font-size: 16px;">
+          ◇ Create Your Character ◇
+        </p>
+      </div>
 
       <div class="creation-layout">
         <!-- Left Panel -->
@@ -61,49 +84,21 @@
               </div>
             </div>
           </div>
-
-          <!-- Active Skills and Talents -->
-          <div class="active-container">
-            <h3 class="active-title">
-              <v-icon size="16" class="mr-1">mdi-star</v-icon>
-              Active Skills
-            </h3>
-            <div class="active-list">
-              <div v-for="skill in character.skills" :key="skill.name" class="active-box skill-box">
-                {{ skill.name }}
-              </div>
-              <span v-if="character.skills.length === 0" class="no-items">No skills selected</span>
-            </div>
-
-            <div class="section-gap"></div>
-
-            <h3 class="active-title">
-              <v-icon size="16" class="mr-1">mdi-sparkles</v-icon>
-              Active Talents
-            </h3>
-            <div class="active-list">
-              <div v-for="talent in character.talents" :key="talent.name" class="active-box talent-box">
-                {{ talent.name }}
-              </div>
-              <span v-if="character.talents.length === 0" class="no-items">No talents selected</span>
-            </div>
-          </div>
         </div>
 
         <!-- Right Panel -->
         <div class="right-panel">
           <!-- Skills Carousel -->
           <div class="skills-container">
-            <h3 class="carousel-title">
-              <v-icon class="header-icon">mdi-star-circle</v-icon>
-              Choose Skills
+            <h3 class="carousel-title glitch-title" data-text="✧ CHOOSE SKILLS ✧">
+              ✧ CHOOSE SKILLS ✧
             </h3>
             <div class="card-carousel">
               <button class="arrow-button" @click="prevSkillCard">
                 <v-icon size="22">mdi-chevron-left</v-icon>
               </button>
               <div class="card-track">
-<div v-for="(skill, index) in visibleSkills" :key="skill.name" class="skill-card"
+                <div v-for="(skill, index) in visibleSkills" :key="skill.name" class="skill-card"
                   :class="{ selected: character.skills.includes(skill), 'center-card': index === 2 }"
                   @click="toggleSkill(skill)">
                   <div class="card-visual">
@@ -129,16 +124,15 @@
 
           <!-- Talents Carousel -->
           <div class="talents-container">
-            <h3 class="carousel-title">
-              <v-icon class="header-icon">mdi-sparkles</v-icon>
-              Choose Talents
+            <h3 class="carousel-title glitch-title" data-text="✧ CHOOSE TALENTS ✧">
+              ✧ CHOOSE TALENTS ✧
             </h3>
             <div class="card-carousel">
               <button class="arrow-button" @click="prevTalentCard">
                 <v-icon size="22">mdi-chevron-left</v-icon>
               </button>
               <div class="card-track">
-<div v-for="(talent, index) in visibleTalents" :key="talent.name" class="talent-card"
+                <div v-for="(talent, index) in visibleTalents" :key="talent.name" class="talent-card"
                   :class="{ selected: character.talents.includes(talent), 'center-card': index === 2 }"
                   @click="toggleTalent(talent)">
                   <div class="card-visual">
@@ -159,6 +153,49 @@
               <button class="arrow-button" @click="nextTalentCard">
                 <v-icon size="22">mdi-chevron-right</v-icon>
               </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Skills & Talents Display (Below Panels) -->
+      <div class="active-display-container">
+        <!-- Active Skills Section -->
+        <div class="active-section">
+          <h3 class="active-title">
+            Active Skills ({{ character.skills.length }})
+          </h3>
+          <div class="active-list">
+            <div v-if="character.skills.length === 0" class="no-items">
+              No skills selected yet
+            </div>
+            <div 
+              v-for="skill in character.skills" 
+              :key="skill.name" 
+              class="active-box skill-box"
+              @click="toggleSkill(skill)"
+            >
+              {{ skill.name }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Talents Section -->
+        <div class="active-section">
+          <h3 class="active-title">
+            Active Talents ({{ character.talents.length }})
+          </h3>
+          <div class="active-list">
+            <div v-if="character.talents.length === 0" class="no-items">
+              No talents selected yet
+            </div>
+            <div 
+              v-for="talent in character.talents" 
+              :key="talent.name" 
+              class="active-box talent-box"
+              @click="toggleTalent(talent)"
+            >
+              {{ talent.name }}
             </div>
           </div>
         </div>
@@ -385,6 +422,28 @@ export default {
     }
   },
   methods: {
+    // Generate galaxy star positions with varied colors
+    getStarStyle(n) {
+      const colors = [
+        '#00ffcc', // cyan
+        '#ff00ff', // magenta/purple
+        '#00ff88', // green
+        '#ffcc00', // yellow
+        '#88ccff', // light blue
+        '#ff88ff', // pink
+        '#ffffff', // white
+        '#aaff00', // lime
+      ]
+      const color = colors[n % colors.length]
+      const left = Math.random() * 100
+      const top = Math.random() * 100
+      const size = Math.random() * 3 + 1
+      const duration = Math.random() * 5 + 3
+      const delay = Math.random() * 4
+      const opacity = Math.random() * 0.5 + 0.3
+      return `left: ${left}%; top: ${top}%; width: ${size}px; height: ${size}px; background: ${color}; box-shadow: 0 0 ${size * 2}px ${color}; opacity: ${opacity}; animation-duration: ${duration}s; animation-delay: ${delay}s;`
+    },
+
     getParticleStyle(n) {
       const random = (min, max) => Math.random() * (max - min) + min;
       return {
@@ -715,128 +774,247 @@ export default {
 </script>
 
 <style scoped>
-/* ========================================
-   MAIN SCREEN - Enhanced Game Background
-   ======================================== */
-.character-creation {
+/* ============================================
+   GALAXY BACKGROUND - MOVING STARS
+   ============================================ */
+.starfield {
+  background: transparent;
+}
+
+.star {
+  animation: twinkle 4s ease-in-out infinite, drift 20s linear infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+@keyframes drift {
+  0% { transform: translateY(0) translateX(0); }
+  100% { transform: translateY(30px) translateX(20px); }
+}
+
+.nebula {
+  background: 
+    radial-gradient(ellipse at 20% 20%, rgba(138, 43, 226, 0.15) 0%, transparent 40%),
+    radial-gradient(ellipse at 80% 80%, rgba(0, 255, 136, 0.1) 0%, transparent 40%),
+    radial-gradient(ellipse at 60% 40%, rgba(0, 206, 209, 0.1) 0%, transparent 35%),
+    radial-gradient(ellipse at 40% 70%, rgba(255, 0, 255, 0.08) 0%, transparent 35%);
+  animation: nebula-drift 30s ease-in-out infinite;
+}
+
+@keyframes nebula-drift {
+  0%, 100% { 
+    transform: translateX(0) translateY(0);
+    opacity: 0.8;
+  }
+  25% { 
+    transform: translateX(20px) translateY(-10px);
+    opacity: 1;
+  }
+  50% { 
+    transform: translateX(-10px) translateY(20px);
+    opacity: 0.9;
+  }
+  75% { 
+    transform: translateX(-20px) translateY(-15px);
+    opacity: 1;
+  }
+}
+
+.grid-lines {
+  background: 
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: grid-scroll 20s linear infinite;
+}
+
+@keyframes grid-scroll {
+  0% { background-position: 0 0; }
+  100% { background-position: 60px 60px; }
+}
+
+.scanlines {
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.04),
+    rgba(0, 0, 0, 0.04) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+/* ============================================
+   TITLE - BIG WITH GLITCH ON LIFE
+   ============================================ */
+.game-title {
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+}
+
+.title-u {
+  color: #00ffcc;
+  text-shadow: 0 0 30px #00ffcc, 0 0 60px #00ffcc, 4px 4px 0 #004444;
+}
+
+.title-colon {
+  color: #ffffff;
+  text-shadow: 3px 3px 0 #000;
+}
+
+.glitch-title {
   position: relative;
-  background: linear-gradient(165deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
-  min-height: 100vh;
-  overflow: hidden;
+  color: #ff00ff;
+  text-shadow: 0 0 30px #ff00ff, 0 0 60px #ff00ff, 4px 4px 0 #440044;
+  animation: glitch-effect 2.5s infinite;
+  display: inline-block;
 }
 
-/* Animated Background Particles */
-.bg-particles {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 0;
-}
-
-.particle {
+.glitch-title::before,
+.glitch-title::after {
+  content: attr(data-text);
   position: absolute;
-  background: radial-gradient(circle, rgba(134, 238, 135, 0.8), transparent);
-  border-radius: 50%;
-  animation: float-particle linear infinite;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 }
 
-@keyframes float-particle {
-  0% {
-    transform: translateY(0) scale(1);
-    opacity: 0;
+.glitch-title::before {
+  color: #00ffcc;
+  animation: glitch-1 2.5s infinite;
+  clip-path: polygon(0 0, 100% 0, 100% 30%, 0 30%);
+  left: -2px;
+}
+
+.glitch-title::after {
+  color: #00ccff;
+  animation: glitch-2 2.5s infinite;
+  clip-path: polygon(0 70%, 100% 70%, 100% 100%, 0 100%);
+  left: 2px;
+}
+
+@keyframes glitch-effect {
+  0%, 90%, 100% { 
+    transform: translate(0);
+    opacity: 1;
   }
-  10% {
+  92% { 
+    transform: translate(-3px, 1px);
     opacity: 0.8;
   }
-  90% {
-    opacity: 0.8;
+  94% { 
+    transform: translate(3px, -1px);
+    opacity: 0.9;
   }
-  100% {
-    transform: translateY(-100vh) scale(0.5);
-    opacity: 0;
+  96% { 
+    transform: translate(-2px, 2px);
+    opacity: 0.7;
   }
 }
 
-/* Grid Pattern Overlay */
-.bg-grid {
-  position: fixed;
-  inset: 0;
-  background-image: 
-    linear-gradient(rgba(134, 238, 135, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(134, 238, 135, 0.03) 1px, transparent 1px);
-  background-size: 50px 50px;
-  pointer-events: none;
-  z-index: 1;
+@keyframes glitch-1 {
+  0%, 85%, 100% { 
+    transform: translate(0);
+    opacity: 0;
+  }
+  90% { 
+    transform: translate(-4px, 1px);
+    opacity: 0.8;
+  }
+}
+
+@keyframes glitch-2 {
+  0%, 85%, 100% { 
+    transform: translate(0);
+    opacity: 0;
+  }
+  92% { 
+    transform: translate(4px, -1px);
+    opacity: 0.8;
+  }
+}
+
+.title-exclaim {
+  color: #00ffcc;
+  text-shadow: 0 0 30px #00ffcc, 4px 4px 0 #004444;
+  animation: exclaim-glow 2s ease-in-out infinite;
+}
+
+@keyframes exclaim-glow {
+  0%, 100% { text-shadow: 0 0 30px #00ffcc, 4px 4px 0 #004444; }
+  50% { text-shadow: 0 0 50px #00ffcc, 0 0 80px #00ffcc, 4px 4px 0 #004444; }
+}
+
+.tagline {
+  animation: tagline-shimmer 5s ease-in-out infinite;
+}
+
+@keyframes tagline-shimmer {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
 }
 
 /* ========================================
    CREATION CONTAINER
    ======================================== */
 .creation-container {
-  position: relative;
-  z-index: 2;
   width: 100%;
-  max-width: 100%;
+  max-width: 1300px;
   margin: 0 auto;
   padding: 16px;
   box-sizing: border-box;
   overflow-x: hidden;
 }
 
-.page-title {
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
-  text-align: center;
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #22c55e;
-  margin-bottom: 24px;
-  text-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
-}
-
 .creation-layout {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: row;
   gap: 20px;
   justify-content: center;
-  align-items: flex-start;
+  align-items: stretch;
 }
 
 /* ========================================
-   PANELS
+   PANELS - Galaxy Theme
    ======================================== */
 .left-panel,
 .right-panel {
-  background: linear-gradient(155deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
-  border: 2px solid rgba(134, 238, 135, 0.4);
-  border-radius: 16px;
-  padding: 20px;
+  background: rgba(20, 15, 35, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
   backdrop-filter: blur(20px);
   box-shadow: 
-    0 10px 40px rgba(0, 0, 0, 0.5),
-    0 0 20px rgba(34, 197, 94, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    0 25px 80px rgba(0, 0, 0, 0.5),
+    0 0 60px rgba(138, 43, 226, 0.1),
+    0 0 60px rgba(0, 255, 204, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  padding: 20px;
 }
 
 .left-panel {
-  flex: 1 1 380px;
+  flex: 1 1 320px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  min-width: 340px;
-  max-width: 450px;
+  gap: 10px;
+  min-width: 280px;
+  max-width: 380px;
 }
 
 .right-panel {
-  flex: 2 1 780px;
+  flex: 2 1 550px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  min-width: 720px;
+  justify-content: center;
+  gap: 15px;
+  min-width: 450px;
+  max-width: 900px;
 }
 
 /* ========================================
-   FORM ELEMENTS
+   FORM ELEMENTS - Galaxy Theme
    ======================================== */
 .form-group {
   display: flex;
@@ -845,35 +1023,35 @@ export default {
 }
 
 .form-label {
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
-  font-size: 0.85rem;
+  font-family: 'VT323', monospace;
+  font-size: 16px;
   font-weight: 600;
-  color: #94a3b8;
+  color: #8888aa;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .form-input,
 .form-select {
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
-  font-size: 1rem;
-  background: rgba(0, 0, 0, 0.3);
-  color: #f0fdf4;
-  border: 2px solid rgba(134, 238, 135, 0.3);
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  background: rgba(10, 10, 25, 0.7) !important;
+  color: #e0e0e0 !important;
+  border: 1px solid rgba(138, 43, 226, 0.3) !important;
   padding: 12px 16px;
-  border-radius: 12px;
+  border-radius: 12px !important;
   transition: all 0.3s ease;
 }
 
 .form-input:focus,
 .form-select:focus {
   outline: none;
-  border-color: #22c55e;
-  box-shadow: 0 0 15px rgba(34, 197, 94, 0.2);
+  border-color: #00ffcc !important;
+  box-shadow: 0 0 15px rgba(0, 255, 204, 0.2);
 }
 
 .form-input::placeholder {
-  color: #64748b;
+  color: #555577 !important;
 }
 
 .form-select option {
@@ -882,13 +1060,13 @@ export default {
 }
 
 /* ========================================
-   STATS SECTION
+   STATS SECTION - Galaxy Theme
    ======================================== */
 .stats-container {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 16px;
   padding: 20px;
-  border: 1px solid rgba(134, 238, 135, 0.2);
+  border: 1px solid rgba(138, 43, 226, 0.2);
 }
 
 .stats-header {
@@ -897,31 +1075,31 @@ export default {
   align-items: center;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(134, 238, 135, 0.2);
+  border-bottom: 1px solid rgba(138, 43, 226, 0.2);
 }
 
 .stats-title {
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
-  font-size: 1rem;
+  font-family: 'VT323', monospace;
+  font-size: 18px;
   font-weight: 700;
-  color: #f0fdf4;
+  color: #00ffcc;
   margin: 0;
 }
 
 .points-remaining {
-  font-size: 0.8rem;
-  color: #22c55e;
+  font-size: 14px;
+  color: #00ffcc;
   font-weight: 500;
 }
 
 .diagram-toggle {
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
-  font-size: 0.75rem;
+  font-family: 'VT323', monospace;
+  font-size: 12px;
   font-weight: 600;
   padding: 6px 14px;
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
-  border: 1px solid rgba(34, 197, 94, 0.4);
+  background: rgba(138, 43, 226, 0.2);
+  color: #00ffcc;
+  border: 1px solid rgba(0, 255, 204, 0.4);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -930,7 +1108,7 @@ export default {
 }
 
 .diagram-toggle:hover {
-  background: rgba(34, 197, 94, 0.25);
+  background: rgba(138, 43, 226, 0.3);
   transform: translateY(-2px);
 }
 
@@ -945,14 +1123,15 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(10, 10, 25, 0.5);
   border-radius: 10px;
-  border-left: 3px solid #22c55e;
+  border-left: 3px solid #00ffcc;
 }
 
 .stat-label {
-  color: #94a3b8;
-  font-size: 0.85rem;
+  color: #8888aa;
+  font-family: 'VT323', monospace;
+  font-size: 14px;
   font-weight: 500;
   flex: 1;
 }
@@ -964,32 +1143,32 @@ export default {
 }
 
 .stat-btn {
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
-  font-size: 1.2rem;
+  font-family: 'VT323', monospace;
+  font-size: 18px;
   font-weight: 600;
   width: 32px;
   height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
-  border: 1px solid rgba(34, 197, 94, 0.4);
+  background: rgba(138, 43, 226, 0.2);
+  color: #00ffcc;
+  border: 1px solid rgba(0, 255, 204, 0.4);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .stat-btn:hover {
-  background: rgba(34, 197, 94, 0.3);
+  background: rgba(138, 43, 226, 0.4);
   transform: scale(1.1);
 }
 
 .stat-value {
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
-  font-size: 1rem;
+  font-family: 'VT323', monospace;
+  font-size: 16px;
   font-weight: 700;
-  color: #22c55e;
+  color: #00ffcc;
   min-width: 28px;
   text-align: center;
 }
@@ -997,19 +1176,37 @@ export default {
 /* ========================================
    ACTIVE CONTAINER (Skills/Talents Display)
    ======================================== */
+.active-display-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 15px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.active-section {
+  width: 100%;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 16px;
+  border: 1px solid rgba(138, 43, 226, 0.2);
+}
+
 .active-container {
   margin-top: 8px;
   padding: 20px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 16px;
-  border: 1px solid rgba(134, 238, 135, 0.2);
+  border: 1px solid rgba(138, 43, 226, 0.2);
 }
 
 .active-title {
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
-  font-size: 0.85rem;
+  font-family: 'VT323', monospace;
+  font-size: 16px;
   font-weight: 700;
-  color: #22c55e;
+  color: #00ffcc;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   margin-bottom: 12px;
@@ -1024,8 +1221,8 @@ export default {
 }
 
 .active-box {
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
-  font-size: 0.7rem;
+  font-family: 'VT323', monospace;
+  font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   padding: 8px 14px;
@@ -1039,24 +1236,25 @@ export default {
 }
 
 .skill-box {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
-  color: #000;
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  color: #ffffff;
 }
 
 .talent-box {
   background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: #000;
+  color: #000000;
 }
 
 .no-items {
-  color: #64748b;
-  font-size: 0.8rem;
+  color: #555577;
+  font-family: 'VT323', monospace;
+  font-size: 14px;
   font-style: italic;
 }
 
 .section-gap {
   margin: 16px 0;
-  border-top: 1px dashed rgba(134, 238, 135, 0.2);
+  border-top: 1px dashed rgba(138, 43, 226, 0.2);
 }
 
 /* ========================================
@@ -1064,63 +1262,137 @@ export default {
    ======================================== */
 .skills-container,
 .talents-container {
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.2);
   border-radius: 16px;
-  padding: 16px;
-  height: 520px;
-  overflow: visible;
+  padding: 10px;
+  overflow: hidden;
+}
+
+.skills-container {
+  margin-bottom: 15px;
 }
 
 .carousel-title {
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
-  font-size: 1rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 14px;
   font-weight: 700;
-  color: #f0fdf4;
-  margin-bottom: 16px;
+  color: #00ffcc;
+  margin-bottom: 12px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  background: linear-gradient(90deg, rgba(34, 197, 94, 0.15), transparent);
-  border-radius: 10px;
-  border-left: 4px solid #22c55e;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  text-shadow: 0 0 20px rgba(0, 255, 204, 0.5);
+  position: relative;
+  animation: glitch-title 2.5s infinite;
+}
+
+.carousel-title::before,
+.carousel-title::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.carousel-title::before {
+  color: #ff00ff;
+  animation: glitch-1 2.5s infinite;
+  clip-path: polygon(0 0, 100% 0, 100% 30%, 0 30%);
+  left: -2px;
+}
+
+.carousel-title::after {
+  color: #00ccff;
+  animation: glitch-2 2.5s infinite;
+  clip-path: polygon(0 70%, 100% 70%, 100% 100%, 0 100%);
+  left: 2px;
+}
+
+@keyframes glitch-title {
+  0%, 90%, 100% { 
+    transform: translate(0);
+    opacity: 1;
+  }
+  92% { 
+    transform: translate(-2px, 1px);
+    opacity: 0.8;
+  }
+  94% { 
+    transform: translate(2px, -1px);
+    opacity: 0.9;
+  }
+  96% { 
+    transform: translate(-1px, 2px);
+    opacity: 0.7;
+  }
+}
+
+@keyframes glitch-1 {
+  0%, 85%, 100% { 
+    transform: translate(0);
+    opacity: 0;
+  }
+  90% { 
+    transform: translate(-3px, 1px);
+    opacity: 0.8;
+  }
+}
+
+@keyframes glitch-2 {
+  0%, 85%, 100% { 
+    transform: translate(0);
+    opacity: 0;
+  }
+  92% { 
+    transform: translate(3px, -1px);
+    opacity: 0.8;
+  }
 }
 
 .header-icon {
-  color: #22c55e !important;
+  color: #00ffcc !important;
 }
 
 .card-carousel {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  overflow: visible;
+  gap: 6px;
+  overflow: hidden;
   position: relative;
-  min-height: 280px;
+  min-height: 180px;
   padding: 0 4px;
 }
 
 .card-track {
-  padding-top: 20px;
-  padding-bottom: 50px;
-  height: 340px;
+  padding-top: 10px;
+  padding-bottom: 20px;
+  height: 220px;
   display: flex;
-  gap: 35px;
+  gap: 10px;
   transition: transform 0.5s ease;
   width: 100%;
   justify-content: center;
   flex-wrap: nowrap;
-  margin-top: 30px;
+  margin-top: 15px;
 }
 
 
 .talent-card {
-  flex: 0 0 190px;
-  margin: 0 3px;
-  border: 2px solid rgba(134, 238, 135, 0.3);
-  border-radius: 12px;
-  background: linear-gradient(155deg, #1e293b 0%, #0f172a 100%);
+  flex: 0 0 110px;  
+  margin: 0 2px;
+  border: 2px solid rgba(0, 255, 204, 0.3);
+  border-radius: 8px;
+  background: linear-gradient(155deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
   transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   box-shadow: 
     0 4px 6px rgba(0, 0, 0, 0.3),
@@ -1131,11 +1403,11 @@ export default {
 }
 
 .skill-card {
-  flex: 0 0 190px;
-  margin: 0 3px;
-  border: 2px solid rgba(134, 238, 135, 0.3);
-  border-radius: 12px;
-  background: linear-gradient(155deg, #1e293b 0%, #0f172a 100%);
+  flex: 0 0 110px;
+  margin: 0 2px;
+  border: 2px solid rgba(0, 255, 204, 0.3);
+  border-radius: 8px;
+  background: linear-gradient(155deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
   transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   box-shadow: 
     0 4px 6px rgba(0, 0, 0, 0.3),
@@ -1145,97 +1417,73 @@ export default {
   z-index: 1;
 }
 
-/* Card corner decorations */
-.skill-card::before,
-.talent-card::before {
-  content: '';
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(134, 238, 135, 0.3);
-  border-radius: 4px;
-  z-index: 2;
-}
-
-.skill-card::after,
-.talent-card::after {
-  content: '';
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(134, 238, 135, 0.3);
-  border-radius: 4px;
-  transform: rotate(180deg);
-  z-index: 2;
-}
 
 .skill-card:hover,
 .talent-card:hover {
-  border-color: #22c55e;
-  transform: translateY(-12px) scale(1.02) rotateX(5deg);
+  border-color: #00ffcc;
+  transform: translateY(-6px) scale(1.02) rotateX(5deg);
   box-shadow: 
-    0 20px 40px rgba(34, 197, 94, 0.3),
-    0 8px 16px rgba(0, 0, 0, 0.4);
+    0 12px 24px rgba(0, 255, 204, 0.25),
+    0 6px 12px rgba(0, 0, 0, 0.4);
 }
 
 .skill-card.selected,
 .talent-card.selected {
-  border-color: #22c55e;
+  border-color: #00ffcc;
   box-shadow: 
-    0 0 25px rgba(34, 197, 94, 0.5),
+    0 0 25px rgba(0, 255, 204, 0.5),
     0 8px 16px rgba(0, 0, 0, 0.4);
 }
 
 .center-card {
-  transform: scale(1.15);
-  border-color: #fbbf24;
+  transform: scale(1.08);
+  border-color: #ff00ff;
   box-shadow: 
-    0 0 30px rgba(251, 191, 36, 0.4),
-    0 12px 24px rgba(0, 0, 0, 0.5);
+    0 0 25px rgba(255, 0, 255, 0.4),
+    0 10px 20px rgba(0, 0, 0, 0.5);
   z-index: 5;
 }
 
 .center-card::before,
 .center-card::after {
-  border-color: rgba(251, 191, 36, 0.5);
+  border-color: rgba(255, 0, 255, 0.5);
 }
 
 /* Card Visual */
 .card-visual {
   position: relative;
-  height: 160px;
-  border-bottom: 1px solid rgba(134, 238, 135, 0.1);
+  height: 120px;
+  width: 120px;
+  border-bottom: 1px solid rgba(0, 255, 204, 0.1);
   overflow: hidden;
-  border-radius: 10px 10px 0 0;
+  border-radius: 6px 6px 0 0;
+  aspect-ratio: 1 / 1;
 }
 
 .card-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 10px 10px 0 0;
+  object-position: center center;
+  border-radius: 6px 6px 0 0;
 }
 
 /* Info Icon */
 .info-icon {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  top: 4px;
+  right: 4px;
   background: rgba(255, 235, 59, 0.9);
   color: #000;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: bold;
   border-radius: 50%;
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   text-align: center;
-  line-height: 18px;
+  line-height: 14px;
   cursor: pointer;
-  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.3);
   z-index: 50;
   transition: transform 0.1s ease;
 }
@@ -1252,19 +1500,19 @@ export default {
   transform: translateY(-50%);
   background: rgba(0, 0, 0, 0.95);
   color: #fff;
-  padding: 8px 12px;
-  border-radius: 8px;
-  width: 160px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  width: 120px;
   z-index: 100;
-  border: 2px solid rgba(34, 197, 94, 0.6);
-  box-shadow: -8px 0 20px rgba(34, 197, 94, 0.3);
-  margin-right: 8px;
+  border: 2px solid rgba(0, 255, 204, 0.6);
+  box-shadow: -6px 0 15px rgba(0, 255, 204, 0.3);
+  margin-right: 6px;
 }
 
 .info-popup span {
   display: block;
-  font-size: 0.6rem;
-  line-height: 1.3;
+  font-size: 0.5rem;
+  line-height: 1.2;
   animation: scroll-text 5s linear infinite;
   white-space: nowrap;
 }
@@ -1290,17 +1538,17 @@ export default {
 }
 
 .card-name {
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
-  font-size: 0.65rem;
+  font-family: 'VT323', monospace;
+  font-size: 12px;
   font-weight: 700;
-  color: #f0fdf4;
+  color: #ffffff;
   margin-bottom: 2px;
 }
 
 .card-effect {
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
-  font-size: 0.55rem;
-  color: #94a3b8;
+  font-family: 'VT323', monospace;
+  font-size: 9px;
+  color: #8888aa;
   margin: 0;
   line-height: 1.1;
 }
@@ -1310,25 +1558,25 @@ export default {
    ======================================== */
 .arrow-button {
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1));
-  color: #22c55e;
-  border: 2px solid rgba(34, 197, 94, 0.5);
-  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(138, 43, 226, 0.3), rgba(138, 43, 226, 0.1));
+  color: #00ffcc;
+  border: 2px solid rgba(0, 255, 204, 0.5);
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s ease;
   z-index: 10;
 }
 
 .arrow-button:hover {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.4), rgba(34, 197, 94, 0.2));
-  border-color: #22c55e;
+  background: linear-gradient(135deg, rgba(138, 43, 226, 0.5), rgba(138, 43, 226, 0.2));
+  border-color: #00ffcc;
   transform: scale(1.1);
-  box-shadow: 0 0 20px rgba(34, 197, 94, 0.5);
+  box-shadow: 0 0 20px rgba(0, 255, 204, 0.5);
 }
 
 .arrow-button:active {
@@ -1354,18 +1602,18 @@ export default {
 }
 
 .modal-content {
-  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98));
   padding: 40px;
   border-radius: 32px;
   width: 98%;
   max-width: 850px;
-  border: 3px solid #22c55e;
+  border: 3px solid #00ffcc;
   box-shadow: 
     0 25px 80px rgba(0, 0, 0, 0.6),
-    0 0 80px rgba(34, 197, 94, 0.4),
-    0 0 120px rgba(34, 197, 94, 0.2),
+    0 0 80px rgba(0, 255, 204, 0.3),
+    0 0 120px rgba(0, 255, 204, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 0 60px rgba(34, 197, 94, 0.05);
+    inset 0 0 60px rgba(0, 255, 204, 0.05);
   animation: diagram-appear 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
   position: relative;
   overflow: hidden;
@@ -1378,7 +1626,7 @@ export default {
   left: -30%;
   width: 160%;
   height: 160%;
-  background: radial-gradient(circle, rgba(34, 197, 94, 0.08) 0%, transparent 60%);
+  background: radial-gradient(circle, rgba(0, 255, 204, 0.08) 0%, transparent 60%);
   animation: pulse-diagram 4s ease-in-out infinite;
   pointer-events: none;
 }
@@ -1410,7 +1658,7 @@ export default {
 .modal-content canvas {
   width: 100% !important;
   height: 100% !important;
-  filter: drop-shadow(0 0 10px rgba(34, 197, 94, 0.3));
+  filter: drop-shadow(0 0 10px rgba(0, 255, 204, 0.3));
 }
 
 /* ========================================
@@ -1476,54 +1724,42 @@ export default {
 }
 
 .start-btn {
-  background: linear-gradient(135deg, #22c55e, #16a34a) !important;
-  color: #000 !important;
-  font-weight: 700 !important;
-  font-size: 1rem !important;
-  padding: 14px 48px !important;
+  font-family: 'VT323', monospace !important;
+  font-size: 18px !important;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-align: center !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 50%, #00d4aa 100%) !important;
+  color: #ffffff !important;
   border-radius: 12px !important;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
   box-shadow: 
-    0 6px 20px rgba(34, 197, 94, 0.4),
-    0 0 30px rgba(34, 197, 94, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.2) !important;
-  transition: all 0.3s ease !important;
-  position: relative;
-  overflow: hidden;
-  border: 2px solid #4ade80 !important;
-}
-
-.start-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-  transition: left 0.5s ease;
-}
-
-.start-btn:hover:not(:disabled)::before {
-  left: 100%;
+    0 4px 20px rgba(139, 92, 246, 0.3),
+    0 0 30px rgba(0, 212, 170, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.25s ease;
+  padding: 14px 48px !important;
+  text-transform: uppercase;
 }
 
 .start-btn:hover:not(:disabled) {
-  transform: translateY(-3px) scale(1.02);
+  transform: translateY(-2px);
   box-shadow: 
-    0 12px 40px rgba(34, 197, 94, 0.5),
-    0 0 50px rgba(34, 197, 94, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.2) !important;
+    0 6px 30px rgba(139, 92, 246, 0.4),
+    0 0 40px rgba(0, 212, 170, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
-.start-btn:active:not(:disabled) {
-  transform: translateY(1px) scale(0.98);
+.start-btn:disabled {
+  background: #2a2a40 !important;
+  color: #555577 !important;
+  box-shadow: none;
 }
 
 .logout-btn {
+  font-family: 'VT323', monospace !important;
   font-weight: 600 !important;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -1532,23 +1768,6 @@ export default {
   background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(185, 28, 28, 0.3)) !important;
   color: #fca5a5 !important;
   transition: all 0.3s ease !important;
-  position: relative;
-  overflow: hidden;
-}
-
-.logout-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.3), transparent);
-  transition: left 0.5s ease;
-}
-
-.logout-btn:hover:not(:disabled)::before {
-  left: 100%;
 }
 
 .logout-btn:hover:not(:disabled) {
@@ -1578,8 +1797,8 @@ export default {
 }
 
 .popup-box {
-  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-  border: 3px solid #22c55e;
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98));
+  border: 3px solid #00ffcc;
   border-radius: 24px;
   padding: 40px;
   width: 90%;
@@ -1587,8 +1806,8 @@ export default {
   text-align: center;
   box-shadow: 
     0 20px 60px rgba(0, 0, 0, 0.6),
-    0 0 40px rgba(34, 197, 94, 0.3),
-    0 0 80px rgba(34, 197, 94, 0.15),
+    0 0 40px rgba(0, 255, 204, 0.3),
+    0 0 80px rgba(0, 255, 204, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   animation: popup-appear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   position: relative;
@@ -1602,7 +1821,7 @@ export default {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(34, 197, 94, 0.1) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(0, 255, 204, 0.1) 0%, transparent 70%);
   animation: pulse-bg 3s ease-in-out infinite;
 }
 
@@ -1614,19 +1833,19 @@ export default {
 .popup-icon {
   margin: 0 auto 20px auto;
   display: block;
-  filter: drop-shadow(0 0 12px rgba(34, 197, 94, 0.6));
+  filter: drop-shadow(0 0 12px rgba(0, 255, 204, 0.6));
   animation: pulse-glow 2s infinite;
   position: relative;
   z-index: 1;
 }
 
 .popup-box h3 {
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
-  font-size: 1.6rem;
+  font-family: 'VT323', monospace;
+  font-size: 24px;
   font-weight: 700;
-  color: #22c55e;
+  color: #00ffcc;
   margin-bottom: 20px;
-  text-shadow: 0 0 20px rgba(34, 197, 94, 0.8), 0 0 40px rgba(34, 197, 94, 0.4);
+  text-shadow: 0 0 20px rgba(0, 255, 204, 0.8), 0 0 40px rgba(0, 255, 204, 0.4);
   position: relative;
   z-index: 1;
   letter-spacing: 0.1em;
@@ -1648,8 +1867,8 @@ export default {
 }
 
 .popup-box p {
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
-  font-size: 1.15rem;
+  font-family: 'VT323', monospace;
+  font-size: 16px;
   color: #fef3c7;
   margin-bottom: 28px;
   line-height: 1.7;
@@ -1666,32 +1885,29 @@ export default {
 .popup-box .v-btn {
   position: relative;
   z-index: 1;
-  background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+  background: linear-gradient(135deg, #00d4aa, #00a884) !important;
   color: #000 !important;
+  font-family: 'VT323', monospace !important;
   font-weight: 700 !important;
-  font-size: 1rem !important;
+  font-size: 16px !important;
   padding: 12px 40px !important;
   border-radius: 12px !important;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   box-shadow: 
-    0 4px 15px rgba(34, 197, 94, 0.4),
-    0 0 25px rgba(34, 197, 94, 0.2),
+    0 4px 15px rgba(0, 255, 204, 0.4),
+    0 0 25px rgba(0, 255, 204, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
   transition: all 0.3s ease !important;
-  border: 2px solid #4ade80 !important;
+  border: 2px solid #00ffcc !important;
 }
 
 .popup-box .v-btn:hover {
   transform: translateY(-2px) scale(1.02);
   box-shadow: 
-    0 8px 25px rgba(34, 197, 94, 0.5),
-    0 0 40px rgba(34, 197, 94, 0.3),
+    0 8px 25px rgba(0, 255, 204, 0.5),
+    0 0 40px rgba(0, 255, 204, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
-}
-
-.popup-box .v-btn:active {
-  transform: translateY(0) scale(0.98);
 }
 
 /* ========================================
@@ -1717,9 +1933,9 @@ export default {
 }
 
 @keyframes pulse-glow {
-  0% { filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.5)); }
-  50% { filter: drop-shadow(0 0 16px rgba(34, 197, 94, 0.8)); }
-  100% { filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.5)); }
+  0% { filter: drop-shadow(0 0 8px rgba(0, 255, 204, 0.5)); }
+  50% { filter: drop-shadow(0 0 16px rgba(0, 255, 204, 0.8)); }
+  100% { filter: drop-shadow(0 0 8px rgba(0, 255, 204, 0.5)); }
 }
 
 /* ========================================
@@ -1736,17 +1952,60 @@ export default {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #22c55e;
+  background: #00ffcc;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #16a34a;
+  background: #00a884;
 }
 
 /* ========================================
    MOBILE RESPONSIVE STYLES
    ======================================== */
+@media (max-width: 1024px) {
+  .creation-container {
+    max-width: 100%;
+  }
+  
+  .creation-layout {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .left-panel {
+    flex: 1 1 280px;
+    min-width: 260px;
+    max-width: 350px;
+  }
+  
+  .right-panel {
+    flex: 1 1 400px;
+    min-width: 380px;
+    max-width: 500px;
+  }
+  
+  .skills-container,
+  .talents-container {
+    height: 300px;
+  }
+  
+  .card-track {
+    height: 180px;
+  }
+  
+  .skill-card,
+  .talent-card {
+    flex: 0 0 90px;
+  }
+  
+  .card-visual {
+    height: 55px;
+    width: 100%;
+  }
+}
+
 @media (max-width: 768px) {
   .creation-container {
     padding: 10px;
@@ -1755,8 +2014,7 @@ export default {
     box-sizing: border-box;
   }
 
-  .page-title {
-    font-size: 1.3rem;
+  .title-wrapper {
     margin-bottom: 12px;
   }
 
@@ -1796,9 +2054,10 @@ export default {
   }
 
   .carousel-title {
-    font-size: 0.9rem;
+    font-size: 10px;
     padding: 8px 10px;
     margin-bottom: 10px;
+    letter-spacing: 0.1em;
   }
 
   .card-carousel {
@@ -1831,7 +2090,7 @@ export default {
     justify-content: center;
     align-items: center;
     scrollbar-width: thin;
-    scrollbar-color: #22c55e rgba(0,0,0,0.2);
+    scrollbar-color: #00ffcc rgba(0,0,0,0.2);
   }
 
   .card-track::-webkit-scrollbar {
@@ -1844,16 +2103,16 @@ export default {
   }
 
   .card-track::-webkit-scrollbar-thumb {
-    background: #22c55e;
+    background: #00ffcc;
     border-radius: 2px;
   }
 
   .skill-card,
   .talent-card {
     flex: 0 0 auto;
-    min-width: 140px;
+    min-width: 110px;
     max-width: 45%;
-    width: 140px;
+    width: 110px;
     box-sizing: border-box;
     height: auto;
     transition: all 0.3s ease;
@@ -1862,25 +2121,26 @@ export default {
   .skill-card.center-card,
   .talent-card.center-card {
     flex: 0 0 auto;
-    min-width: 150px;
+    min-width: 120px;
     max-width: 48%;
-    width: 150px;
-    transform: scale(1.08);
-    border-color: #fbbf24 !important;
+    width: 120px;
+    transform: scale(1.06);
+    border-color: #ff00ff !important;
     box-shadow: 
-      0 0 25px rgba(251, 191, 36, 0.4),
-      0 10px 20px rgba(0, 0, 0, 0.5) !important;
+      0 0 20px rgba(255, 0, 255, 0.35),
+      0 8px 16px rgba(0, 0, 0, 0.4) !important;
     z-index: 10;
     position: relative;
   }
 
   .center-card::before,
   .center-card::after {
-    border-color: rgba(251, 191, 36, 0.8) !important;
+    border-color: rgba(255, 0, 255, 0.8) !important;
   }
 
   .card-visual {
     height: 85px;
+    width: 100%;
   }
 
   .card-content {
@@ -1888,11 +2148,11 @@ export default {
   }
 
   .card-name {
-    font-size: 0.55rem;
+    font-size: 12px;
   }
 
   .card-effect {
-    font-size: 0.45rem;
+    font-size: 9px;
   }
 
   .info-popup {
@@ -1946,7 +2206,7 @@ export default {
   .logout-btn {
     width: 100%;
     max-width: 100%;
-    font-size: 0.9rem !important;
+    font-size: 14px !important;
     padding: 10px 20px !important;
   }
 }
@@ -1959,6 +2219,7 @@ export default {
 
   .card-visual {
     height: 100px;
+    width: 100%;
   }
 
   .card-track {
@@ -1968,12 +2229,38 @@ export default {
   .form-input,
   .form-select {
     padding: 10px 12px;
-    font-size: 0.9rem;
+    font-size: 14px;
   }
 
   .stat-btn {
     width: 28px;
     height: 28px;
+  }
+
+  /* Active Display Container - Mobile */
+  .active-display-container {
+    gap: 12px;
+    margin-top: 12px;
+    padding: 0 8px;
+  }
+
+  .active-section {
+    max-width: 100%;
+    padding: 12px;
+  }
+
+  .active-title {
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+
+  .active-list {
+    gap: 6px;
+  }
+
+  .active-box {
+    font-size: 11px;
+    padding: 6px 10px;
   }
 }
 </style>
