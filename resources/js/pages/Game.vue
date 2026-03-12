@@ -1,14 +1,25 @@
 <template>
-  <div class="game-screen">
-    <!-- Animated Background -->
-    <div class="bg-particles">
-      <div v-for="n in 30" :key="n" class="particle" :style="getParticleStyle(n)"></div>
+  <div
+    class="game-screen galaxy-screen relative min-h-screen overflow-hidden"
+    style="background: linear-gradient(135deg, #0d0d1a 0%, #1a0a2e 30%, #0a1a2e 50%, #0a1a1a 70%, #0d0d1a 100%);"
+  >
+    <div class="starfield pointer-events-none fixed inset-0 z-0">
+      <div
+        v-for="n in 90"
+        :key="`star-${n}`"
+        class="star absolute rounded-full"
+        :class="{ fast: n % 9 === 0, slow: n % 13 === 0, shooting: n % 37 === 0 }"
+        :style="getStarStyle(n)"
+      ></div>
     </div>
-    <div class="bg-grid"></div>
+
+    <div class="nebula pointer-events-none fixed inset-0 z-5"></div>
+
+    <div class="grid-lines pointer-events-none fixed inset-0 z-10"></div>
+
+    <div class="scanlines pointer-events-none fixed inset-0 z-25"></div>
     
-    <!-- Main Game Container - Fixed View -->
-    <div class="game-container">
-      <!-- Header Section -->
+    <div class="game-container relative z-20">
       <div class="game-header">
         <div class="character-panel">
           <div class="character-card-enhanced">
@@ -29,7 +40,6 @@
                 </div>
               </div>
               
-              <!-- Stats Bars - Always Visible -->
               <div class="header-stats">
                 <div v-for="(value, stat) in effectiveStats.visible" :key="stat" class="header-stat-bar">
                   <div class="header-stat-header">
@@ -47,7 +57,6 @@
               </div>
             </div>
             
-            <!-- Action Buttons in Upper Right -->
             <div class="character-actions">
               <v-btn
                 variant="tonal"
@@ -91,10 +100,8 @@
             </div>
           </div>
 
-          <!-- Collapsible Panel - Skills & Talents Only -->
           <v-expand-transition>
             <div v-if="showStats" class="stats-panel-enhanced">
-              <!-- Skills & Talents -->
               <div class="badges-section">
                 <div class="badges-group">
                   <h4 class="section-title">SKILLS</h4>
@@ -132,9 +139,7 @@
         </div>
       </div>
 
-      <!-- Main Content Area - Scrollable -->
       <div class="game-content">
-        <!-- Narration Box -->
         <div class="narration-panel">
           <div class="narration-header">
             <v-icon class="narration-icon">mdi-script-text</v-icon>
@@ -153,7 +158,6 @@
           </div>
         </div>
 
-        <!-- Random Event Button -->
         <div class="action-section">
           <v-btn
             block
@@ -163,19 +167,16 @@
             @click="randomEvent"
             :disabled="selectedEvent || loading"
           >
-            🎲 Random Event
+            Random Event
           </v-btn>
         </div>
 
-        <!-- Events Grid - Fixed Card Sizes -->
         <div class="events-area">
-          
-          <!-- Daily Occurrences -->
           <div v-if="availableEvents.daily && availableEvents.daily.length > 0" class="event-section">
             <div class="section-header-wrapper">
               <h3 class="section-header daily">
                 <v-icon class="header-icon">mdi-calendar-today</v-icon>
-                DAILY OCCURRENCES
+                <span class="section-header-text glitch" data-text="DAILY OCCURRENCES">DAILY OCCURRENCES</span>
               </h3>
               <v-btn
                 size="x-small"
@@ -209,12 +210,11 @@
             </div>
           </div>
 
-          <!-- Cultural Events -->
           <div v-if="availableEvents.cultural && availableEvents.cultural.length > 0" class="event-section">
             <div class="section-header-wrapper">
               <h3 class="section-header cultural">
                 <v-icon class="header-icon">mdi-theater</v-icon>
-                CULTURAL EVENTS
+                <span class="section-header-text glitch" data-text="CULTURAL EVENTS">CULTURAL EVENTS</span>
               </h3>
               <v-btn
                 size="x-small"
@@ -248,12 +248,11 @@
             </div>
           </div>
 
-          <!-- Age-Specific Events -->
           <div v-if="availableEvents.ageSpecific && availableEvents.ageSpecific.length > 0" class="event-section">
             <div class="section-header-wrapper">
               <h3 class="section-header story">
                 <v-icon class="header-icon">mdi-account-heart</v-icon>
-                YOUR STORY
+                <span class="section-header-text glitch" data-text="YOUR STORY">YOUR STORY</span>
               </h3>
               <v-btn
                 size="x-small"
@@ -287,12 +286,11 @@
             </div>
           </div>
 
-          <!-- Profession Events -->
           <div v-if="availableEvents.profession && availableEvents.profession.length > 0" class="event-section">
             <div class="section-header-wrapper">
               <h3 class="section-header career">
                 <v-icon class="header-icon">mdi-briefcase</v-icon>
-                PROFESSIONAL PATH
+                <span class="section-header-text glitch" data-text="PROFESSIONAL PATH">PROFESSIONAL PATH</span>
               </h3>
               <v-btn
                 size="x-small"
@@ -326,11 +324,10 @@
             </div>
           </div>
 
-          <!-- Milestone -->
           <div v-if="availableEvents.milestone" class="event-section">
             <h3 class="section-header milestone">
               <v-icon class="header-icon">mdi-star-circle</v-icon>
-              LIFE MILESTONE
+              <span class="section-header-text glitch" data-text="LIFE MILESTONE">LIFE MILESTONE</span>
             </h3>
             <div class="events-grid milestone-grid">
               <div
@@ -349,11 +346,10 @@
             </div>
           </div>
 
-          <!-- Game Over -->
           <div v-if="gameOver" class="event-section">
             <h3 class="section-header game-over">
               <v-icon class="header-icon">mdi-skull</v-icon>
-              GAME OVER
+              <span class="section-header-text glitch" data-text="GAME OVER">GAME OVER</span>
             </h3>
             <div class="game-over-panel">
               <div class="game-over-content">
@@ -370,19 +366,28 @@
     </div>
 
 
-    <v-dialog v-model="showEventDialog" max-width="700" rounded="xl" @after-leave="onDialogClosed">
+    <v-dialog
+      v-model="showEventDialog"
+      max-width="700"
+      rounded="xl"
+      content-class="event-dialog-content"
+      @after-leave="onDialogClosed"
+    >
       <v-card v-if="selectedEvent" class="event-dialog">
+        <div class="dialog-glow" aria-hidden="true"></div>
+        <div class="dialog-scanlines" aria-hidden="true"></div>
         <div class="dialog-image-container">
           <v-img :src="selectedEvent.image" height="280" cover class="dialog-image" />
           <div class="dialog-overlay"></div>
           <div class="dialog-title-container">
-            <v-card-title class="dialog-title">{{ selectedEvent.title }}</v-card-title>
+            <v-card-title class="dialog-title">
+              <span class="dialog-title-text glitch" :data-text="selectedEvent.title">{{ selectedEvent.title }}</span>
+            </v-card-title>
           </div>
         </div>
         <v-card-text class="dialog-text px-6 py-4">
           <p class="text-body1 mb-6 text-center">{{ selectedEvent.description }}</p>
           
-          <!-- Event Choices -->
           <div v-if="selectedEvent.choices && selectedEvent.choices.length > 0" class="choices-container">
             <p class="text-subtitle2 mb-4 text-center choices-title">How will you respond?</p>
             <div class="d-flex flex-column gap-3">
@@ -405,7 +410,6 @@
             variant="elevated"
             color="error"
             size="large"
-            prepend-icon="mdi-stop"
             @click="closeEvent"
             :disabled="applyingOutcome"
             class="cancel-btn"
@@ -416,76 +420,112 @@
       </v-card>
     </v-dialog>
 
-    <!-- Loading Indicator -->
     <v-overlay v-model="loading" class="align-center justify-center">
-      <v-progress-circular indeterminate size="64" color="success"></v-progress-circular>
+      <v-progress-circular indeterminate size="64" color="#00ffcc"></v-progress-circular>
     </v-overlay>
 
-    <!-- Edit Profile Dialog -->
-    <v-dialog v-model="editProfileDialog" max-width="450" rounded="xl">
-      <v-card class="profile-dialog">
-        <div class="profile-dialog-header">
-          <v-icon size="28" color="success">mdi-account-edit</v-icon>
-          <v-card-title class="dialog-title-main">Edit Profile</v-card-title>
-        </div>
-        <v-card-text class="profile-dialog-text">
-          <!-- Profile Image Upload -->
-          <div class="mb-5 text-center">
-            <div class="avatar-upload-container-large">
-              <v-img
-                :src="previewImage || editedCharacter.image || '/css/images/player.jpg'"
-                class="avatar-preview-large"
-              />
-              <div class="avatar-upload-overlay-large" @click="triggerImageUpload">
-                <v-icon size="36" color="white">mdi-camera</v-icon>
-                <span class="upload-text">Change Photo</span>
+    <v-dialog v-model="editProfileDialog" max-width="450" rounded="xl" content-class="profile-dialog-content">
+      <v-theme-provider theme="dark" with-background>
+        <v-card class="profile-dialog profile-dialog--kiosk" theme="dark">
+          <div class="profile-glow" aria-hidden="true"></div>
+          <div class="profile-scanlines" aria-hidden="true"></div>
+          <div class="profile-stars" aria-hidden="true"></div>
+          <div class="profile-noise" aria-hidden="true"></div>
+
+          <div class="profile-topbar">
+            <div class="profile-topbar-left">
+              <v-icon class="profile-topbar-icon" size="22" color="#00ffcc">mdi-account-edit</v-icon>
+              <div class="profile-topbar-titles">
+                <div class="profile-topbar-title">
+                  <span class="profile-title-text glitch" data-text="PROFILE EDITOR">PROFILE EDITOR</span>
+                </div>
+                <div class="profile-topbar-subtitle">Neural Uplink • Secure Channel</div>
               </div>
             </div>
-            <input
-              ref="imageInput"
-              type="file"
-              accept="image/*"
-              @change="handleImageChange"
-              style="display: none"
-            />
-          </div>
 
-          <div class="mb-4">
-            <label class="text-subtitle2 mb-2 d-block profile-label">Character Name</label>
-            <v-text-field
-              v-model="editedCharacter.name"
-              placeholder="Enter your character name"
-              variant="outlined"
-              density="comfortable"
-              class="profile-input"
+            <v-btn
+              icon
+              variant="text"
+              class="profile-close-btn"
+              @click="closeEditProfile"
               :disabled="isSavingProfile"
-              bg-color="rgba(0,0,0,0.3)"
-              color="success"
-            />
+              aria-label="Close"
+            >
+              <v-icon size="20">mdi-close</v-icon>
+            </v-btn>
           </div>
-        </v-card-text>
-        <v-card-actions class="profile-dialog-actions">
-          <v-btn
-            variant="outlined"
-            color="error"
-            @click="closeEditProfile"
-            :disabled="isSavingProfile"
-            class="profile-cancel-btn"
-          >
-            Cancel
-          </v-btn>
-          <v-btn
-            variant="elevated"
-            color="success"
-            prepend-icon="mdi-content-save"
-            @click="saveProfile"
-            :loading="isSavingProfile"
-            class="profile-save-btn"
-          >
-            Save Changes
-          </v-btn>
-        </v-card-actions>
-      </v-card>
+          <v-card-text class="profile-dialog-text">
+            <div class="profile-layout">
+              <div class="profile-left">
+                <div class="profile-avatar-shell">
+                  <div class="profile-avatar-ring profile-avatar-ring--pulse" aria-hidden="true"></div>
+                  <div class="profile-avatar-ring profile-avatar-ring--spin" aria-hidden="true"></div>
+                  <div class="avatar-ring avatar-ring--profile" aria-hidden="true"></div>
+
+                  <div class="avatar-upload-container-large">
+                    <v-img
+                      :src="previewImage || editedCharacter.image || '/css/images/player.jpg'"
+                      class="avatar-preview-large"
+                    />
+                    <div class="avatar-upload-overlay-large" @click="triggerImageUpload">
+                      <v-icon class="avatar-camera-icon" size="36" color="white">mdi-camera</v-icon>
+                      <span class="upload-text">Change Photo</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="profile-hint">Tap the avatar to upload a new photo.</div>
+
+                <input
+                  ref="imageInput"
+                  type="file"
+                  accept="image/*"
+                  @change="handleImageChange"
+                  style="display: none"
+                />
+              </div>
+
+              <div class="profile-right">
+                <div class="mb-4">
+                  <label class="text-subtitle2 mb-2 d-block profile-label">Character Name</label>
+                  <v-text-field
+                    v-model="editedCharacter.name"
+                    placeholder="Enter your character name"
+                    variant="outlined"
+                    density="comfortable"
+                    class="profile-input"
+                    :disabled="isSavingProfile"
+                    bg-color="rgba(0,0,0,0.3)"
+                    color="#00ffcc"
+                  />
+                  <div class="profile-help">Keep it short — it shows on your main HUD.</div>
+                </div>
+              </div>
+            </div>
+          </v-card-text>
+          <v-card-actions class="profile-dialog-actions">
+            <v-btn
+              variant="outlined"
+              color="error"
+              @click="closeEditProfile"
+              :disabled="isSavingProfile"
+              class="profile-cancel-btn"
+            >
+              Cancel
+            </v-btn>
+            <v-btn
+              variant="elevated"
+              color="#00ffcc"
+              prepend-icon="mdi-content-save"
+              @click="saveProfile"
+              :loading="isSavingProfile"
+              class="profile-save-btn"
+            >
+              Save Changes
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-theme-provider>
     </v-dialog>
   </div>
 </template>
@@ -494,29 +534,52 @@
 
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
 const router = useRouter()
 
-// Generate random particle styles for background
-const getParticleStyle = (n) => {
-  const random = (min, max) => Math.random() * (max - min) + min
+// Generate galaxy star styles for background (seeded so it doesn't jump on re-render)
+const seededRandom = (seed) => {
+  const x = Math.sin(seed) * 10000
+  return x - Math.floor(x)
+}
+
+const getStarStyle = (n) => {
+  const colors = [
+    '#00ffcc', // cyan
+    '#ff00ff', // magenta
+    '#00ccff', // light blue
+    '#8b5cf6', // violet
+    '#ffffff', // white
+    '#00d4aa', // teal
+  ]
+
+  const color = colors[n % colors.length]
+  const left = seededRandom(n * 17.13) * 100
+  const top = seededRandom(n * 31.77) * 100
+  const size = seededRandom(n * 7.91) * 2.6 + 1
+  const duration = seededRandom(n * 11.03) * 5 + 3
+  const delay = seededRandom(n * 23.41) * 4
+  const opacity = seededRandom(n * 5.37) * 0.55 + 0.25
+
   return {
-    left: random(0, 100) + '%',
-    top: random(0, 100) + '%',
-    animationDelay: random(0, 5) + 's',
-    animationDuration: random(3, 8) + 's',
-    width: random(2, 6) + 'px',
-    height: random(2, 6) + 'px',
-    opacity: random(0.3, 0.8)
+    left: `${left}%`,
+    top: `${top}%`,
+    width: `${size}px`,
+    height: `${size}px`,
+    background: color,
+    boxShadow: `0 0 ${size * 2}px ${color}`,
+    opacity,
+    animationDuration: `${duration}s`,
+    animationDelay: `${delay}s`,
   }
 }
 
 // Get gradient color based on stat value
 const getStatGradient = (value) => {
-  if (value > 70) return 'linear-gradient(90deg, #22c55e, #4ade80)'
+  if (value > 70) return 'linear-gradient(90deg, #00ffcc, #00d4aa)'
   if (value < 30) return 'linear-gradient(90deg, #ef4444, #f87171)'
   return 'linear-gradient(90deg, #f59e0b, #fbbf24)'
 }
@@ -534,6 +597,11 @@ const showEventDialog = ref(false)
 const applyingOutcome = ref(false)
 const narrationHistory = ref([])
 const statsPanelKey = ref(0)
+
+// If the dialog is closed via scrim click / ESC, ensure cards are clickable again.
+watch(showEventDialog, (isOpen) => {
+  if (!isOpen) selectedEvent.value = null
+})
 
 // Image upload refs
 const imageInput = ref(null)
@@ -1235,58 +1303,127 @@ const startNewGame = () => {
 
 <style scoped>
 /* ========================================
-   MAIN SCREEN - Enhanced Game Background
+   MAIN SCREEN - Galaxy Theme (match Home.vue)
    ======================================== */
 .game-screen {
   position: relative;
-  background: linear-gradient(165deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  --accent-rgb: 0, 255, 204; /* #00ffcc */
+  --accent2-rgb: 139, 92, 246; /* #8b5cf6 */
+  --indigo-rgb: 99, 102, 241; /* #6366f1 */
+  --teal-rgb: 0, 212, 170; /* #00d4aa */
+
+  color: #e0e0e0;
+  background: linear-gradient(135deg, #0d0d1a 0%, #1a0a2e 30%, #0a1a2e 50%, #0a1a1a 70%, #0d0d1a 100%);
   min-height: 100vh;
   overflow: hidden;
 }
 
-/* Animated Background Particles */
-.bg-particles {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 0;
+/* ========================================
+   GALAXY BACKGROUND - MOVING STARS
+   ======================================== */
+.starfield {
+  background: transparent;
 }
 
-.particle {
-  position: absolute;
-  background: radial-gradient(circle, rgba(134, 238, 135, 0.8), transparent);
-  border-radius: 50%;
-  animation: float-particle linear infinite;
+.star {
+  animation: twinkle 4s ease-in-out infinite, drift 20s linear infinite;
 }
 
-@keyframes float-particle {
+.star.shooting {
+  animation: shooting-star 3s ease-in-out infinite;
+}
+
+.star.fast {
+  animation: twinkle 3s ease-in-out infinite, drift-fast 15s linear infinite;
+}
+
+.star.slow {
+  animation: twinkle 5s ease-in-out infinite, drift-slow 30s linear infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+@keyframes drift {
+  0% { transform: translateY(0) translateX(0); }
+  100% { transform: translateY(30px) translateX(20px); }
+}
+
+@keyframes drift-fast {
+  0% { transform: translateY(0) translateX(0); }
+  100% { transform: translateY(50px) translateX(30px); }
+}
+
+@keyframes drift-slow {
+  0% { transform: translateY(0) translateX(0); }
+  100% { transform: translateY(20px) translateX(10px); }
+}
+
+@keyframes shooting-star {
   0% {
-    transform: translateY(0) scale(1);
-    opacity: 0;
+    transform: translateX(0) translateY(0);
+    opacity: 1;
   }
-  10% {
-    opacity: 0.8;
-  }
-  90% {
-    opacity: 0.8;
+  70% {
+    opacity: 1;
   }
   100% {
-    transform: translateY(-100vh) scale(0.5);
+    transform: translateX(300px) translateY(300px);
     opacity: 0;
   }
 }
 
-/* Grid Pattern Overlay */
-.bg-grid {
-  position: fixed;
-  inset: 0;
-  background-image: 
-    linear-gradient(rgba(134, 238, 135, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(134, 238, 135, 0.03) 1px, transparent 1px);
-  background-size: 50px 50px;
-  pointer-events: none;
-  z-index: 1;
+.nebula {
+  background: 
+    radial-gradient(ellipse at 20% 20%, rgba(var(--accent2-rgb), 0.18) 0%, transparent 40%),
+    radial-gradient(ellipse at 80% 80%, rgba(var(--teal-rgb), 0.10) 0%, transparent 40%),
+    radial-gradient(ellipse at 60% 40%, rgba(0, 206, 209, 0.10) 0%, transparent 35%),
+    radial-gradient(ellipse at 40% 70%, rgba(255, 0, 255, 0.08) 0%, transparent 35%);
+  animation: nebula-drift 30s ease-in-out infinite;
+}
+
+@keyframes nebula-drift {
+  0%, 100% { 
+    transform: translateX(0) translateY(0);
+    opacity: 0.8;
+  }
+  25% { 
+    transform: translateX(20px) translateY(-10px);
+    opacity: 1;
+  }
+  50% { 
+    transform: translateX(-10px) translateY(20px);
+    opacity: 0.9;
+  }
+  75% { 
+    transform: translateX(-20px) translateY(-15px);
+    opacity: 1;
+  }
+}
+
+.grid-lines {
+  background: 
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: grid-scroll 20s linear infinite;
+}
+
+@keyframes grid-scroll {
+  0% { background-position: 0 0; }
+  100% { background-position: 60px 60px; }
+}
+
+.scanlines {
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.04),
+    rgba(0, 0, 0, 0.04) 1px,
+    transparent 1px,
+    transparent 3px
+  );
 }
 
 /* ========================================
@@ -1294,11 +1431,17 @@ const startNewGame = () => {
    ======================================== */
 .game-container {
   position: relative;
-  z-index: 2;
+  z-index: 20;
   max-width: 1400px;
   margin: 0 auto;
-  padding: 20px;
+  padding:
+    calc(18px + env(safe-area-inset-top))
+    calc(18px + env(safe-area-inset-right))
+    calc(18px + env(safe-area-inset-bottom))
+    calc(18px + env(safe-area-inset-left));
   height: 100vh;
+  height: 100svh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
 }
@@ -1315,15 +1458,16 @@ const startNewGame = () => {
 
 .character-panel {
   flex: 1;
-  background: linear-gradient(155deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
-  border: 2px solid rgba(134, 238, 135, 0.4);
+  background: rgba(20, 15, 35, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
   padding: 24px;
   backdrop-filter: blur(20px);
   box-shadow: 
-    0 10px 40px rgba(0, 0, 0, 0.5),
-    0 0 20px rgba(34, 197, 94, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    0 25px 80px rgba(0, 0, 0, 0.45),
+    0 0 60px rgba(var(--accent2-rgb), 0.12),
+    0 0 60px rgba(var(--accent-rgb), 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   position: relative;
 }
 
@@ -1334,7 +1478,7 @@ const startNewGame = () => {
   top: 12px;
   left: 16px;
   font-size: 1.5rem;
-  color: rgba(34, 197, 94, 0.4);
+  color: rgba(var(--accent-rgb), 0.35);
 }
 
 .character-panel::after {
@@ -1343,7 +1487,7 @@ const startNewGame = () => {
   bottom: 12px;
   right: 16px;
   font-size: 1.5rem;
-  color: rgba(34, 197, 94, 0.4);
+  color: rgba(var(--accent-rgb), 0.35);
   transform: rotate(180deg);
 }
 
@@ -1362,22 +1506,41 @@ const startNewGame = () => {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  border: 3px solid #22c55e;
+  border: 3px solid rgb(var(--accent-rgb));
   object-fit: cover;
-  box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+  box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.25);
 }
 
 .avatar-ring {
   position: absolute;
   inset: -6px;
   border-radius: 50%;
-  border: 2px solid rgba(34, 197, 94, 0.5);
+  border: 2px solid rgba(var(--accent2-rgb), 0.45);
   animation: ring-pulse 2s ease-in-out infinite;
+}
+
+.avatar-ring--profile {
+  inset: auto;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--avatar-size, 140px) + 12px);
+  height: calc(var(--avatar-size, 140px) + 12px);
+  transform: translate(-50%, -50%);
+  border-color: rgba(var(--accent2-rgb), 0.55);
+  box-shadow:
+    0 0 16px rgba(var(--accent-rgb), 0.16),
+    0 0 24px rgba(var(--accent2-rgb), 0.14);
+  animation: ring-pulse-centered 2s ease-in-out infinite !important;
 }
 
 @keyframes ring-pulse {
   0%, 100% { transform: scale(1); opacity: 0.5; }
   50% { transform: scale(1.1); opacity: 0.2; }
+}
+
+@keyframes ring-pulse-centered {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.55; }
+  50% { transform: translate(-50%, -50%) scale(1.08); opacity: 0.22; }
 }
 
 .character-main-info {
@@ -1393,11 +1556,11 @@ const startNewGame = () => {
 }
 
 .character-name {
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
-  font-size: 1.5rem;
+  font-family: 'VT323', monospace;
+  font-size: 1.9rem;
   font-weight: 700;
-  color: #f0fdf4;
-  text-shadow: 0 2px 10px rgba(34, 197, 94, 0.3);
+  color: #ffffff;
+  text-shadow: 0 0 18px rgba(var(--accent-rgb), 0.15), 0 0 26px rgba(var(--accent2-rgb), 0.12);
   margin-bottom: 4px;
 }
 
@@ -1409,8 +1572,8 @@ const startNewGame = () => {
 }
 
 .meta-badge {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
-  color: #000;
+  background: linear-gradient(135deg, rgb(var(--accent2-rgb)) 0%, rgb(var(--indigo-rgb)) 50%, rgb(var(--teal-rgb)) 100%);
+  color: #ffffff;
   font-size: 0.7rem;
   font-weight: 600;
   padding: 4px 10px;
@@ -1423,7 +1586,7 @@ const startNewGame = () => {
 }
 
 .day-counter {
-  color: #86efac;
+  color: rgb(var(--accent-rgb));
   font-size: 0.9rem;
   font-weight: 500;
 }
@@ -1473,7 +1636,7 @@ const startNewGame = () => {
 }
 
 .header-stat-value {
-  color: #22c55e;
+  color: rgb(var(--accent-rgb));
   font-size: 0.65rem;
   font-weight: 600;
 }
@@ -1498,15 +1661,16 @@ const startNewGame = () => {
 }
 
 .stats-toggle-btn {
-  background: rgba(34, 197, 94, 0.1) !important;
-  border: 1px solid rgba(34, 197, 94, 0.3) !important;
-  color: #22c55e !important;
+  background: rgba(var(--accent-rgb), 0.08) !important;
+  border: 1px solid rgba(var(--accent-rgb), 0.25) !important;
+  color: rgb(var(--accent-rgb)) !important;
   font-size: 0.75rem !important;
   text-transform: none !important;
+  font-family: 'VT323', monospace !important;
 }
 
 .stats-toggle-btn:hover {
-  background: rgba(34, 197, 94, 0.2) !important;
+  background: rgba(var(--accent-rgb), 0.14) !important;
 }
 
 /* Character Actions - Upper Right */
@@ -1529,7 +1693,7 @@ const startNewGame = () => {
 .stats-panel-enhanced {
   margin-top: 20px;
   padding-top: 20px;
-  border-top: 1px solid rgba(134, 238, 135, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .profile-section {
@@ -1545,7 +1709,7 @@ const startNewGame = () => {
   padding: 8px 12px;
   background: rgba(0, 0, 0, 0.2);
   border-radius: 8px;
-  border-left: 3px solid #22c55e;
+  border-left: 3px solid rgb(var(--accent-rgb));
 }
 
 .stat-row .stat-label {
@@ -1562,10 +1726,10 @@ const startNewGame = () => {
 }
 
 .section-title {
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
-  font-size: 0.7rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.62rem;
   font-weight: 700;
-  color: #22c55e;
+  color: rgb(var(--accent-rgb));
   letter-spacing: 0.1em;
   margin-bottom: 12px;
   text-transform: uppercase;
@@ -1599,7 +1763,7 @@ const startNewGame = () => {
 }
 
 .stat-percent {
-  color: #22c55e;
+  color: rgb(var(--accent-rgb));
   font-size: 0.75rem;
   font-weight: 600;
 }
@@ -1638,8 +1802,8 @@ const startNewGame = () => {
 }
 
 .skill-badge {
-  background: linear-gradient(135deg, #22c55e, #16a34a) !important;
-  color: #000 !important;
+  background: linear-gradient(135deg, rgb(var(--accent2-rgb)) 0%, rgb(var(--indigo-rgb)) 55%, rgb(var(--teal-rgb)) 100%) !important;
+  color: #ffffff !important;
   border: none !important;
 }
 
@@ -1670,6 +1834,8 @@ const startNewGame = () => {
   flex: 1;
   overflow-y: auto;
   padding-right: 8px;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .game-content::-webkit-scrollbar {
@@ -1682,7 +1848,7 @@ const startNewGame = () => {
 }
 
 .game-content::-webkit-scrollbar-thumb {
-  background: #22c55e;
+  background: rgb(var(--accent-rgb));
   border-radius: 3px;
 }
 
@@ -1690,14 +1856,15 @@ const startNewGame = () => {
    NARRATION PANEL - Game Log
    ======================================== */
 .narration-panel {
-  background: linear-gradient(180deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
-  border: 2px solid rgba(134, 238, 135, 0.3);
+  background: linear-gradient(180deg, rgba(25, 20, 45, 0.92), rgba(15, 15, 30, 0.94));
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   margin-bottom: 20px;
   overflow: hidden;
   box-shadow: 
     0 4px 20px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    0 0 40px rgba(var(--accent2-rgb), 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .narration-header {
@@ -1705,19 +1872,19 @@ const startNewGame = () => {
   align-items: center;
   gap: 10px;
   padding: 14px 18px;
-  background: linear-gradient(90deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.05));
-  border-bottom: 2px solid rgba(34, 197, 94, 0.3);
+  background: linear-gradient(90deg, rgba(var(--accent2-rgb), 0.18), rgba(var(--accent-rgb), 0.06));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .narration-icon {
-  color: #22c55e !important;
+  color: rgb(var(--accent-rgb)) !important;
 }
 
 .narration-title {
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
-  font-size: 0.9rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.78rem;
   font-weight: 700;
-  color: #22c55e;
+  color: rgb(var(--accent-rgb));
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -1748,7 +1915,7 @@ const startNewGame = () => {
   padding: 10px 12px;
   background: rgba(0, 0, 0, 0.2);
   border-radius: 6px;
-  border-left: 3px solid #22c55e;
+  border-left: 3px solid rgb(var(--accent-rgb));
   animation: fadeInEntry 0.3s ease;
 }
 
@@ -1764,7 +1931,7 @@ const startNewGame = () => {
 }
 
 .entry-bullet {
-  color: #22c55e;
+  color: rgb(var(--accent-rgb));
   margin-right: 8px;
 }
 
@@ -1774,31 +1941,37 @@ const startNewGame = () => {
 .action-section {
   margin-bottom: 24px;
   padding: 20px;
-  background: linear-gradient(180deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
-  border: 2px solid rgba(134, 238, 135, 0.3);
+  background: linear-gradient(180deg, rgba(25, 20, 45, 0.82), rgba(15, 15, 30, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   text-align: center;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.35),
+    0 0 50px rgba(var(--accent2-rgb), 0.08);
 }
 
 .random-event-btn {
-  background: linear-gradient(135deg, #22c55e, #16a34a) !important;
-  color: #000 !important;
+  background: linear-gradient(135deg, rgb(var(--accent2-rgb)) 0%, rgb(var(--indigo-rgb)) 50%, rgb(var(--teal-rgb)) 100%) !important;
+  color: #ffffff !important;
   font-weight: 700 !important;
   font-size: 1.1rem !important;
   border-radius: 12px !important;
   box-shadow: 
-    0 6px 20px rgba(34, 197, 94, 0.4),
+    0 6px 20px rgba(var(--accent2-rgb), 0.3),
+    0 0 30px rgba(var(--accent-rgb), 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
   transition: all 0.3s ease !important;
   padding: 12px 32px !important;
   text-transform: uppercase;
   letter-spacing: 0.1em;
+  font-family: 'VT323', monospace !important;
 }
 
 .random-event-btn:hover:not(:disabled) {
   transform: translateY(-4px) scale(1.02);
   box-shadow: 
-    0 12px 40px rgba(34, 197, 94, 0.5),
+    0 12px 40px rgba(var(--accent2-rgb), 0.35),
+    0 0 40px rgba(var(--accent-rgb), 0.25),
     inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
 }
 
@@ -1816,15 +1989,16 @@ const startNewGame = () => {
 }
 
 .event-section {
-  background: linear-gradient(180deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
-  border: 2px solid rgba(134, 238, 135, 0.2);
+  background: linear-gradient(180deg, rgba(25, 20, 45, 0.8) 0%, rgba(15, 15, 30, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
   padding: 24px;
   position: relative;
   /* Card table felt effect */
   box-shadow: 
     inset 0 2px 10px rgba(0, 0, 0, 0.3),
-    0 4px 20px rgba(0, 0, 0, 0.4);
+    0 4px 20px rgba(0, 0, 0, 0.4),
+    0 0 50px rgba(var(--accent2-rgb), 0.08);
 }
 
 /* Card zone decorations */
@@ -1835,7 +2009,7 @@ const startNewGame = () => {
   left: 20px;
   right: 20px;
   height: 3px;
-  background: linear-gradient(90deg, transparent, rgba(34, 197, 94, 0.5), transparent);
+  background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb), 0.45), transparent);
   border-radius: 2px;
 }
 
@@ -1843,22 +2017,36 @@ const startNewGame = () => {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
-  font-size: 1.1rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.92rem;
   font-weight: 700;
-  color: #f0fdf4;
-  margin-bottom: 20px;
-  padding: 12px 16px;
-  background: linear-gradient(90deg, rgba(34, 197, 94, 0.15), transparent);
-  border-radius: 8px;
-  border-left: 4px solid #22c55e;
+  color: #ffffff;
+  margin-bottom: 18px;
+  padding: 10px 0;
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+  letter-spacing: 0.14em;
+  text-shadow:
+    0 0 12px rgba(var(--accent-rgb), 0.18),
+    0 0 20px rgba(var(--accent2-rgb), 0.12);
 }
 
 .section-header-wrapper {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
+}
+
+.section-header-wrapper .section-header {
+  grid-column: 2;
+  margin-bottom: 0;
+}
+
+.section-header-wrapper .redraw-section-btn {
+  grid-column: 3;
+  justify-self: end;
 }
 
 .redraw-section-btn {
@@ -1875,7 +2063,7 @@ const startNewGame = () => {
 
 .section-header.daily::before {
   content: '♦';
-  color: #22c55e;
+  color: rgb(var(--accent-rgb));
 }
 
 .section-header.cultural::before {
@@ -1902,7 +2090,7 @@ const startNewGame = () => {
 }
 
 .header-icon {
-  color: #22c55e !important;
+  color: rgb(var(--accent-rgb)) !important;
 }
 
 .section-header.milestone .header-icon {
@@ -1942,8 +2130,8 @@ const startNewGame = () => {
 
 /* Event Card Item - Playing Card Style */
 .event-card-item {
-  background: linear-gradient(155deg, #1e293b 0%, #0f172a 100%);
-  border: 2px solid rgba(134, 238, 135, 0.3);
+  background: linear-gradient(180deg, rgba(25, 20, 45, 0.92) 0%, rgba(15, 15, 30, 0.94) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   overflow: hidden;
   cursor: pointer;
@@ -1955,41 +2143,17 @@ const startNewGame = () => {
   box-shadow: 
     0 4px 6px rgba(0, 0, 0, 0.3),
     0 1px 3px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-/* Card corner decorations - like real playing cards */
-.event-card-item::before {
-  content: '';
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  width: 24px;
-  height: 24px;
-  border: 2px solid rgba(134, 238, 135, 0.3);
-  border-radius: 4px;
-  z-index: 2;
-}
-
-.event-card-item::after {
-  content: '';
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  width: 24px;
-  height: 24px;
-  border: 2px solid rgba(134, 238, 135, 0.3);
-  border-radius: 4px;
-  transform: rotate(180deg);
-  z-index: 2;
+    0 0 40px rgba(var(--accent2-rgb), 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 /* Card hover effect - lift and glow like picking up a card */
 .event-card-item:hover:not(.disabled) {
-  border-color: #22c55e;
+  border-color: rgb(var(--accent-rgb));
   transform: translateY(-12px) scale(1.02) rotateX(5deg);
   box-shadow: 
-    0 20px 40px rgba(34, 197, 94, 0.3),
+    0 20px 40px rgba(var(--accent-rgb), 0.22),
+    0 0 40px rgba(var(--accent2-rgb), 0.18),
     0 8px 16px rgba(0, 0, 0, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   z-index: 10;
@@ -2031,7 +2195,7 @@ const startNewGame = () => {
   height: 140px;
   overflow: hidden;
   /* Card image area */
-  border-bottom: 1px solid rgba(134, 238, 135, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .card-img {
@@ -2057,8 +2221,8 @@ const startNewGame = () => {
 }
 
 .card-type-badge.daily {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
-  color: #000;
+  background: linear-gradient(135deg, rgb(var(--accent2-rgb)) 0%, rgb(var(--indigo-rgb)) 55%, rgb(var(--teal-rgb)) 100%);
+  color: #fff;
 }
 
 .card-type-badge.cultural {
@@ -2091,10 +2255,10 @@ const startNewGame = () => {
 }
 
 .card-title {
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
-  font-size: 0.9rem;
+  font-family: 'VT323', monospace;
+  font-size: 1.1rem;
   font-weight: 700;
-  color: #f0fdf4;
+  color: #ffffff;
   margin-bottom: 8px;
   line-height: 1.3;
 }
@@ -2108,6 +2272,7 @@ const startNewGame = () => {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  font-family: 'VT323', monospace;
 }
 
 /* ========================================
@@ -2127,7 +2292,7 @@ const startNewGame = () => {
 }
 
 .game-over-title {
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
+  font-family: 'Press Start 2P', monospace;
   font-size: 1.5rem;
   font-weight: 700;
   color: #ef4444;
@@ -2141,8 +2306,8 @@ const startNewGame = () => {
 }
 
 .new-game-btn {
-  background: linear-gradient(135deg, #22c55e, #16a34a) !important;
-  color: #000 !important;
+  background: linear-gradient(135deg, rgb(var(--accent2-rgb)) 0%, rgb(var(--indigo-rgb)) 50%, rgb(var(--teal-rgb)) 100%) !important;
+  color: #ffffff !important;
   font-weight: 600 !important;
 }
 
@@ -2150,13 +2315,13 @@ const startNewGame = () => {
    DIALOG STYLES
    ======================================== */
 .event-dialog {
-  border: 2px solid #22c55e !important;
+  border: 2px solid rgb(var(--accent-rgb)) !important;
   border-radius: 16px !important;
   overflow: hidden;
 }
 
 .profile-dialog {
-  border: 2px solid #22c55e !important;
+  border: 2px solid rgb(var(--accent-rgb)) !important;
   border-radius: 16px !important;
 }
 
@@ -2165,18 +2330,19 @@ const startNewGame = () => {
 }
 
 ::v-deep(.v-dialog) {
-  border: 2px solid #22c55e !important;
+  border: 2px solid rgb(var(--accent-rgb)) !important;
   border-radius: 16px !important;
 }
 
 ::v-deep(.v-card) {
   border-radius: 12px !important;
-  background: rgba(30, 41, 59, 0.98) !important;
+  background: linear-gradient(180deg, rgba(25, 20, 45, 0.96) 0%, rgba(15, 15, 30, 0.96) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 ::v-deep(.v-card-title) {
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif !important;
-  color: #22c55e !important;
+  font-family: 'Press Start 2P', monospace !important;
+  color: rgb(var(--accent-rgb)) !important;
 }
 
 ::v-deep(.v-card-text) {
@@ -2187,15 +2353,68 @@ const startNewGame = () => {
    EVENT DIALOG STYLES - Card Reveal Effect
    ======================================== */
 .event-dialog {
-  border: 3px solid #22c55e !important;
+  position: relative;
+  border: 2px solid transparent !important;
   border-radius: 24px !important;
-  overflow: hidden;
-  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
+  overflow: hidden !important;
+  overflow-y: hidden !important;
+  max-height: calc(100dvh - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  background:
+    linear-gradient(180deg, rgba(25, 20, 45, 0.98) 0%, rgba(15, 15, 30, 0.98) 100%) padding-box,
+    linear-gradient(135deg, rgba(var(--accent2-rgb), 0.55) 0%, rgba(var(--indigo-rgb), 0.35) 45%, rgba(var(--accent-rgb), 0.55) 100%) border-box !important;
   box-shadow: 
     0 25px 80px rgba(0, 0, 0, 0.6),
-    0 0 40px rgba(34, 197, 94, 0.3),
+    0 0 40px rgba(var(--accent-rgb), 0.22),
+    0 0 60px rgba(var(--accent2-rgb), 0.14),
     inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
   animation: dialogReveal 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  backdrop-filter: blur(18px);
+  display: flex;
+  flex-direction: column;
+}
+
+.event-dialog > :not(.dialog-glow):not(.dialog-scanlines) {
+  position: relative;
+  z-index: 2;
+}
+
+/* Hide scrollbars for the dialog overlay content (still allows scrolling if needed) */
+:deep(.event-dialog-content) {
+  overflow: hidden !important;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+:deep(.event-dialog-content)::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.dialog-glow {
+  position: absolute;
+  inset: -40px;
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(var(--accent2-rgb), 0.20) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 80%, rgba(var(--accent-rgb), 0.14) 0%, transparent 60%);
+  filter: blur(24px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.dialog-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.05),
+    rgba(0, 0, 0, 0.05) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  opacity: 0.65;
+  z-index: 1;
+  pointer-events: none;
+  mix-blend-mode: overlay;
 }
 
 @keyframes dialogReveal {
@@ -2212,11 +2431,13 @@ const startNewGame = () => {
 .dialog-image-container {
   position: relative;
   overflow: hidden;
+  flex: 0 0 auto;
 }
 
 .dialog-image {
   transition: transform 0.6s ease;
   filter: saturate(1.1);
+  height: clamp(170px, 28vh, 280px) !important;
 }
 
 /* Card glow effect on image */
@@ -2227,7 +2448,7 @@ const startNewGame = () => {
   background: linear-gradient(
     180deg,
     transparent 50%,
-    rgba(15, 23, 42, 0.9) 100%
+    rgba(15, 15, 30, 0.92) 100%
   );
   z-index: 1;
   pointer-events: none;
@@ -2236,7 +2457,12 @@ const startNewGame = () => {
 .dialog-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 50%);
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.85) 0%,
+    rgba(var(--accent2-rgb), 0.06) 30%,
+    transparent 60%
+  );
   z-index: 2;
 }
 
@@ -2248,7 +2474,7 @@ const startNewGame = () => {
   left: 16px;
   right: 16px;
   bottom: 16px;
-  border: 2px solid rgba(34, 197, 94, 0.3);
+  border: 2px solid rgba(var(--accent-rgb), 0.25);
   border-radius: 12px;
   pointer-events: none;
   z-index: 2;
@@ -2264,14 +2490,67 @@ const startNewGame = () => {
 }
 
 .dialog-title {
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif !important;
-  color: #22c55e !important;
-  font-size: 1.5rem !important;
-  font-weight: 700 !important;
-  text-shadow: 
-    2px 2px 4px rgba(0, 0, 0, 0.8),
-    0 0 20px rgba(34, 197, 94, 0.5) !important;
-  letter-spacing: 0.02em;
+  padding: 0 !important;
+  text-align: center;
+}
+
+.dialog-title-text {
+  position: relative;
+  display: inline-block;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.08em;
+  text-shadow:
+    2px 2px 0 rgba(0, 0, 0, 0.75),
+    0 0 18px rgba(var(--accent-rgb), 0.25),
+    0 0 26px rgba(var(--accent2-rgb), 0.18);
+}
+
+.dialog-title-text.glitch {
+  animation: dialog-glitch-skew 3.1s infinite;
+}
+
+.dialog-title-text.glitch::before,
+.dialog-title-text.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.dialog-title-text.glitch::before {
+  color: rgb(var(--accent-rgb));
+  transform: translate(-2px, 0);
+  clip-path: polygon(0 0, 100% 0, 100% 38%, 0 38%);
+  animation: dialog-glitch-1 3.1s infinite;
+}
+
+.dialog-title-text.glitch::after {
+  color: rgb(var(--accent2-rgb));
+  transform: translate(2px, 0);
+  clip-path: polygon(0 64%, 100% 64%, 100% 100%, 0 100%);
+  animation: dialog-glitch-2 3.1s infinite;
+}
+
+@keyframes dialog-glitch-skew {
+  0%, 92%, 100% { transform: none; }
+  94% { transform: skewX(9deg); }
+  96% { transform: skewX(-7deg); }
+}
+
+@keyframes dialog-glitch-1 {
+  0%, 88%, 100% { opacity: 0; transform: translate(-2px, 0); }
+  92% { opacity: 0.9; transform: translate(-4px, 1px); }
+  94% { opacity: 0.45; transform: translate(-1px, -1px); }
+}
+
+@keyframes dialog-glitch-2 {
+  0%, 88%, 100% { opacity: 0; transform: translate(2px, 0); }
+  93% { opacity: 0.9; transform: translate(4px, -1px); }
+  96% { opacity: 0.5; transform: translate(1px, 1px); }
 }
 
 .dialog-text {
@@ -2279,52 +2558,63 @@ const startNewGame = () => {
   font-size: 1rem !important;
   line-height: 1.7;
   padding: 20px 28px !important;
-  background: rgba(0, 0, 0, 0.3);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.18));
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   margin: 0 !important;
+  font-family: 'VT323', monospace;
+  letter-spacing: 0.02em;
+  flex: 1 1 auto;
+}
+
+.dialog-text :deep(.text-body1) {
+  font-family: 'VT323', monospace;
+  font-size: 1.15rem;
+  line-height: 1.6;
 }
 
 /* Choice Cards */
 .choices-container {
   margin: 24px 0;
   padding: 20px;
-  border: 2px solid rgba(34, 197, 94, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 16px;
-  background: linear-gradient(180deg, rgba(34, 197, 94, 0.08), rgba(34, 197, 94, 0.02));
+  background: linear-gradient(180deg, rgba(25, 20, 45, 0.72), rgba(15, 15, 30, 0.82));
 }
 
 .choices-title {
-  color: #22c55e !important;
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif !important;
+  color: rgb(var(--accent-rgb)) !important;
+  font-family: 'Press Start 2P', monospace !important;
   font-size: 0.9rem !important;
   font-weight: 700 !important;
   text-transform: uppercase;
   letter-spacing: 0.15em;
   margin-bottom: 16px !important;
   text-align: center;
-  text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+  text-shadow: 0 0 10px rgba(var(--accent-rgb), 0.35);
 }
 
 .choice-btn {
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif !important;
+  font-family: 'VT323', monospace !important;
   font-size: 0.95rem !important;
   font-weight: 600 !important;
-  border: 2px solid rgba(34, 197, 94, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
   color: #e2e8f0 !important;
   margin-bottom: 12px;
   padding: 14px 20px !important;
   border-radius: 12px !important;
-  background: linear-gradient(180deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95)) !important;
+  background: linear-gradient(180deg, rgba(25, 20, 45, 0.9), rgba(15, 15, 30, 0.95)) !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .choice-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1)) !important;
-  border-color: #22c55e !important;
-  color: #22c55e !important;
+  background: linear-gradient(135deg, rgba(var(--accent2-rgb), 0.18), rgba(var(--accent-rgb), 0.08)) !important;
+  border-color: rgba(var(--accent-rgb), 0.45) !important;
+  color: rgb(var(--accent-rgb)) !important;
   transform: translateX(8px);
   box-shadow: 
-    0 6px 20px rgba(34, 197, 94, 0.3),
+    0 6px 20px rgba(var(--accent-rgb), 0.22),
+    0 0 30px rgba(var(--accent2-rgb), 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
@@ -2334,12 +2624,34 @@ const startNewGame = () => {
 
 /* Cancel Button */
 .cancel-btn {
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif !important;
-  font-weight: 600 !important;
+  font-family: 'Press Start 2P', monospace !important;
+  font-weight: 800 !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.1em !important;
-  padding: 12px 32px !important;
-  border-radius: 12px !important;
+  letter-spacing: 0.12em !important;
+  font-size: 0.75rem !important;
+  padding: 14px 34px !important;
+  border-radius: 14px !important;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.92), rgba(168, 85, 247, 0.70)) !important;
+  color: #ffffff !important;
+  box-shadow:
+    0 10px 30px rgba(239, 68, 68, 0.25),
+    0 0 28px rgba(var(--accent2-rgb), 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.cancel-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+  box-shadow:
+    0 14px 38px rgba(239, 68, 68, 0.32),
+    0 0 36px rgba(var(--accent2-rgb), 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+}
+
+.cancel-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.99);
 }
 
 /* Dialog Card corners */
@@ -2348,8 +2660,9 @@ const startNewGame = () => {
   content: '♠';
   position: absolute;
   font-size: 2rem;
-  color: rgba(34, 197, 94, 0.3);
+  color: rgba(var(--accent-rgb), 0.25);
   z-index: 10;
+  pointer-events: none;
 }
 
 .event-dialog::before {
@@ -2374,8 +2687,8 @@ const startNewGame = () => {
   border-radius: 50%;
   overflow: hidden;
   cursor: pointer;
-  border: 3px solid #22c55e;
-  box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+  border: 3px solid rgb(var(--accent-rgb));
+  box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.22), 0 0 30px rgba(var(--accent2-rgb), 0.12);
 }
 
 .avatar-preview {
@@ -2411,73 +2724,403 @@ const startNewGame = () => {
    EDIT PROFILE DIALOG STYLES
    ======================================== */
 .profile-dialog {
-  border: 2px solid #22c55e !important;
+  position: relative;
+  border: 2px solid transparent !important;
   border-radius: 20px !important;
-  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%) !important;
+  overflow: hidden !important;
+  overflow-y: hidden !important;
+  max-height: calc(100dvh - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  background:
+    linear-gradient(180deg, rgba(25, 20, 45, 0.86) 0%, rgba(15, 15, 30, 0.90) 100%) padding-box,
+    linear-gradient(135deg, rgba(var(--accent2-rgb), 0.45) 0%, rgba(var(--indigo-rgb), 0.28) 45%, rgba(var(--accent-rgb), 0.55) 100%) border-box !important;
   box-shadow: 
     0 20px 60px rgba(0, 0, 0, 0.6),
-    0 0 30px rgba(34, 197, 94, 0.2) !important;
+    0 0 30px rgba(var(--accent2-rgb), 0.16) !important;
+  backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
 }
 
-.profile-dialog-header {
+.profile-dialog--kiosk {
+  border-radius: 22px !important;
+  background:
+    radial-gradient(ellipse at 20% 10%, rgba(var(--accent2-rgb), 0.18) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 90%, rgba(var(--accent-rgb), 0.12) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(10, 10, 25, 0.78) 0%, rgba(15, 15, 30, 0.86) 100%) padding-box,
+    linear-gradient(135deg, rgba(var(--accent2-rgb), 0.58) 0%, rgba(var(--indigo-rgb), 0.32) 45%, rgba(var(--accent-rgb), 0.62) 100%) border-box !important;
+  box-shadow:
+    0 26px 90px rgba(0, 0, 0, 0.65),
+    0 0 70px rgba(var(--accent2-rgb), 0.12),
+    0 0 55px rgba(var(--accent-rgb), 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10) !important;
+}
+
+.profile-dialog > :not(.profile-glow):not(.profile-scanlines):not(.profile-stars) {
+  position: relative;
+  z-index: 2;
+}
+
+.profile-glow {
+  position: absolute;
+  inset: -40px;
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(var(--accent2-rgb), 0.18) 0%, transparent 55%),
+    radial-gradient(ellipse at 70% 85%, rgba(var(--accent-rgb), 0.12) 0%, transparent 60%);
+  filter: blur(22px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.profile-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.05),
+    rgba(0, 0, 0, 0.05) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  opacity: 0.55;
+  z-index: 1;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+.profile-stars {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.8;
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.22) 1px, transparent 1.5px),
+    radial-gradient(circle, rgba(var(--accent-rgb), 0.18) 1px, transparent 1.5px),
+    radial-gradient(circle, rgba(var(--accent2-rgb), 0.14) 1px, transparent 1.5px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.12) 1px, transparent 2px);
+  background-size: 110px 110px, 160px 160px, 220px 220px, 320px 320px;
+  background-position: 12px 24px, 64px 18px, 40px 120px, 140px 80px;
+  filter: drop-shadow(0 0 6px rgba(var(--accent-rgb), 0.10));
+  mix-blend-mode: screen;
+}
+
+.profile-noise {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.08;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.04),
+      rgba(255, 255, 255, 0.04) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  mix-blend-mode: overlay;
+}
+
+.profile-dialog--kiosk > :not(.profile-glow):not(.profile-scanlines):not(.profile-stars):not(.profile-noise) {
+  position: relative;
+  z-index: 3;
+}
+
+/* Hide scrollbars for the profile dialog overlay content */
+:deep(.profile-dialog-content) {
+  overflow: hidden !important;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+:deep(.profile-dialog-content)::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.profile-topbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
-  padding: 20px 24px;
-  background: linear-gradient(90deg, rgba(34, 197, 94, 0.15), transparent);
-  border-bottom: 1px solid rgba(34, 197, 94, 0.3);
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  background:
+    linear-gradient(90deg, rgba(var(--accent2-rgb), 0.16), rgba(var(--accent-rgb), 0.05), transparent),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.10), rgba(0, 0, 0, 0));
+}
+
+.profile-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.profile-topbar-icon {
+  filter: drop-shadow(0 0 12px rgba(var(--accent-rgb), 0.25));
+}
+
+.profile-topbar-titles {
+  min-width: 0;
+}
+
+.profile-topbar-title {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.profile-topbar-subtitle {
+  margin-top: 6px;
+  font-family: 'VT323', monospace;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.58);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dialog-title-main {
-  font-family: 'Instrument Sans', 'Segoe UI', sans-serif !important;
+  font-family: 'Press Start 2P', monospace !important;
   font-size: 1.3rem !important;
   font-weight: 700 !important;
-  color: #22c55e !important;
-  text-shadow: 0 0 15px rgba(34, 197, 94, 0.4) !important;
+  color: rgb(var(--accent-rgb)) !important;
+  text-shadow: 0 0 15px rgba(var(--accent-rgb), 0.25), 0 0 18px rgba(var(--accent2-rgb), 0.16) !important;
+}
+
+.profile-close-btn {
+  border-radius: 12px !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.profile-close-btn:hover:not(:disabled) {
+  color: rgb(var(--accent-rgb)) !important;
+  border-color: rgba(var(--accent-rgb), 0.28);
+  box-shadow: 0 0 16px rgba(var(--accent-rgb), 0.18);
+}
+
+.profile-title-text {
+  position: relative;
+  display: inline-block;
+  color: #ffffff;
+  letter-spacing: 0.12em;
+  text-shadow:
+    2px 2px 0 rgba(0, 0, 0, 0.75),
+    0 0 18px rgba(var(--accent-rgb), 0.22),
+    0 0 26px rgba(var(--accent2-rgb), 0.16);
+}
+
+.profile-title-text.glitch {
+  animation: dialog-glitch-skew 3.1s infinite;
+}
+
+.profile-title-text.glitch::before,
+.profile-title-text.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.profile-title-text.glitch::before {
+  color: rgb(var(--accent-rgb));
+  transform: translate(-2px, 0);
+  clip-path: polygon(0 0, 100% 0, 100% 38%, 0 38%);
+  animation: dialog-glitch-1 3.1s infinite;
+}
+
+.profile-title-text.glitch::after {
+  color: rgb(var(--accent2-rgb));
+  transform: translate(2px, 0);
+  clip-path: polygon(0 64%, 100% 64%, 100% 100%, 0 100%);
+  animation: dialog-glitch-2 3.1s infinite;
 }
 
 .profile-dialog-text {
   padding: 24px !important;
   color: #e2e8f0 !important;
+  font-family: 'VT323', monospace;
+  overflow: hidden;
+  flex: 1 1 auto;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.22));
+}
+
+.profile-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.profile-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.profile-right {
+  padding-top: 6px;
+}
+
+.profile-hint {
+  font-family: 'VT323', monospace;
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.62);
+  text-align: center;
+  max-width: 260px;
+}
+
+.profile-help {
+  margin-top: 10px;
+  font-family: 'VT323', monospace;
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.55);
 }
 
 .profile-label {
-  color: #94a3b8 !important;
-  font-weight: 600 !important;
-  font-size: 0.85rem !important;
+  color: rgba(255, 255, 255, 0.65) !important;
+  font-family: 'Press Start 2P', monospace;
+  font-weight: 800 !important;
+  font-size: 0.7rem !important;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
-.profile-input .v-field {
+:deep(.profile-input .v-field) {
   background: rgba(0, 0, 0, 0.3) !important;
   border-radius: 10px !important;
 }
 
-.profile-input .v-field__outline {
-  border-color: rgba(34, 197, 94, 0.4) !important;
+:deep(.profile-input input) {
+  font-family: 'VT323', monospace;
+  font-size: 1.15rem;
+  letter-spacing: 0.03em;
+  color: rgba(255, 255, 255, 0.92) !important;
 }
 
-.profile-input .v-field--focused .v-field__outline {
-  border-color: #22c55e !important;
+:deep(.profile-input .v-label) {
+  font-family: 'VT323', monospace;
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+
+:deep(.profile-input .v-field__outline) {
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+:deep(.profile-input .v-field--focused .v-field__outline) {
+  border-color: rgb(var(--accent-rgb)) !important;
+}
+
+.profile-avatar-shell {
+  --avatar-size: 140px;
+  position: relative;
+  width: calc(var(--avatar-size) + 26px);
+  height: calc(var(--avatar-size) + 26px);
+  margin: 0 auto;
+  display: grid;
+  place-items: center;
+}
+
+.profile-avatar-ring {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.profile-avatar-ring--pulse {
+  inset: 2px;
+  border: 2px solid rgba(var(--accent2-rgb), 0.55);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+    0 0 22px rgba(var(--accent-rgb), 0.22),
+    0 0 40px rgba(var(--accent2-rgb), 0.16);
+  animation: ring-pulse 2.1s ease-in-out infinite;
+}
+
+.profile-avatar-ring--spin {
+  inset: 0;
+  background: conic-gradient(
+    from 90deg,
+    rgba(var(--accent-rgb), 0.85),
+    rgba(var(--accent2-rgb), 0.55),
+    rgba(var(--indigo-rgb), 0.50),
+    rgba(var(--teal-rgb), 0.65),
+    rgba(var(--accent-rgb), 0.85)
+  );
+  filter: blur(0.1px);
+  opacity: 0.65;
+  mask: radial-gradient(transparent 62%, #000 64%);
+  -webkit-mask: radial-gradient(transparent 62%, #000 64%);
+  animation: profile-ring-rotate 8s linear infinite;
+}
+
+@keyframes profile-ring-rotate {
+  to { transform: rotate(360deg); }
 }
 
 .avatar-upload-container-large {
   position: relative;
-  width: 140px;
-  height: 140px;
+  width: var(--avatar-size, 140px);
+  height: var(--avatar-size, 140px);
   margin: 0 auto;
   border-radius: 50%;
   overflow: hidden;
   cursor: pointer;
-  border: 4px solid #22c55e;
+  background: radial-gradient(circle at 30% 20%, rgba(var(--accent2-rgb), 0.16) 0%, rgba(0, 0, 0, 0.55) 65%);
+  border: 4px solid rgb(var(--accent-rgb));
   box-shadow: 
-    0 0 25px rgba(34, 197, 94, 0.4),
-    inset 0 0 20px rgba(34, 197, 94, 0.1);
+    0 0 0 1px rgba(255, 255, 255, 0.10) inset,
+    0 0 26px rgba(var(--accent-rgb), 0.25),
+    0 0 45px rgba(var(--accent2-rgb), 0.18),
+    0 18px 60px rgba(0, 0, 0, 0.55);
+}
+
+.avatar-upload-container-large::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.10) 0%, transparent 55%),
+    radial-gradient(circle at 70% 70%, rgba(var(--accent-rgb), 0.07) 0%, transparent 55%),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.035),
+      rgba(255, 255, 255, 0.035) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+  opacity: 0.6;
+  z-index: 1;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.avatar-upload-container-large::after {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 0 18px rgba(var(--accent2-rgb), 0.10);
+  z-index: 2;
+  pointer-events: none;
 }
 
 .avatar-preview-large {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  filter: saturate(1.05) contrast(1.05) brightness(1.05);
+  position: relative;
+  z-index: 0;
 }
 
 .avatar-upload-overlay-large {
@@ -2490,6 +3133,13 @@ const startNewGame = () => {
   justify-content: center;
   opacity: 0;
   transition: opacity 0.3s ease;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(var(--accent-rgb), 0.28);
+  border-radius: 9999px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+    0 0 18px rgba(var(--accent-rgb), 0.12);
+  z-index: 3;
 }
 
 .avatar-upload-container-large:hover .avatar-upload-overlay-large {
@@ -2499,6 +3149,35 @@ const startNewGame = () => {
 .avatar-upload-overlay-large .upload-text {
   font-size: 0.8rem;
   margin-top: 8px;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 0 14px rgba(var(--accent-rgb), 0.25);
+}
+
+.avatar-camera-icon {
+  filter: drop-shadow(0 0 12px rgba(var(--accent-rgb), 0.35));
+}
+
+@media (hover: none), (pointer: coarse) {
+  .avatar-upload-overlay-large {
+    opacity: 1;
+    justify-content: flex-end;
+    padding: 12px;
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.78) 0%,
+      rgba(0, 0, 0, 0.18) 70%,
+      rgba(0, 0, 0, 0.10) 100%
+    );
+  }
+
+  .avatar-camera-icon {
+    font-size: 30px !important;
+  }
+
+  .avatar-upload-overlay-large .upload-text {
+    margin-top: 6px;
+    font-size: 0.85rem;
+  }
 }
 
 .profile-dialog-actions {
@@ -2506,21 +3185,316 @@ const startNewGame = () => {
   display: flex;
   justify-content: center;
   gap: 16px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.10), rgba(0, 0, 0, 0.22));
 }
 
 .profile-cancel-btn {
   flex: 1;
   max-width: 140px;
-  font-weight: 600 !important;
-  text-transform: none !important;
-  border-radius: 10px !important;
+  font-family: 'Press Start 2P', monospace !important;
+  font-weight: 800 !important;
+  font-size: 0.7rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.12em !important;
+  border-radius: 14px !important;
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.12), rgba(0, 0, 0, 0.25)) !important;
+  border: 1px solid rgba(239, 68, 68, 0.45) !important;
+  color: #ffffff !important;
 }
 
 .profile-save-btn {
   flex: 1;
   max-width: 160px;
-  font-weight: 600 !important;
-  text-transform: none !important;
-  border-radius: 10px !important;
+  font-family: 'Press Start 2P', monospace !important;
+  font-weight: 900 !important;
+  font-size: 0.7rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.12em !important;
+  border-radius: 14px !important;
+  background: linear-gradient(135deg, rgba(var(--accent2-rgb), 0.85), rgba(var(--indigo-rgb), 0.65), rgba(var(--teal-rgb), 0.85)) !important;
+  color: #ffffff !important;
+  box-shadow:
+    0 10px 28px rgba(var(--accent-rgb), 0.16),
+    0 0 26px rgba(var(--accent2-rgb), 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+}
+
+.profile-cancel-btn:hover:not(:disabled) {
+  filter: brightness(1.05);
+  box-shadow:
+    0 12px 32px rgba(239, 68, 68, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.profile-save-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow:
+    0 14px 38px rgba(var(--accent-rgb), 0.2),
+    0 0 32px rgba(var(--accent2-rgb), 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+}
+
+/* ========================================
+   SECTION HEADER - Glitch Text
+   ======================================== */
+.section-header-text {
+  position: relative;
+  display: inline-block;
+  line-height: 1.15;
+  transform: translateZ(0);
+}
+
+.section-header-text.glitch {
+  animation: header-glitch-skew 3.2s infinite;
+}
+
+.section-header-text.glitch::before,
+.section-header-text.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.section-header-text.glitch::before {
+  color: rgb(var(--accent-rgb));
+  transform: translate(-2px, 0);
+  clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+  animation: header-glitch-1 3.2s infinite;
+}
+
+.section-header-text.glitch::after {
+  color: rgb(var(--accent2-rgb));
+  transform: translate(2px, 0);
+  clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
+  animation: header-glitch-2 3.2s infinite;
+}
+
+@keyframes header-glitch-skew {
+  0%, 92%, 100% { transform: none; }
+  94% { transform: skewX(10deg); }
+  96% { transform: skewX(-8deg); }
+}
+
+@keyframes header-glitch-1 {
+  0%, 88%, 100% { opacity: 0; transform: translate(-2px, 0); }
+  92% { opacity: 0.85; transform: translate(-4px, 1px); }
+  94% { opacity: 0.4; transform: translate(-1px, -1px); }
+}
+
+@keyframes header-glitch-2 {
+  0%, 88%, 100% { opacity: 0; transform: translate(2px, 0); }
+  93% { opacity: 0.85; transform: translate(4px, -1px); }
+  96% { opacity: 0.45; transform: translate(1px, 1px); }
+}
+
+/* ========================================
+   RESPONSIVE - Mobile Friendly
+   ======================================== */
+@media (max-width: 960px) {
+  .game-container {
+    max-width: 980px;
+  }
+
+  .header-stats {
+    gap: 8px;
+  }
+
+  .header-stat-bar {
+    min-width: 84px;
+    max-width: 110px;
+  }
+}
+
+@media (max-width: 640px) {
+  .game-container {
+    padding:
+      calc(12px + env(safe-area-inset-top))
+      calc(12px + env(safe-area-inset-right))
+      calc(12px + env(safe-area-inset-bottom))
+      calc(12px + env(safe-area-inset-left));
+  }
+
+  .game-header {
+    margin-bottom: 12px;
+  }
+
+  .character-panel {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .character-card-enhanced {
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    text-align: center;
+  }
+
+  .character-avatar {
+    width: 72px;
+    height: 72px;
+  }
+
+  .character-meta {
+    justify-content: center;
+  }
+
+  .header-stats {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .header-stat-bar {
+    min-width: 0;
+    max-width: none;
+  }
+
+  .character-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .character-actions .v-btn {
+    flex: 1 1 130px;
+  }
+
+  .game-content {
+    padding-right: 0;
+  }
+
+  .narration-body {
+    max-height: 160px;
+  }
+
+  .action-section {
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  .events-grid {
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 14px;
+    padding: 6px;
+  }
+
+  .event-section {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .section-header-wrapper {
+    grid-template-columns: 1fr;
+    row-gap: 10px;
+  }
+
+  .section-header-wrapper .section-header {
+    grid-column: auto;
+  }
+
+  .section-header-wrapper .redraw-section-btn {
+    grid-column: auto;
+    justify-self: center;
+  }
+
+  .card-visual {
+    height: 120px;
+  }
+
+  .section-header {
+    font-size: 0.82rem;
+    padding: 10px 12px;
+    letter-spacing: 0.1em;
+  }
+
+  .dialog-title-container {
+    padding: 16px;
+  }
+
+  .dialog-title-text {
+    font-size: 0.9rem;
+  }
+
+  .dialog-text {
+    padding: 16px 16px !important;
+  }
+
+  .cancel-btn {
+    padding: 12px 22px !important;
+    font-size: 0.7rem !important;
+  }
+
+  .profile-dialog-text {
+    padding: 18px !important;
+  }
+
+  .dialog-title-main {
+    font-size: 1rem !important;
+  }
+
+  .profile-avatar-shell {
+    --avatar-size: 128px;
+  }
+
+  .profile-topbar {
+    padding: 14px 14px 10px;
+  }
+
+  .profile-topbar-subtitle {
+    font-size: 0.95rem;
+  }
+
+  .profile-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .profile-right {
+    padding-top: 0;
+  }
+
+  .profile-dialog-actions {
+    padding: 14px 16px 18px !important;
+    gap: 12px !important;
+  }
+
+  .profile-cancel-btn,
+  .profile-save-btn {
+    max-width: none;
+    flex: 1;
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .event-card-item:hover:not(.disabled) {
+    transform: none;
+    box-shadow:
+      0 4px 14px rgba(0, 0, 0, 0.35),
+      0 0 30px rgba(var(--accent2-rgb), 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .event-card-item:hover:not(.disabled) .card-img {
+    transform: none;
+    filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .star,
+  .star.fast,
+  .star.slow,
+  .star.shooting,
+  .nebula,
+  .grid-lines {
+    animation: none !important;
+  }
 }
 </style>
