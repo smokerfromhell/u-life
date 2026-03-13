@@ -9,9 +9,10 @@ class ProfessionalAccountRequestController extends Controller
 {
     public function store(Request $request)
     {
-        $validated = $request->validate([
+$validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255',
+            'desired_password' => 'required|string|min:8|confirmed',
             'organization' => 'nullable|string|max:255',
             'message' => 'nullable|string|max:2000',
         ]);

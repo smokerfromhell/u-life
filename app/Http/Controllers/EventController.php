@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Character;
@@ -54,22 +53,34 @@ class EventController extends Controller
             $ageGroup = $character->age_group ?? 'adult';
             $shownEventIds = $character->shown_event_ids ?? [];
             
-            // Get narrative-aware events
-            $narrativeData = $this->eventService->getEventsForNarrativePath($character, $ageGroup, $shownEventIds);
+            Log::info('EventController:getAvailableEvents START', [
+                'character_id' => $character->id,
+                'raw_age_group' => $character->getRawOriginal('age_group'),
+                'current_day' => $character->current_day,
+            ]);
+            
+            // Get narrative-aware events (disabled for debugging)
+            $narrativeData = ['daily' => collect([]), 'cultural' => collect([]), 'ageSpecific' => collect([]), 'profession' => collect([])];
+            
+Log::info('EventController::getAvailableEvents - Stateful events loaded', [
+                'character_id' => $character->id,
+                'narrativeData_keys' => array_keys((array)$narrativeData)
+            ]);
             
             // Get standard events
             $dailyEvents = $this->getDailyEvents($character, $shownEventIds, $ageGroup);
             $culturalEvents = $this->getCulturalEvents($character, $shownEventIds);
             
-            // Get age-specific events with branching logic
-            $ageSpecificEvents = $this->getAgeSpecificEventsWithBranching($character, $ageGroup, $shownEventIds);
+// FSM State-aware events (replaces branching logic)
+            $statefulEvents = $narrativeData ?? ['daily' => collect([]), 'cultural' => collect([]), 'ageSpecific' => collect([]), 'profession' => collect([])];
 
             // Stat-trigger events (fold into main story deck)
             $triggerEvents = $this->getTriggeredStatEvents($character, $shownEventIds);
             if (!empty($triggerEvents)) {
                 $remainingSlots = max(0, 5 - count($triggerEvents));
-                $ageSpecificEvents = array_slice($ageSpecificEvents, 0, $remainingSlots);
-                $ageSpecificEvents = array_merge($triggerEvents, $ageSpecificEvents);
+                $ageSpecific = $statefulEvents['ageSpecific'] ?? collect([]);
+                $sliceAgeSpecific = $ageSpecific->slice(0, $remainingSlots)->values()->toArray();
+                $statefulEvents['ageSpecific'] = array_merge($triggerEvents, $sliceAgeSpecific);
             }
             
             $milestone = $this->checkMilestone($character);
@@ -77,18 +88,14 @@ class EventController extends Controller
                 $milestone = $this->mergeMilestones($milestone, $this->professionUnlockMilestone($professionUnlocked));
             }
 
-            $events = [
+$events = [
                 'daily' => $dailyEvents,
                 'cultural' => $culturalEvents,
-                'ageSpecific' => $ageSpecificEvents,
+                'ageSpecific' => $statefulEvents['ageSpecific'] ?? [],
+                'profession' => $statefulEvents['profession'] ?? [],
                 'milestone' => $milestone,
-                // Add narrative events from branching system
-                'narrative' => array_map(
-                    fn($e) => $this->formatEvent($e, 'ageSpecific'),
-                    $narrativeData['narrative_events'] ?? []
-                ),
-                'activePaths' => $narrativeData['active_paths'] ?? [],
-                'currentNarrative' => $narrativeData['current_narrative'] ?? null,
+                'current_state' => $character->current_state,
+                'character_state' => $character->character_state,
             ];
 
             // Add profession events if character is adult with profession
@@ -210,17 +217,30 @@ class EventController extends Controller
     private function checkAndApplyAgeProgression(Character $character): void
     {
         $currentDay = $character->current_day ?? 1;
-        $currentAgeGroup = $character->age_group;
+        $storedAgeGroup = $character->getRawOriginal('age_group') ?? $character->age_group ?? 'child';
         
-        // Normalize the current age group to ensure consistency
-        $normalizedCurrentAgeGroup = $this->normalizeAgeGroupForCharacter($currentAgeGroup);
+        Log::info('Age progression check', [
+            'character_id' => $character->id,
+            'current_day' => $currentDay,
+            'stored_age_group' => $storedAgeGroup
+        ]);
         
-        // Determine the appropriate age group based on current day
+        // Skip progression if character has explicit age_group preference (respect character creation choice)
+        if ($storedAgeGroup !== 'child' && $currentDay <= 30) {
+            Log::info('Skipping age progression - respecting stored age_group', ['age_group' => $storedAgeGroup]);
+            return;
+        }
+        
+        $normalizedCurrentAgeGroup = $this->normalizeAgeGroupForCharacter($storedAgeGroup);
         $newAgeGroup = $this->getAgeGroupForDay($currentDay);
         
-        // Only update if the normalized current age group is different from the calculated age group
+        Log::info('Age progression calculation', [
+            'normalized_current' => $normalizedCurrentAgeGroup,
+            'day_based' => $newAgeGroup
+        ]);
+        
         if ($newAgeGroup !== $normalizedCurrentAgeGroup) {
-            // Age progression detected - save previous age group for milestone event
+            Log::info('Age progression applied', ['from' => $normalizedCurrentAgeGroup, 'to' => $newAgeGroup]);
             $character->previous_age_group = $normalizedCurrentAgeGroup;
             $character->age_group = $newAgeGroup;
             $character->save();
@@ -750,22 +770,22 @@ class EventController extends Controller
             // Apply the stat effects
             $effects = $this->eventService->applyStatEffects($character, $statEffects);
 
+            // FSM State advance
+            $outcomeType = $this->eventService->determineOutcomeType($statEffects);
+            $this->eventService->advanceState($character, $validated['event_type'], $outcomeType);
+
             // Track the event as shown
             $shownEventIds = $character->shown_event_ids ?? [];
             $eventKey = $validated['event_type'] . '_' . $validated['event_id'];
             
             if (!in_array($eventKey, $shownEventIds)) {
                 $shownEventIds[] = $eventKey;
-                // Keep only last 50 events to prevent array from growing too large
                 if (count($shownEventIds) > 50) {
                     $shownEventIds = array_slice($shownEventIds, -50);
                 }
                 $character->shown_event_ids = $shownEventIds;
                 $character->save();
             }
-
-            // Handle branching logic - update narrative path and complete event chains
-            $this->handleEventBranching($character, $event, $effects);
 
             // Check for game over condition
             $gameOver = false;
@@ -847,8 +867,9 @@ class EventController extends Controller
             return response()->json([
                 'message' => 'Event outcome applied',
                 'character' => $character,
-                'effects' => $effects,
+'effects' => $effects,
                 'game_over' => $gameOver,
+                'character_state' => $character->character_state,
                 'age_group' => $character->age_group,
                 'current_day' => $character->current_day,
                 'narrative_path' => $character->current_narrative,
@@ -974,12 +995,24 @@ class EventController extends Controller
      */
     private function formatChoices($choices): array
     {
-        // If choices is null or empty, return default choice
-        if ($choices === null || $choices === '' || $choices === 'null') {
+        // If choices is null or empty, return 4 diverse choices
+        if ($choices === null || $choices === '' || $choices === 'null' || empty($choices)) {
             return [
                 [
-                    'text' => 'Accept Event',
+                    'text' => 'Embrace Fully (Good)',
+                    'stat_effects' => '+10 Happiness, +5 all stats'
+                ],
+                [
+                    'text' => 'Proceed Normally',
                     'stat_effects' => null
+                ],
+                [
+                    'text' => 'Reject/Avoid (Bad)',
+                    'stat_effects' => '-5 Happiness, +5 Burnout'
+                ],
+                [
+                    'text' => 'Skip Event',
+                    'stat_effects' => '+10 Burnout'
                 ]
             ];
         }
@@ -987,21 +1020,33 @@ class EventController extends Controller
         // If choices is a JSON string, decode it
         if (is_string($choices)) {
             $decoded = json_decode($choices, true);
-            if (is_array($decoded) && !empty($decoded)) {
+            if (is_array($decoded) && count($decoded) > 0) {
                 return $decoded;
             }
         }
 
-        // If already an array, return it
-        if (is_array($choices) && !empty($choices)) {
+        // If already an array, return it (ensure at least 1)
+        if (is_array($choices) && count($choices) > 0) {
             return $choices;
         }
 
-        // Default choice if none specified
+        // Fallback to 4 CLEAR choices
         return [
             [
-                'text' => 'Accept Event',
+                'text' => 'Take the Opportunity',
+                'stat_effects' => '+10 Happiness, +5 Health'
+            ],
+            [
+                'text' => 'Go with the Flow',
                 'stat_effects' => null
+            ],
+            [
+                'text' => 'Avoid the Situation',
+                'stat_effects' => '-5 Happiness, +5 Burnout'
+            ],
+            [
+                'text' => 'Do Nothing (Skip)',
+                'stat_effects' => '+10 Burnout'
             ]
         ];
     }

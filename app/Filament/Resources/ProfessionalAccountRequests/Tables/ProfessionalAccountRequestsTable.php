@@ -47,24 +47,22 @@ class ProfessionalAccountRequestsTable
                         $password = null;
 
                         $user = User::where('email', $record->email)->first();
+                        $password = $record->desired_password;
                         if (!$user) {
-                            $password = Str::random(12);
                             $user = User::create([
                                 'name' => $record->name,
                                 'email' => $record->email,
-                                'password' => Hash::make($password),
+                                'password' => $password, // Already hashed from model
                                 'email_verified_at' => now(),
                                 'is_guest' => false,
                             ]);
                         } else {
-                            $user->is_guest = false;
-                            if (!$user->name) {
-                                $user->name = $record->name;
-                            }
-                            if (!$user->email_verified_at) {
-                                $user->email_verified_at = now();
-                            }
-                            $user->save();
+                            $user->update([
+                                'password' => $password,
+                                'is_guest' => false,
+                                'name' => $record->name,
+                                'email_verified_at' => now(),
+                            ]);
                         }
                         $user->syncRoles([$role->name]);
 

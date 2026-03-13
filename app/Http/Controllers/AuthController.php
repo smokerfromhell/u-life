@@ -142,9 +142,8 @@ public function forgotPassword(Request $request)
         // Build reset link
         $resetLink = env('APP_URL') . '/reset-password?token=' . $token . '&email=' . urlencode($request->email);
 
-        // Send email with reset link (optional - you can skip this if email not configured)
-        // In a real app, you'd use Mail::send() here
-        // For now, we'll just return the link
+        // Send real email
+        Mail::to($request->email)->send(new \App\Mail\PasswordResetMail($resetLink));
         
         return response()->json([
             'message' => 'Password reset link has been sent to your email.',

@@ -1,22 +1,26 @@
-# Task: Increase Event Count from 3 to 5+ in Game.vue
+# uLife Event Fetching Fix - /api/characters/3/events 500 Error
 
-## Status: ✅ COMPLETED
+## Status: ✅ PLAN APPROVED - IMPLEMENTING
 
-## Plan
-1. Modify EventController.php to fetch 5 random weighted events per category instead of 3
-2. Update getDailyEvents() method - ✅ Done
-3. Update getCulturalEvents() method - ✅ Done
-4. Update getAgeSpecificEventsWithBranching() method - ✅ Done
-5. Update getAgeSpecificEvents() method - ✅ Done
-6. Update getProfessionEvents() method - ✅ Done
-7. Test the changes
+### 1. [x] Understand Task & Files ✅
+   - Route: api/characters/{id}/events → EventController::getAvailableEvents
+   - Issue: EventService::getFilteredAgeSpecificEvents whereNotIn('id', ['ageSpecific_123']) → SQL type error
+   - Character 3 likely exists but query fails silently
 
-## Changes Made:
-- In `app/Http/Controllers/EventController.php`:
-  - Changed `min(3, $events->count())` to `min(5, $events->count())` in:
-    - getDailyEvents() - Now returns 5 events
-    - getCulturalEvents() - Now returns 5 events
-    - getAgeSpecificEvents() - Now returns 5 events
-    - getProfessionEvents() - Now returns 5 events
-    - getAgeSpecificEventsWithBranching() - Now returns up to 5 events
+### 2. [✅] Fix EventService.php shown_event_ids filtering
+   - ✅ Add extractShownIdsByType($shownEventIds, $prefix) helper
+   - ✅ Fix ALL getFiltered*Events(): daily, cultural, ageSpecific, profession
+   - Add logging for debug
+
+### 3. [ ] Test endpoint
+   - Refresh Game.vue or `curl http://localhost/api/characters/3/events`
+   - Verify events load without 500
+
+### 4. [ ] Verify character_state (FSM migration)
+   - Check `php artisan migrate:status | grep fsm_state`
+   - Update character 3 if needed
+
+### 5. [ ] Clear caches & complete ✅
+
+**Current Step: Edit EventService.php**
 

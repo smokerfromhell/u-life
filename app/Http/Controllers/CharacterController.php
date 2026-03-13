@@ -82,9 +82,16 @@ class CharacterController extends Controller
                 'name' => $validated['name'],
                 'age_group' => $validated['age_group'],
                 'gender' => $validated['gender'],
+                'current_day' => $request->input('start_day', 1),
                 'stats' => $validated['stats'],
                 'hidden_stats' => $validated['hidden_stats'],
                 'effective_stats' => $validated['effective_stats'],
+            ]);
+
+            Log::info('Character created with start_day', [
+                'id' => $character->id,
+                'age_group' => $character->age_group,
+                'current_day' => $character->current_day
             ]);
 
             Log::info('Character created with stats:', [
@@ -188,7 +195,8 @@ class CharacterController extends Controller
             'stats' => 'array',
             'hidden_stats' => 'array',
             'effective_stats' => 'array',
-            'current_day' => 'integer|min:1',
+'current_day' => 'integer|min:1',
+            'start_day' => 'integer|min:1|max:120',
             'image' => 'string|max:500',
         ]);
 

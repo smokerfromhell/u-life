@@ -270,10 +270,10 @@
           Request access to the analytics dashboard. Your account can only be created/approved by the Super Admin.
         </div>
 
-        <div class="space-y-3">
+        <div class="space-y-6">
           <v-text-field
             v-model="proRequest.name"
-            label="Full Name"
+            label="Full Name *"
             variant="outlined"
             density="comfortable"
             class="galaxy-input"
@@ -284,7 +284,7 @@
 
           <v-text-field
             v-model="proRequest.email"
-            label="Email Address"
+            label="Email Address *"
             variant="outlined"
             density="comfortable"
             class="galaxy-input"
@@ -303,6 +303,42 @@
             bg-color="transparent"
             :disabled="loading"
           />
+
+          <v-text-field
+            v-model="proRequest.desired_password"
+            :type="showPassword ? 'text' : 'password'"
+            label="Desired Password *"
+            variant="outlined"
+            density="comfortable"
+            class="galaxy-input"
+            hide-details="auto"
+            bg-color="transparent"
+            :disabled="loading"
+          >
+            <template #append-inner>
+              <v-icon @click="showPassword = !showPassword" class="cursor-pointer pa-1">
+                {{ showPassword ? 'mdi-eye-off' : 'mdi-eye' }}
+              </v-icon>
+            </template>
+          </v-text-field>
+
+          <v-text-field
+            v-model="proRequest.confirm_password"
+            :type="showConfirmPassword ? 'text' : 'password'"
+            label="Confirm Password *"
+            variant="outlined"
+            density="comfortable"
+            class="galaxy-input"
+            hide-details="auto"
+            bg-color="transparent"
+            :disabled="loading"
+          >
+            <template #append-inner>
+              <v-icon @click="showConfirmPassword = !showConfirmPassword" class="cursor-pointer pa-1">
+                {{ showConfirmPassword ? 'mdi-eye-off' : 'mdi-eye' }}
+              </v-icon>
+            </template>
+          </v-text-field>
 
           <v-textarea
             v-model="proRequest.message"
@@ -374,7 +410,12 @@ const proRequest = ref({
   email: '',
   organization: '',
   message: '',
+  desired_password: '',
+  confirm_password: '',
 })
+
+const showProPassword = ref(false)
+const showConfirmPassword = ref(false)
 
 const isLoginEnabled = computed(() =>
   email.value && password.value
@@ -581,16 +622,26 @@ const openProfessionalRequest = () => {
 }
 
 const submitProfessionalRequest = async () => {
+  if (proRequest.value.desired_password !== proRequest.value.confirm_password) {
+    snackbarMessage.value = 'Passwords do not match'
+    snackbarColor.value = 'error'
+    showSnackbar.value = true
+    return
+  }
+
   loading.value = true
   try {
     const res = await axios.post('/api/professional-account-requests', {
       name: proRequest.value.name,
       email: proRequest.value.email,
+      desired_password: proRequest.value.desired_password,
+      desired_password_confirmation: proRequest.value.confirm_password,
       organization: proRequest.value.organization || null,
       message: proRequest.value.message || null,
     })
 
     professionalDialog.value = false
+    proRequest.value = { name: '', email: '', organization: '', message: '', desired_password: '', confirm_password: '' }
 
     snackbarMessage.value = res.data?.message || 'Request submitted'
     snackbarColor.value = 'success'

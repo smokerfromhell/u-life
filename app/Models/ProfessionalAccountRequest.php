@@ -10,9 +10,10 @@ class ProfessionalAccountRequest extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
+protected $fillable = [
         'name',
         'email',
+        'desired_password',
         'organization',
         'message',
         'status',
@@ -27,6 +28,7 @@ class ProfessionalAccountRequest extends Model
     protected $casts = [
         'approved_at' => 'datetime',
         'rejected_at' => 'datetime',
+        'desired_password' => 'hashed',
     ];
 
     public function createdUser(): BelongsTo

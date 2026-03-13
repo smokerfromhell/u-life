@@ -29,6 +29,17 @@ class User extends Authenticatable implements FilamentUser
         'share_consent',
         'guest_started_at',
     ];
+    
+    protected $guarded = [];
+    
+    protected function setEmailAttribute(?string $value): void
+    {
+        if ($this->is_guest ?? false) {
+            $this->attributes['email'] = null;
+        } else {
+            $this->attributes['email'] = $value;
+        }
+    }
 
     /**
      * The attributes that should be hidden for serialization.

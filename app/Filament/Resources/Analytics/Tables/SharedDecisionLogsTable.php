@@ -23,6 +23,32 @@ class SharedDecisionLogsTable
                 IconColumn::make('is_guest')->boolean()->label('Guest')->sortable(),
                 TextColumn::make('event_id')->sortable(),
                 TextColumn::make('choice_index')->sortable(),
+                
+                // MBTI Personality Trait
+                TextColumn::make('data.mbti')
+                    ->label('MBTI Type')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'INTP' => 'gray',
+                        'INTJ' => 'indigo',
+                        'ENTP' => 'amber',
+                        'ENTJ' => 'blue',
+                        'INFP' => 'rose',
+                        'INFJ' => 'purple',
+                        'ENFP' => 'emerald',
+                        'ENFJ' => 'green',
+                        'ISTJ' => 'slate',
+                        'ISTP' => 'cyan',
+                        'ESTJ' => 'zinc',
+                        'ESTP' => 'orange',
+                        'ISFJ' => 'pink',
+                        'ISFP' => 'violet',
+                        'ESFJ' => 'yellow',
+                        'ESFP' => 'red',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn ($state) => $state ?? 'Analyzing...'),
+                
                 TextColumn::make('anon_user_id')
                     ->label('Anon User')
                     ->toggleable(isToggledHiddenByDefault: true)

@@ -32,9 +32,10 @@
               <div class="character-info">
                 <h2 class="character-name">{{ character.name }}</h2>
                 <div class="character-meta">
-                  <span class="meta-badge">{{ character.ageGroup }}</span>
-                  <span class="meta-divider">|</span>
-                  <span class="day-counter">Day {{ character.currentDay }}</span>
+                <span class="meta-badge">{{ character.ageGroup }}</span>
+                <span class="meta-badge gender-badge">{{ character.gender }}</span>
+                   <span class="meta-divider">|</span>
+                   <span class="day-counter">Day {{ character.currentDay }}</span>
                   <span class="meta-divider">|</span>
                   <span class="profession-badge">{{ character.profession || 'No Profession' }}</span>
                 </div>
@@ -1353,6 +1354,7 @@ const closeEditProfile = () => {
  */
 const logout = async () => {
   try {
+    await saveGame()
     await fetch('/api/guest/exit', {
       method: 'POST',
       headers: {

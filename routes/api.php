@@ -39,5 +39,9 @@ Route::middleware(['web'])->group(function () {
 
         // Admin analytics (RBAC via role/permission)
         Route::get('/admin/shared-decision-logs', [SharedDecisionLogController::class, 'index']);
+        
+        // Professional analytics
+        Route::get('/professional/analytics', [AnalyticsController::class, 'dashboard']);
     });
 });
+

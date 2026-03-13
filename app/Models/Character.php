@@ -37,10 +37,13 @@ class Character extends Model
         'gender_bonus' => 'array',
         'age_bonus' => 'array',
         'effective_stats' => 'array',
+        'character_state' => 'array',
         'completed_event_chains' => 'array',
         'active_event_paths' => 'array',
         'shown_event_ids' => 'array',
     ];
+
+    protected $appends = ['current_state'];
 
     protected $attributes = [
         'stats' => '{"Intelligence": 0, "Strength": 0, "Charisma": 0, "Creativity": 0, "Wealth": 0, "Luck": 0}',
@@ -48,10 +51,16 @@ class Character extends Model
         'gender_bonus' => '{}',
         'age_bonus' => '{}',
         'effective_stats' => '{}',
+        'character_state' => '{"life_stage": "child", "profession_state": "unemployed", "relationship_status": "single", "health_condition": "healthy"}',
         'shown_event_ids' => '[]',
         'completed_event_chains' => '[]',
         'active_event_paths' => '[]',
     ];
+
+    public function getCurrentStateAttribute()
+    {
+        return $this->character_state ?? ['life_stage' => 'child', 'profession_state' => 'unemployed', 'relationship_status' => 'single', 'health_condition' => 'healthy'];
+    }
 
     /**
      * Get the user that owns the character.
