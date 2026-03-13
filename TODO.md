@@ -1,26 +1,39 @@
-# uLife Event Fetching Fix - /api/characters/3/events 500 Error
+# Random Event Card Shuffling Enhancement ✅
 
-## Status: ✅ PLAN APPROVED - IMPLEMENTING
+## COMPLETED STEPS
 
-### 1. [x] Understand Task & Files ✅
-   - Route: api/characters/{id}/events → EventController::getAvailableEvents
-   - Issue: EventService::getFilteredAgeSpecificEvents whereNotIn('id', ['ageSpecific_123']) → SQL type error
-   - Character 3 likely exists but query fails silently
+### 1. ✅ Create TODO.md
+### 2. ✅ Update Script Section
+   - Added `selectedAnimationCardIndex` ref
+   - Added `selectAnimationCard(index)` method  
+   - Updated `startAnimationSequence()`: popup(0.8s)→show(1.8s)→flipback(0.8s)→shuffle(3s)→**choose**
+   - Replaced `endAnimation()` auto-pick with interactive choose
+   - Enhanced `shuffleCards()`: 3 riffle passes (0s, 0.8s, 1.6s)
 
-### 2. [✅] Fix EventService.php shown_event_ids filtering
-   - ✅ Add extractShownIdsByType($shownEventIds, $prefix) helper
-   - ✅ Fix ALL getFiltered*Events(): daily, cultural, ageSpecific, profession
-   - Add logging for debug
+### 3. ✅ Update Template
+   - Added conditional `@click="selectAnimationCard(index)"` 
+   - Updated phase labels: "Memorize Positions" → "SHUFFLING..." → "**PICK A CARD!**"
+   - Disabled random btn during `choose` phase
 
-### 3. [ ] Test endpoint
-   - Refresh Game.vue or `curl http://localhost/api/characters/3/events`
-   - Verify events load without 500
+### 4. ✅ Enhance CSS
+   - **Riffle shuffle**: New `@keyframes riffleShuffle` (cut→interleave×2, skew/scale)
+   - **Choose phase**: Hover lift/glow/tilt, pulsing card-back
+   - **Winner reveal**: Explosive glow/scale animation
+   - Removed old `cardShuffle`
 
-### 4. [ ] Verify character_state (FSM migration)
-   - Check `php artisan migrate:status | grep fsm_state`
-   - Update character 3 if needed
+### 5. ✅ Verified Logic Flow
+   - Show faces → Flip back → Realistic shuffle → **Player picks card** → Reveal selected → Event dialog
+   - Btns disabled appropriately, no auto-reveal
 
-### 5. [ ] Clear caches & complete ✅
+### 6. ✅ Finalized
 
-**Current Step: Edit EventService.php**
+**Result**: Random event now real-life card trick! 5 cards shown, flipped, shuffled (riffle-style 3s), player chooses face-down card → reveals content.
+
+To test: `npm run dev`, load game, click "Random Event".
+
+## Run to Demo
+```bash
+npm run dev
+```
+Open browser to game page, trigger random event - enjoy the shuffle & pick!
 

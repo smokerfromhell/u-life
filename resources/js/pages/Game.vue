@@ -60,41 +60,38 @@
             
             <div class="character-actions">
               <v-btn
-                variant="tonal"
                 size="small"
-                class="stats-toggle-btn"
+                class="retro-btn retro-stats-btn"
                 @click="toggleStats"
                 prepend-icon="mdi-account"
+                :color="showStats ? 'warning' : 'info'"
               >
-                {{ showStats ? 'Hide' : 'Show' }} Skills
+                {{ showStats ? 'Hide Skills' : 'Show Skills' }}
               </v-btn>
               <v-btn
-                variant="outlined"
                 size="x-small"
+                class="retro-btn retro-edit-btn"
                 prepend-icon="mdi-pencil"
                 @click="editProfile"
-                class="action-btn-header"
               >
                 Edit
               </v-btn>
               <v-btn
-                variant="outlined"
                 size="x-small"
+                class="retro-btn retro-save-btn"
                 color="warning"
-                prepend-icon="mdi-content-save"
+                prepend-icon="mdi-floppy"
                 @click="saveGame"
                 :loading="isSavingGame"
-                class="action-btn-header"
               >
                 Save
               </v-btn>
               <v-btn
-                variant="outlined"
                 size="x-small"
+                class="retro-btn retro-exit-btn"
                 color="error"
-                prepend-icon="mdi-logout"
+                prepend-icon="mdi-power"
                 @click="logout"
-                class="action-btn-header"
               >
                 Exit
               </v-btn>
@@ -148,7 +145,7 @@
           </div>
           <div class="narration-body">
             <p v-if="narrationHistory.length === 0" class="narration-empty">
-              Select an event to begin your journey...
+              Select an event to begin your life...
             </p>
             <div class="narration-entries">
               <p v-for="(entry, i) in narrationHistory" :key="i" class="narration-entry">
@@ -160,16 +157,27 @@
         </div>
 
         <div class="action-section">
-          <v-btn
-            block
-            size="large"
-            class="random-event-btn"
-            prepend-icon="mdi-dice-multiple"
-            @click="randomEvent"
-            :disabled="selectedEvent || loading"
-          >
-            Random Event
-          </v-btn>
+          <div class="action-buttons">
+            <v-btn
+              size="large"
+              class="random-event-btn action-btn"
+              prepend-icon="mdi-dice-multiple"
+              @click="randomEvent"
+              :disabled="selectedEvent || loading || showCardAnimation || animationPhase === 'choose'"
+            >
+              {{ showCardAnimation ? 'Animating...' : 'Random Event' }}
+            </v-btn>
+            <v-spacer />
+            <v-btn
+              size="large"
+              class="suicide-btn action-btn"
+              color="error"
+              prepend-icon="mdi-skull-crossbones"
+              @click="suicide"
+            >
+              Suicide
+            </v-btn>
+          </div>
         </div>
 
         <div class="events-area">
@@ -444,16 +452,6 @@
               </div>
             </div>
 
-            <v-btn
-              icon
-              variant="text"
-              class="profile-close-btn"
-              @click="closeEditProfile"
-              :disabled="isSavingProfile"
-              aria-label="Close"
-            >
-              <v-icon size="20">mdi-close</v-icon>
-            </v-btn>
           </div>
           <v-card-text class="profile-dialog-text">
             <div class="profile-layout">
@@ -551,6 +549,81 @@
         </v-card>
       </v-theme-provider>
     </v-dialog>
+
+    <!-- Suicide Dialog -->
+    <v-dialog v-model="suicideDialog" max-width="600" max-height="90vh" persistent rounded="xl" content-class="suicide-dialog-content">
+      <v-card class="suicide-dialog" theme="dark" style="min-height: 400px; max-height: 90vh; overflow-y: auto;">
+        <v-card-title class="suicide-title glitch" data-text="Are you sure you want to die?">
+          <div style="font-size: 1.5rem; line-height: 1.2; padding: 8px 0;">
+            Are you sure?
+          </div>
+        </v-card-title>
+        <v-card-subtitle class="suicide-subtitle mb-4">Final decision. No turning back.</v-card-subtitle>
+        <v-card-text class="suicide-text">
+          <v-select
+            v-model="selectedMethod"
+            :items="suicideMethods"
+            label="Choose method"
+            variant="outlined"
+            density="compact"
+            class="method-select"
+            item-title="name"
+            hide-no-data
+            prepend-inner-icon="mdi-death-star"
+          />
+        </v-card-text>
+        <v-card-actions class="justify-center gap-3 pb-6">
+          <v-btn 
+            variant="outlined" 
+            @click="suicideDialog = false"
+            class="cancel-suicide-btn"
+          >
+            Live On
+          </v-btn>
+          <v-btn 
+            color="error" 
+            variant="elevated"
+            @click="confirmSuicide" 
+            :disabled="!selectedMethod"
+            class="confirm-suicide-btn"
+          >
+            End Life
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- 5-Card Random Event Animation Overlay -->
+    <v-overlay v-model="showCardAnimation" contained class="card-animation-overlay align-center justify-center text-center" z-index="999">
+      <div class="animation-container">
+        <h3 class="animation-title glitch" data-text="RANDOM EVENT CARDS">RANDOM EVENT CARDS</h3>
+        <div class="cards-arc">
+          <div
+            v-for="(card, index) in animationCards"
+            :key="`anim-${index}`"
+            class="animation-card"
+              :class="[
+                `phase-${animationPhase}`,
+                `pos-${shufflePositions[index] || index}`,
+                index === winnerIndex || index === selectedAnimationCardIndex ? 'winner' : ''
+              ]"
+              :style="getCardStyle(index)"
+              @click="animationPhase === 'choose' ? selectAnimationCard(index) : null"
+            >
+            <div class="card-back" v-if="animationPhase !== 'show'">
+              ❓
+            </div>
+            <div v-else class="card-preview">
+              <div class="card-visual-mini">
+                <div class="card-img-mini" :style="{ backgroundImage: `url(${card.image})` }"></div>
+              </div>
+              <div class="card-title-mini">{{ card.title }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="phase-indicator">{{ getPhaseLabel(animationPhase) }}</div>
+      </div>
+    </v-overlay>
   </div>
 </template>
 
@@ -625,6 +698,16 @@ const isGuestUser = ref(false)
 const shareConsent = ref(false)
 const savingConsent = ref(false)
 
+const suicideDialog = ref(false)
+const selectedMethod = ref('')
+const suicideMethods = ref([
+  { name: 'Jump off bridge', prob: 0.95 },
+  { name: 'Jump in front of car', prob: 0.92 },
+  { name: 'Hanging', prob: 0.97 },
+  { name: 'Overdose', prob: 0.88 },
+  { name: 'Gunshot', prob: 0.94 }
+])
+
 // If the dialog is closed via scrim click / ESC, ensure cards are clickable again.
 watch(showEventDialog, (isOpen) => {
   if (!isOpen) selectedEvent.value = null
@@ -676,6 +759,41 @@ const canRedrawDaily = ref(true)
 const canRedrawCultural = ref(true)
 const canRedrawAgeSpecific = ref(true)
 const canRedrawProfession = ref(true)
+
+// Animation state for 5-card random event
+const showCardAnimation = ref(false)
+const animationCards = ref([])
+const animationPhase = ref('')
+const animationTimer = ref(null)
+const winnerIndex = ref(-1)
+const selectedAnimationCardIndex = ref(null)
+const shufflePositions = ref([0,1,2,3,4])
+
+// Enhanced riffle shuffle simulation
+const shuffleArray = (arr) => {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
+}
+
+const shuffleCards = () => {
+  // TRIPLE FULL ARRAY RESHUFFLE - card 3 CHANGES!
+  for(let pass = 0; pass < 3; pass++) {
+    shuffleArray(animationCards.value)
+    setTimeout(() => {}, pass * 800)
+  }
+  
+  // Visual chaos during
+  shufflePositions.value = Array(5).fill().map((_,i) => i)
+  for(let i = 0; i < 20; i++) {
+    setTimeout(() => shuffleArray(shufflePositions.value), i * 100)
+  }
+  
+  // Settle neat for pick
+  setTimeout(() => shufflePositions.value = [0,1,2,3,4], 3000)
+}
 
 // Fetch character and events on mount
 onMounted(async () => {
@@ -797,7 +915,7 @@ const fetchCharacter = async () => {
 
     // Update effective stats for display - use effective_stats from database if available
     updateEffectiveStats()
-    narrationHistory.value.push(`Welcome, ${character.value.name}! Your adventure begins...`)
+    narrationHistory.value.push(`Welcome, ${character.value.name}! Your life adventure begins...`)
   } catch (error) {
     console.error('Error fetching character:', error)
     narrationHistory.value.push('Error loading character. Please refresh the page.')
@@ -961,30 +1079,117 @@ const continueGame = async () => {
 }
 
 /**
- * Get a random event from any type
+ * Get 5 random events and start card animation
  */
 const randomEvent = async () => {
   try {
     loading.value = true
-    const response = await fetch(`/api/characters/${character.value.id}/random-event`, {
-      headers: {
-        'Accept': 'application/json'
-      }
-    })
     
-    if (!response.ok) throw new Error('Failed to fetch random event')
+    // Fetch 5 random events
+    const promises = Array(5).fill().map(() => 
+      fetch(`/api/characters/${character.value.id}/random-event`, {
+        headers: { 'Accept': 'application/json' }
+      }).then(r => r.json())
+    )
     
-    const data = await response.json()
-    if (data.event) {
-      selectEvent(data.event)
+    const eventsData = await Promise.all(promises)
+    let rawCards = eventsData.map(data => data.event).filter(Boolean)
+    
+    if (rawCards.length === 0) {
+      throw new Error('No events loaded')
     }
+    
+    // INITIAL FULL SHUFFLE #1
+    shuffleArray(rawCards)
+    animationCards.value = rawCards
+    
+    // Reset states
+    shufflePositions.value = [0,1,2,3,4]
+    selectedAnimationCardIndex.value = null
+    winnerIndex.value = -1
+    
+    // Start animation
+    await nextTick()
+    showCardAnimation.value = true
+    animationPhase.value = 'popup'
+    startAnimationSequence()
+    
+    narrationHistory.value.push('🎲 Cards are shuffling... Watch closely! Pick wisely after shuffle.')
+    
   } catch (error) {
-    console.error('Error fetching random event:', error)
+    console.error('Error fetching random events:', error)
     narrationHistory.value.push('Error loading random event.')
   } finally {
     loading.value = false
   }
 }
+
+const startAnimationSequence = () => {
+  // Clear existing timer
+  if (animationTimer.value) clearTimeout(animationTimer.value)
+  
+  const phases = [
+    { phase: 'popup', duration: 800 },
+    { phase: 'show', duration: 1800 },
+    { phase: 'flipback', duration: 800 },
+    { phase: 'shuffle', duration: 3000, onStart: shuffleCards }
+  ]
+  
+  let i = 0
+  const runPhase = () => {
+    if (i < phases.length) {
+      const phaseData = phases[i]
+      const { phase, duration, onStart } = phaseData
+      animationPhase.value = phase
+      if (onStart) onStart()
+      i++
+      animationTimer.value = setTimeout(runPhase, duration)
+    } else {
+      // Enter choose phase
+animationPhase.value = 'choose'
+    
+    // Reset to neat positions for choosing
+    shufflePositions.value = [0,1,2,3,4]
+    }
+  }
+  runPhase()
+}
+
+const getCardStyle = (index) => ({
+  '--card-delay': `${index * 0.1}s`,
+  '--card-scale': animationPhase === 'reveal' && index === winnerIndex.value ? '1.1' : '1'
+})
+
+const getPhaseLabel = (phase) => {
+  const labels = {
+    popup: 'Cards Rising...',
+    show: 'Memorize Positions',
+    flipback: 'Flipping Back...',
+    shuffle: 'SHUFFLING...',
+    choose: 'PICK A CARD!'
+  }
+  return labels[phase] || ''
+}
+
+const selectAnimationCard = async (index) => {
+  if (animationPhase.value !== 'choose' || selectedAnimationCardIndex.value !== null) return
+  
+  selectedAnimationCardIndex.value = index
+  winnerIndex.value = index
+  
+  const selectedCard = animationCards.value[index]
+  selectedEvent.value = selectedCard
+  showEventDialog.value = true
+  
+  narrationHistory.value.push(`You picked card #${index + 1}. Let's see what fate has in store...`)
+  
+  // Keep overlay briefly for reveal effect, then close
+  await new Promise(resolve => setTimeout(resolve, 1200))
+  showCardAnimation.value = false
+  animationPhase.value = ''
+  selectedAnimationCardIndex.value = null
+}
+
 
 /**
  * Re-draw all event cards - can only be used once per day
@@ -1378,6 +1583,35 @@ const showMilestone = (milestone) => {
 }
 
 /**
+ * Suicide methods
+ */
+const suicide = () => {
+  selectedMethod.value = ''
+  suicideDialog.value = true
+}
+
+const confirmSuicide = () => {
+  const method = selectedMethod.value
+  if (!method) return
+
+  const methodData = suicideMethods.value.find(m => m.name === method)
+  const successProb = methodData?.prob ?? 0.92
+  const success = Math.random() < successProb
+
+  suicideDialog.value = false
+
+  if (success) {
+    narrationHistory.value.push(`💀 You ended your life by ${method}.`)
+    narrationHistory.value.push('Your journey ends here.')
+    gameOver.value = true
+  } else {
+    narrationHistory.value.push(`☠️ You attempted ${method}, but survived.`)
+    narrationHistory.value.push('Barely alive... -Hospital visit. -Health.')
+    // Optional: minor stat penalty (client-side preview)
+  }
+}
+
+/**
  * Start new game
  */
 const startNewGame = () => {
@@ -1583,6 +1817,28 @@ const startNewGame = () => {
   display: flex;
   align-items: flex-start;
   gap: 20px;
+  background: linear-gradient(135deg, rgba(15,10,25,0.8), rgba(25,15,40,0.9));
+  border: 2px solid rgba(255,255,255,0.15);
+  border-radius: 16px;
+  padding: 20px;
+  position: relative;
+  box-shadow: 
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    0 0 0 1px rgba(0,255,204,0.3),
+    0 20px 60px rgba(0,0,0,0.6),
+    0 0 40px rgba(139,92,246,0.2);
+  font-family: 'Press Start 2P', 'VT323', monospace;
+  image-rendering: pixelated;
+}
+
+.character-card-enhanced::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: 
+    repeating-linear-gradient(90deg, transparent 0, transparent 1px, rgba(0,255,204,0.05) 1px, rgba(0,255,204,0.05) 2px),
+    repeating-linear-gradient(0deg, transparent 0, transparent 2px, rgba(139,92,246,0.04) 2px, rgba(139,92,246,0.04) 4px);
+  pointer-events: none;
 }
 
 .avatar-wrapper {
@@ -1644,12 +1900,19 @@ const startNewGame = () => {
 }
 
 .character-name {
-  font-family: 'VT323', monospace;
-  font-size: 1.9rem;
-  font-weight: 700;
-  color: #ffffff;
-  text-shadow: 0 0 18px rgba(var(--accent-rgb), 0.15), 0 0 26px rgba(var(--accent2-rgb), 0.12);
-  margin-bottom: 4px;
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 1.4rem !important;
+  font-weight: 700 !important;
+  color: #00ffcc !important;
+  text-shadow: 
+    0 0 20px #00ffcc,
+    3px 0 0 #000, -3px 0 0 #00ffcc,
+    0 3px 0 #000, 0 -3px 0 #00ffcc !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  animation: name-glitch 4s infinite;
+  margin-bottom: 8px !important;
+  line-height: 1 !important;
 }
 
 .character-meta {
@@ -1660,13 +1923,18 @@ const startNewGame = () => {
 }
 
 .meta-badge {
-  background: linear-gradient(135deg, rgb(var(--accent2-rgb)) 0%, rgb(var(--indigo-rgb)) 50%, rgb(var(--teal-rgb)) 100%);
-  color: #ffffff;
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 20px;
-  text-transform: capitalize;
+  background: linear-gradient(135deg, rgba(139,92,246,0.9), rgba(99,102,241,0.8), rgba(0,212,170,0.9)) !important;
+  color: #ffffff !important;
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 0.55rem !important;
+  font-weight: 700 !important;
+  padding: 4px 12px !important;
+  border-radius: 12px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  border: 1px solid rgba(255,255,255,0.3) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4), 0 0 12px rgba(139,92,246,0.4) !important;
+  image-rendering: pixelated !important;
 }
 
 .meta-divider {
@@ -1691,36 +1959,57 @@ const startNewGame = () => {
 
 /* Header Stats - Always Visible */
 .header-stats {
-  display: flex;
-  flex-direction: row;
-  gap: 10px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 12px;
+  padding: 12px;
+  background: rgba(10,5,20,0.7);
+  border: 2px solid rgba(0,255,204,0.4);
+  border-radius: 12px;
+  box-shadow: 
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    0 0 20px rgba(0,255,204,0.3),
+    0 8px 25px rgba(0,0,0,0.5);
+  font-family: 'Press Start 2P', monospace;
+  image-rendering: pixelated;
 }
 
 .header-stat-bar {
-  flex: 1;
-  min-width: 90px;
-  max-width: 120px;
-  display: flex;
-  flex-direction: column;
+  background: linear-gradient(135deg, rgba(20,15,35,0.9), rgba(10,5,25,0.95));
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px;
+  padding: 8px 6px;
+  box-shadow: 
+    0 4px 12px rgba(0,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.15);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 .header-stat-header {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-bottom: 3px;
+  gap: 3px;
+  margin-bottom: 4px;
+  font-size: 0.45rem !important;
 }
 
 .header-stat-icon {
-  font-size: 0.7rem;
+  font-size: 0.75rem !important;
+  text-shadow: 0 0 8px currentColor;
+  filter: drop-shadow(0 0 4px rgba(255,255,255,0.5));
 }
 
 .header-stat-name {
-  color: #94a3b8;
-  font-size: 0.65rem;
-  font-weight: 500;
+  color: #00ff88 !important;
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 0.4rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
   flex: 1;
+  text-shadow: 1px 1px 0 #000;
 }
 
 .header-stat-value {
@@ -1769,10 +2058,94 @@ const startNewGame = () => {
   flex-shrink: 0;
 }
 
-.character-actions .v-btn {
-  font-size: 0.65rem !important;
-  padding: 4px 8px !important;
-  min-width: auto;
+/* Retro Pixel Header Buttons */
+.character-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 4px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.retro-btn {
+  font-family: 'Press Start 2P', 'VT323', monospace !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+  image-rendering: pixelated !important;
+  border-radius: 4px !important;
+  border: 2px solid !important;
+  box-shadow: 
+    0 4px 8px rgba(0,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.2) !important;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+  font-weight: 700 !important;
+  font-size: 0.55rem !important;
+  padding: 6px 10px !important;
+  min-height: 32px !important;
+  min-width: auto !important;
+  backdrop-filter: blur(4px);
+}
+
+.retro-btn:hover:not(:disabled) {
+  transform: translateY(-2px) !important;
+  box-shadow: 
+    0 6px 12px rgba(0,0,0,0.5),
+    0 0 12px currentColor,
+    inset 0 1px 0 rgba(255,255,255,0.3) !important;
+}
+
+.retro-btn:active:not(:disabled) {
+  transform: translateY(0px) !important;
+  box-shadow: 
+    0 2px 4px rgba(0,0,0,0.4),
+    inset 0 2px 4px rgba(0,0,0,0.2) !important;
+}
+
+.retro-stats-btn {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
+  border-color: #60a5fa !important;
+  color: white !important;
+}
+
+.retro-stats-btn:hover { 
+  background: linear-gradient(135deg, #60a5fa, #3b82f6) !important;
+  box-shadow: 0 6px 12px rgba(59, 130, 246, 0.4), 0 0 20px rgba(59, 130, 246, 0.3) !important;
+}
+
+.retro-edit-btn {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  border-color: #34d399 !important;
+  color: white !important;
+}
+
+.retro-edit-btn:hover { 
+  background: linear-gradient(135deg, #34d399, #10b981) !important;
+  box-shadow: 0 6px 12px rgba(16, 185, 129, 0.4), 0 0 20px rgba(16, 185, 129, 0.3) !important;
+}
+
+.retro-save-btn {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  border-color: #fbbf24 !important;
+  color: white !important;
+}
+
+.retro-save-btn:hover { 
+  background: linear-gradient(135deg, #fbbf24, #f59e0b) !important;
+  box-shadow: 0 6px 12px rgba(245, 158, 11, 0.4), 0 0 20px rgba(245, 158, 11, 0.3) !important;
+}
+
+.retro-exit-btn {
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  border-color: #f87171 !important;
+  color: white !important;
+}
+
+.retro-exit-btn:hover { 
+  background: linear-gradient(135deg, #f87171, #ef4444) !important;
+  box-shadow: 0 6px 12px rgba(239, 68, 68, 0.5), 0 0 20px rgba(239, 68, 68, 0.4) !important;
 }
 
 /* ========================================
@@ -1780,8 +2153,28 @@ const startNewGame = () => {
    ======================================== */
 .stats-panel-enhanced {
   margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(15,10,25,0.95), rgba(25,20,40,0.98));
+  border: 2px solid rgba(0,255,204,0.4);
+  border-radius: 16px;
+  box-shadow: 
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    0 0 30px rgba(0,255,204,0.25),
+    0 12px 40px rgba(0,0,0,0.6);
+  font-family: 'Press Start 2P', 'VT323', monospace;
+  image-rendering: pixelated;
+  position: relative;
+  overflow: hidden;
+}
+
+.stats-panel-enhanced::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    repeating-linear-gradient(90deg, transparent 0, transparent 3px, rgba(0,255,204,0.06) 3px, rgba(0,255,204,0.06) 6px),
+    repeating-linear-gradient(0deg, transparent 0, transparent 4px, rgba(139,92,246,0.05) 4px, rgba(139,92,246,0.05) 8px);
+  pointer-events: none;
 }
 
 .profile-section {
@@ -1814,13 +2207,30 @@ const startNewGame = () => {
 }
 
 .section-title {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.62rem;
-  font-weight: 700;
-  color: rgb(var(--accent-rgb));
-  letter-spacing: 0.1em;
-  margin-bottom: 12px;
-  text-transform: uppercase;
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 0.65rem !important;
+  font-weight: 800 !important;
+  color: #00ff88 !important;
+  letter-spacing: 0.15em !important;
+  margin-bottom: 16px !important;
+  text-transform: uppercase !important;
+  text-shadow: 
+    0 0 12px #00ff88,
+    2px 0 0 #000,
+    -2px 0 0 #00ff88 !important;
+  position: relative;
+}
+
+.section-title::after {
+  content: '▔▔▔▔▔▔▔▔▔▔▔▔';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  color: rgba(0,255,136,0.3);
+  font-size: 0.5rem;
+  letter-spacing: 0;
+  text-shadow: none;
 }
 
 /* Stats Bars */
@@ -1886,19 +2296,34 @@ const startNewGame = () => {
 }
 
 .badge-chip {
-  font-size: 0.7rem !important;
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 0.5rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  image-rendering: pixelated !important;
+  border-radius: 6px !important;
+  border: 2px solid !important;
+  height: 28px !important;
+  margin: 2px !important;
+  box-shadow: 
+    0 3px 8px rgba(0,0,0,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.3) !important;
 }
 
 .skill-badge {
-  background: linear-gradient(135deg, rgb(var(--accent2-rgb)) 0%, rgb(var(--indigo-rgb)) 55%, rgb(var(--teal-rgb)) 100%) !important;
+  background: linear-gradient(135deg, #8b5cf6, #6366f1, #00d4aa) !important;
+  border-color: #a78bfa !important;
   color: #ffffff !important;
-  border: none !important;
+  box-shadow: 0 0 12px rgba(139,92,246,0.6) !important;
 }
 
 .talent-badge {
   background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  border-color: #fbbf24 !important;
   color: #000 !important;
-  border: none !important;
+  box-shadow: 0 0 16px rgba(245,158,11,0.7) !important;
+  font-weight: 900 !important;
 }
 
 /* ========================================
@@ -2077,16 +2502,18 @@ const startNewGame = () => {
 }
 
 .event-section {
-  background: linear-gradient(180deg, rgba(25, 20, 45, 0.8) 0%, rgba(15, 15, 30, 0.9) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(15,12,25,0.95), rgba(25,20,40,0.98));
+  border: 3px solid rgba(255,255,255,0.2);
+  border-radius: 14px;
   padding: 24px;
   position: relative;
-  /* Card table felt effect */
   box-shadow: 
-    inset 0 2px 10px rgba(0, 0, 0, 0.3),
-    0 4px 20px rgba(0, 0, 0, 0.4),
-    0 0 50px rgba(var(--accent2-rgb), 0.08);
+    inset 0 1px 0 rgba(255,255,255,0.12),
+    0 0 0 1px rgba(0,255,204,0.4),
+    0 12px 40px rgba(0,0,0,0.7),
+    0 0 40px rgba(0,255,204,0.25);
+  font-family: 'Press Start 2P', monospace;
+  image-rendering: pixelated;
 }
 
 /* Card zone decorations */
@@ -2218,32 +2645,33 @@ const startNewGame = () => {
 
 /* Event Card Item - Playing Card Style */
 .event-card-item {
-  background: linear-gradient(180deg, rgba(25, 20, 45, 0.92) 0%, rgba(15, 15, 30, 0.94) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
+  background: linear-gradient(160deg, rgba(20,15,30,0.95), rgba(30,25,45,0.98));
+  border: 2px solid rgba(255,255,255,0.25);
+  border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   display: flex;
   flex-direction: column;
   position: relative;
-  /* Card shadow for depth */
   box-shadow: 
-    0 4px 6px rgba(0, 0, 0, 0.3),
-    0 1px 3px rgba(0, 0, 0, 0.2),
-    0 0 40px rgba(var(--accent2-rgb), 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    0 8px 25px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.15),
+    0 0 20px rgba(0,255,204,0.2);
+  font-family: 'VT323', monospace;
+  image-rendering: pixelated;
+  transform-style: preserve-3d;
 }
 
 /* Card hover effect - lift and glow like picking up a card */
 .event-card-item:hover:not(.disabled) {
-  border-color: rgb(var(--accent-rgb));
-  transform: translateY(-12px) scale(1.02) rotateX(5deg);
+  border-color: #00ffcc !important;
+  transform: translateY(-8px) scale(1.05) rotateY(8deg) !important;
   box-shadow: 
-    0 20px 40px rgba(var(--accent-rgb), 0.22),
-    0 0 40px rgba(var(--accent2-rgb), 0.18),
-    0 8px 16px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    0 20px 50px rgba(0,255,204,0.4),
+    0 0 40px rgba(0,255,204,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.3),
+    0 0 0 1px rgba(0,255,204,0.8) !important;
   z-index: 10;
 }
 
@@ -2298,14 +2726,18 @@ const startNewGame = () => {
 
 .card-type-badge {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 20px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  top: 12px;
+  right: 12px;
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 0.45rem !important;
+  font-weight: 800 !important;
+  padding: 6px 10px !important;
+  border-radius: 6px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.12em !important;
+  border: 2px solid !important;
+  image-rendering: pixelated !important;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.6);
 }
 
 .card-type-badge.daily {
@@ -2343,12 +2775,15 @@ const startNewGame = () => {
 }
 
 .card-title {
-  font-family: 'VT323', monospace;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #ffffff;
-  margin-bottom: 8px;
-  line-height: 1.3;
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 0.85rem !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  margin-bottom: 10px !important;
+  line-height: 1.1 !important;
+  letter-spacing: 0.08em !important;
+  text-shadow: 2px 2px 0 #000, 0 0 10px rgba(255,255,255,0.5);
+  text-transform: uppercase;
 }
 
 .card-desc {
@@ -2830,17 +3265,20 @@ const startNewGame = () => {
 }
 
 .profile-dialog--kiosk {
-  border-radius: 22px !important;
-  background:
-    radial-gradient(ellipse at 20% 10%, rgba(var(--accent2-rgb), 0.18) 0%, transparent 55%),
-    radial-gradient(ellipse at 80% 90%, rgba(var(--accent-rgb), 0.12) 0%, transparent 60%),
-    linear-gradient(180deg, rgba(10, 10, 25, 0.78) 0%, rgba(15, 15, 30, 0.86) 100%) padding-box,
-    linear-gradient(135deg, rgba(var(--accent2-rgb), 0.58) 0%, rgba(var(--indigo-rgb), 0.32) 45%, rgba(var(--accent-rgb), 0.62) 100%) border-box !important;
-  box-shadow:
-    0 26px 90px rgba(0, 0, 0, 0.65),
-    0 0 70px rgba(var(--accent2-rgb), 0.12),
-    0 0 55px rgba(var(--accent-rgb), 0.10),
-    inset 0 1px 0 rgba(255, 255, 255, 0.10) !important;
+  border-radius: 12px !important;
+  background: 
+    linear-gradient(180deg, rgba(10,8,20,0.98), rgba(20,15,35,0.99)) padding-box,
+    linear-gradient(135deg, rgba(0,255,204,0.6), rgba(139,92,246,0.4), rgba(0,255,204,0.6)) border-box !important;
+  box-shadow: 
+    0 0 0 2px rgba(0,255,204,0.6),
+    0 30px 90px rgba(0,0,0,0.8),
+    0 0 60px rgba(0,255,204,0.3),
+    inset 0 0 20px rgba(0,0,0,0.5) !important;
+  font-family: 'Press Start 2P', monospace !important;
+  image-rendering: pixelated !important;
+  border: 3px solid rgba(0,255,204,0.8) !important;
+  position: relative;
+  overflow: hidden;
 }
 
 .profile-dialog > :not(.profile-glow):not(.profile-scanlines):not(.profile-stars) {
@@ -2931,11 +3369,21 @@ const startNewGame = () => {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 16px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
-  background:
-    linear-gradient(90deg, rgba(var(--accent2-rgb), 0.16), rgba(var(--accent-rgb), 0.05), transparent),
-    linear-gradient(180deg, rgba(0, 0, 0, 0.10), rgba(0, 0, 0, 0));
+  padding: 16px;
+  border-bottom: 2px solid rgba(0,255,204,0.5);
+  background: linear-gradient(90deg, rgba(0,255,204,0.2), transparent);
+  position: relative;
+}
+
+.profile-topbar::after {
+  content: '▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  color: rgba(0,255,204,0.3);
+  font-size: 0.8rem;
+  font-family: 'VT323', monospace;
 }
 
 .profile-topbar-left {
@@ -3035,7 +3483,13 @@ const startNewGame = () => {
   font-family: 'VT323', monospace;
   overflow: hidden;
   flex: 1 1 auto;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.22));
+  background: 
+    linear-gradient(180deg, rgba(10,8,20,0.9), rgba(20,15,35,0.95)),
+    repeating-linear-gradient(
+      90deg, transparent 0, transparent 2px, rgba(0,255,204,0.08) 2px, rgba(0,255,204,0.08) 4px
+    );
+  border-top: 2px solid rgba(0,255,204,0.4);
+  border-bottom: 2px solid rgba(139,92,246,0.4);
 }
 
 .profile-layout {
@@ -3074,17 +3528,24 @@ const startNewGame = () => {
 }
 
 .profile-label {
-  color: rgba(255, 255, 255, 0.65) !important;
-  font-family: 'Press Start 2P', monospace;
+  color: #00ff88 !important;
+  font-family: 'Press Start 2P', monospace !important;
   font-weight: 800 !important;
-  font-size: 0.7rem !important;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: 0.6rem !important;
+  letter-spacing: 0.15em !important;
+  text-transform: uppercase !important;
+  text-shadow: 0 0 10px #00ff88, 1px 1px 0 #000 !important;
+  margin-bottom: 8px !important;
 }
 
 :deep(.profile-input .v-field) {
-  background: rgba(0, 0, 0, 0.3) !important;
-  border-radius: 10px !important;
+  background: linear-gradient(135deg, rgba(15,10,25,0.9), rgba(25,20,40,0.95)) !important;
+  border: 2px solid rgba(0,255,204,0.5) !important;
+  border-radius: 8px !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    0 0 15px rgba(0,255,204,0.3) !important;
+  font-family: 'VT323', monospace !important;
 }
 
 :deep(.profile-input input) {
@@ -3269,50 +3730,56 @@ const startNewGame = () => {
 }
 
 .profile-dialog-actions {
-  padding: 16px 24px 24px !important;
+  padding: 20px !important;
   display: flex;
   justify-content: center;
-  gap: 16px !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.10), rgba(0, 0, 0, 0.22));
-}
-
-.profile-cancel-btn {
-  flex: 1;
-  max-width: 140px;
+  gap: 20px !important;
+  border-top: 2px solid rgba(0,255,204,0.5);
+  background: linear-gradient(135deg, rgba(15,10,25,0.9), rgba(25,20,40,0.95));
   font-family: 'Press Start 2P', monospace !important;
-  font-weight: 800 !important;
-  font-size: 0.7rem !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.12em !important;
-  border-radius: 14px !important;
-  background: linear-gradient(180deg, rgba(239, 68, 68, 0.12), rgba(0, 0, 0, 0.25)) !important;
-  border: 1px solid rgba(239, 68, 68, 0.45) !important;
-  color: #ffffff !important;
 }
 
-.profile-save-btn {
+.profile-cancel-btn, .profile-save-btn {
   flex: 1;
   max-width: 160px;
   font-family: 'Press Start 2P', monospace !important;
   font-weight: 900 !important;
-  font-size: 0.7rem !important;
+  font-size: 0.6rem !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.12em !important;
-  border-radius: 14px !important;
-  background: linear-gradient(135deg, rgba(var(--accent2-rgb), 0.85), rgba(var(--indigo-rgb), 0.65), rgba(var(--teal-rgb), 0.85)) !important;
-  color: #ffffff !important;
-  box-shadow:
-    0 10px 28px rgba(var(--accent-rgb), 0.16),
-    0 0 26px rgba(var(--accent2-rgb), 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+  letter-spacing: 0.15em !important;
+  border-radius: 6px !important;
+  image-rendering: pixelated !important;
+  border: 2px solid !important;
+  height: 36px !important;
+  box-shadow: 
+    0 4px 12px rgba(0,0,0,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.2) !important;
+}
+
+.profile-save-btn {
+  background: linear-gradient(135deg, #00ffcc, #00d4aa) !important;
+  border-color: #00ffcc !important;
+  color: #000 !important;
+  box-shadow: 
+    0 4px 12px rgba(0,255,204,0.4),
+    0 0 20px rgba(0,255,204,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.4) !important;
 }
 
 .profile-cancel-btn:hover:not(:disabled) {
-  filter: brightness(1.05);
-  box-shadow:
-    0 12px 32px rgba(239, 68, 68, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  box-shadow: 
+    0 6px 16px rgba(239,68,68,0.5),
+    0 0 20px rgba(239,68,68,0.4) !important;
+  transform: translateY(-2px) !important;
+}
+
+.profile-save-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #00d4aa, #00ffcc) !important;
+  box-shadow: 
+    0 6px 16px rgba(0,212,170,0.5),
+    0 0 25px rgba(0,255,204,0.7) !important;
+  transform: translateY(-2px) !important;
 }
 
 .profile-save-btn:hover:not(:disabled) {
@@ -3584,5 +4051,565 @@ const startNewGame = () => {
   .grid-lines {
     animation: none !important;
   }
+}
+
+/* Suicide Button & Dialog Styles */
+.suicide-btn {
+  background: linear-gradient(135deg, #ef4444, #dc2626, #b91c1c) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  font-size: 1.05rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  font-family: 'VT323', monospace !important;
+  border-radius: 12px !important;
+  box-shadow: 
+    0 8px 25px rgba(239, 68, 68, 0.4),
+    0 0 35px rgba(239, 68, 68, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+}
+
+/* 5-CARD ANIMATION STYLES */
+.card-animation-overlay {
+  background: radial-gradient(circle at center, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.95) 100%) !important;
+  backdrop-filter: blur(12px);
+}
+
+.animation-container {
+  max-width: 800px;
+  padding: 40px 20px;
+}
+
+.animation-title {
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 1.4rem !important;
+  color: #00ffcc !important;
+  margin-bottom: 40px !important;
+  text-shadow: 0 0 20px #00ffcc !important;
+  animation: titleGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes titleGlow {
+  from { text-shadow: 0 0 20px #00ffcc, 0 0 30px #00ffcc; }
+  to { text-shadow: 0 0 30px #00ffcc, 0 0 40px #00ffcc, 0 0 50px #8b5cf6; }
+}
+
+.cards-arc {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 30px;
+  margin-bottom: 40px;
+  perspective: 1200px;
+  height: 320px;
+}
+
+.animation-card {
+  width: 160px;
+  height: 220px;
+  border-radius: 16px;
+  position: relative;
+  transform-style: preserve-3d;
+  cursor: pointer;
+  transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+  image-rendering: pixelated;
+  font-family: 'VT323', monospace;
+}
+
+.animation-card.pos-0 { transform: rotateY(-35deg) translateX(-180px) translateZ(-150px); }
+.animation-card.pos-1 { transform: rotateY(-18deg) translateX(-90px) translateZ(-80px); }
+.animation-card.pos-2 { transform: rotateY(0deg) translateZ(0); }
+.animation-card.pos-3 { transform: rotateY(18deg) translateX(90px) translateZ(-80px); }
+.animation-card.pos-4 { transform: rotateY(35deg) translateX(180px) translateZ(-150px); }
+
+.phase-popup .animation-card {
+  animation: cardPopup 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+  animation-delay: var(--card-delay);
+  opacity: 0;
+  transform: translateY(100px) scale(0.8) rotateX(90deg);
+}
+
+@keyframes cardPopup {
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotateX(0deg);
+  }
+}
+
+.phase-show .animation-card {
+  animation: cardGlow 0.5s ease-out 0.2s forwards;
+}
+
+@keyframes cardGlow {
+  0% { box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+  100% { box-shadow: 0 20px 50px rgba(0,255,204,0.6), 0 0 40px rgba(0,255,204,0.4); }
+}
+
+.phase-flipback .animation-card {
+  animation: cardFlip 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+  animation-delay: calc(var(--card-delay, 0s) * 0.5);
+}
+
+@keyframes cardFlip {
+  0% { transform: rotateY(0deg); }
+  50% { transform: rotateY(90deg) scale(0.95); }
+  100% { transform: rotateY(180deg); }
+}
+
+.phase-shuffle .animation-card {
+  animation: riffleShuffle 3s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+@keyframes riffleShuffle {
+  0% { transform: rotateY(180deg); }
+  /* Pass 1: Quarter cut left */
+  8% { transform: rotateY(180deg) translateX(-35px) translateY(-5px) rotateZ(3deg); }
+  16% { transform: rotateY(180deg) translateX(0) translateY(8px) rotateZ(-2deg) scale(0.98); }
+  /* Perfect riffle interleave */
+  24% { transform: rotateY(180deg) translateX(20px) skewY(1deg) rotateZ(-5deg); }
+  32% { transform: rotateY(180deg) translateX(-10px) translateY(-12px) rotateZ(8deg) skewY(-0.5deg); }
+  /* Pass 2: Quarter cut right */
+  40% { transform: rotateY(180deg) translateX(40px) rotateZ(-4deg) scale(1.02); }
+  48% { transform: rotateY(180deg) translateX(-20px) translateY(10px) rotateZ(6deg); }
+  /* Interleave 2 */
+  56% { transform: rotateY(180deg) skewY(0.8deg) translateY(-6px) rotateZ(-7deg); }
+  64% { transform: rotateY(180deg) translateX(15px) rotateZ(9deg) scale(0.97); }
+  /* Pass 3: Final riffle */
+  72% { transform: rotateY(180deg) translateX(-28px) translateY(15px) rotateZ(2deg); }
+  80% { transform: rotateY(180deg) translateX(25px) rotateZ(-9deg) skewY(-0.3deg); }
+  /* Settle */
+  88% { transform: rotateY(180deg) translateY(-3px) rotateZ(4deg) scale(1.005); }
+  95%, 100% { transform: rotateY(180deg); }
+}
+
+/* Choose phase - Interactive */
+.phase-choose .animation-card {
+  cursor: pointer !important;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Fixed neat row for choose */
+.phase-choose .pos-0 { transform: translateX(-120px) rotateY(180deg) translateZ(-20px); }
+.phase-choose .pos-1 { transform: translateX(-60px) rotateY(180deg) translateZ(-10px); }
+.phase-choose .pos-2 { transform: rotateY(180deg) translateZ(0); }
+.phase-choose .pos-3 { transform: translateX(60px) rotateY(180deg) translateZ(-10px); }
+.phase-choose .pos-4 { transform: translateX(120px) rotateY(180deg) translateZ(-20px); }
+
+.phase-choose .animation-card:hover {
+  transform: translateY(-12px) scale(1.08) rotateY(180deg) !important;
+  box-shadow: 
+    0 25px 60px rgba(0,255,204,0.5),
+    0 0 50px rgba(0,255,204,0.7),
+    inset 0 1px 0 rgba(255,255,255,0.3);
+}
+
+.phase-choose .animation-card:hover .card-back {
+  background: linear-gradient(145deg, #3a2a3a, #2a1a2a);
+  box-shadow: inset 0 0 20px rgba(0,255,204,0.3);
+  animation: cardPulse 1.5s infinite;
+}
+
+@keyframes cardPulse {
+  0%, 100% { box-shadow: inset 0 0 20px rgba(0,255,204,0.3); }
+  50% { box-shadow: inset 0 0 40px rgba(0,255,204,0.6), 0 0 30px rgba(0,255,204,0.4); }
+}
+
+.winner {
+  animation: winnerGlow 2s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite alternate !important;
+}
+
+@keyframes winnerGlow {
+  0% { 
+    box-shadow: 0 20px 60px rgba(0,255,204,0.6), 0 0 40px rgba(0,255,204,0.4); 
+    transform: scale(1);
+  }
+  100% { 
+    box-shadow: 0 35px 90px rgba(0,255,204,1), 0 0 70px rgba(0,255,204,0.8); 
+    transform: scale(1.12);
+  }
+}
+
+.phase-reveal .animation-card {
+  transition: none;
+}
+
+.phase-reveal .animation-card:not(.winner) {
+  animation: cardsFadeOut 1s ease-out forwards;
+}
+
+@keyframes cardsFadeOut {
+  to { opacity: 0; transform: scale(0.8) translateY(-50px); }
+}
+
+.phase-reveal .winner {
+  animation: winnerReveal 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+@keyframes winnerReveal {
+  0% { transform: rotateY(180deg) scale(1); }
+  50% { transform: rotateY(90deg) scale(1.2); box-shadow: 0 30px 80px rgba(0,255,204,0.8); }
+  100% { transform: rotateY(0deg) scale(var(--card-scale)) translateZ(50px); box-shadow: 0 40px 100px rgba(0,255,204,1); }
+}
+
+.card-back {
+  background: linear-gradient(145deg, #2a1a2a, #1a0f1a);
+  border: 2px solid #444;
+  border-radius: 10px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 3rem;
+  color: #888;
+  text-shadow: 2px 2px 0 #000;
+  backdrop-filter: blur(4px);
+}
+
+.card-preview {
+  height: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  background: linear-gradient(160deg, rgba(20,15,30,0.95), rgba(30,25,45,0.98));
+  border: 2px solid rgba(255,255,255,0.25);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.6);
+}
+
+.card-visual-mini {
+  height: 70%;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-img-mini {
+  height: 100%;
+  width: 100%;
+  background-size: cover;
+  background-position: center;
+  filter: brightness(0.9);
+}
+
+.card-title-mini {
+  padding: 6px 8px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.4rem;
+  color: #fff;
+  text-align: center;
+  height: 30%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-shadow: 1px 1px 0 #000;
+  letter-spacing: 0.05em;
+}
+
+.phase-indicator {
+  font-family: 'VT323', monospace;
+  font-size: 1.4rem;
+  color: #00ffcc;
+  text-shadow: 0 0 15px #00ffcc;
+  margin-top: 20px;
+  opacity: 0.9;
+}
+
+@media (max-width: 768px) {
+  .cards-arc {
+    gap: 12px;
+    height: 200px;
+  }
+  
+  .animation-card {
+    width: 90px;
+    height: 130px;
+  }
+  
+  .animation-card.pos-0 { transform: rotateY(-20deg) translateX(-80px) translateZ(-60px); }
+  .animation-card.pos-1 { transform: rotateY(-10deg) translateX(-40px) translateZ(-30px); }
+  .animation-card.pos-2 { transform: rotateY(0deg) translateZ(0); }
+  .animation-card.pos-3 { transform: rotateY(10deg) translateX(40px) translateZ(-30px); }
+  .animation-card.pos-4 { transform: rotateY(20deg) translateX(80px) translateZ(-60px); }
+}
+
+.suicide-btn:hover:not(:disabled) {
+  transform: translateY(-4px) scale(1.02) !important;
+  box-shadow: 
+    0 16px 45px rgba(239, 68, 68, 0.5),
+    0 0 45px rgba(239, 68, 68, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+}
+
+.suicide-dialog-content::deep(.v-card) {
+  background: linear-gradient(180deg, rgba(45, 20, 20, 0.98), rgba(20, 10, 10, 0.99)) !important;
+  border: 2px solid #ef4444 !important;
+  border-radius: 20px !important;
+  box-shadow: 
+    0 30px 90px rgba(239, 68, 68, 0.25),
+    0 0 60px rgba(239, 68, 68, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(20px);
+}
+
+.suicide-title {
+  color: #ef4444 !important;
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 1.35rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.12em !important;
+  text-shadow: 
+    0 0 20px rgba(239, 68, 68, 0.6),
+    2px 2px 0 rgba(0, 0, 0, 0.8) !important;
+}
+
+.suicide-subtitle {
+  color: #fca5a5 !important;
+  font-size: 1rem !important;
+  opacity: 0.9;
+}
+
+.method-select :deep(.v-field__outline) {
+  border-color: rgba(239, 68, 68, 0.6) !important;
+}
+
+.method-select :deep(.v-field--focused .v-field__outline) {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25) !important;
+}
+
+.cancel-suicide-btn {
+  font-family: 'VT323', monospace !important;
+  color: #fca5a5 !important;
+  border-color: rgba(252, 165, 165, 0.5) !important;
+}
+
+.confirm-suicide-btn {
+  background: linear-gradient(135deg, #ef4444, #dc2626, #b91c1c) !important;
+  color: #ffffff !important;
+  font-family: 'Press Start 2P', monospace !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+  box-shadow: 
+    0 8px 25px rgba(239, 68, 68, 0.45),
+    0 0 30px rgba(239, 68, 68, 0.3) !important;
+}
+
+.confirm-suicide-btn:hover:not(:disabled) {
+  transform: translateY(-2px) !important;
+  box-shadow: 
+    0 14px 40px rgba(239, 68, 68, 0.55),
+    0 0 40px rgba(239, 68, 68, 0.4) !important;
+}
+
+/* Action Buttons Layout */
+.action-section {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+  padding: 20px;
+}
+
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  max-width: 600px;
+  width: 100%;
+}
+
+.action-btn {
+  flex: 1;
+  max-width: 220px;
+}
+
+/* Enhanced Retro Pixel Suicide Dialog */
+.suicide-dialog-content::deep(.v-overlay__content) {
+  animation: death-shake 0.6s cubic-bezier(0.36, 0, 0.66, -0.56);
+}
+
+@keyframes death-shake {
+  0%, 100% { transform: translate3d(0,0,0); }
+  10%, 30%, 50%, 70%, 90% { transform: translate3d(-4px, 2px, 0); }
+  20%, 40%, 60%, 80% { transform: translate3d(4px, -2px, 0); }
+}
+
+.suicide-dialog-content {
+  filter: drop-shadow(0 0 40px rgba(239, 68, 68, 0.4));
+}
+
+.suicide-dialog-content::deep(.v-card) {
+  background: 
+    linear-gradient(180deg, rgba(45, 15, 15, 0.98), rgba(15, 5, 5, 1)),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(239, 68, 68, 0.03) 2px,
+      rgba(239, 68, 68, 0.03) 4px
+    );
+  border: 3px solid #ef4444 !important;
+  border-image: linear-gradient(45deg, #ef4444, transparent, #ef4444) 1 !important;
+  box-shadow: 
+    0 0 0 2px rgba(239, 68, 68, 0.5),
+    0 30px 90px rgba(239, 68, 68, 0.3),
+    0 0 80px rgba(239, 68, 68, 0.2),
+    inset 0 0 20px rgba(0, 0, 0, 0.7) !important;
+  font-family: 'Press Start 2P', monospace !important;
+  image-rendering: pixelated;
+  backdrop-filter: blur(8px) contrast(1.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.suicide-dialog-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: 
+    repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent 2px,
+      rgba(239, 68, 68, 0.05) 2px,
+      rgba(239, 68, 68, 0.05) 4px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 3px,
+      rgba(0,0,0,0.1) 3px,
+      rgba(0,0,0,0.1) 6px
+    );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.suicide-dialog-content::deep(.v-card > *) {
+  position: relative;
+  z-index: 1;
+}
+
+.suicide-title {
+  color: #ff0000 !important;
+  font-size: 1.1rem !important;
+  line-height: 1.1 !important;
+  max-width: 100% !important;
+  word-break: break-word !important;
+  text-align: center;
+  letter-spacing: 0.15em !important;
+  animation: title-glitch 2.5s infinite, skull-pulse 1.5s infinite;
+  text-shadow: 
+    0 0 15px #ff0000,
+    2px 0 0 #000,
+    -2px 0 0 #ff0000,
+    0 2px 0 #000,
+    0 -2px 0 #ff0000 !important;
+  position: relative;
+  padding: 12px 16px !important;
+}
+
+.suicide-title::before,
+.suicide-title::after {
+  content: '💀';
+  position: absolute;
+  font-size: 1.8rem;
+  animation: skull-float 3s ease-in-out infinite;
+}
+
+.suicide-title::before { left: 10px; top: -10px; animation-delay: 0s; }
+.suicide-title::after { right: 10px; top: -10px; animation-delay: 1.5s; }
+
+@keyframes title-glitch {
+  0%, 90%, 100% { transform: none; }
+  20% { transform: skewX(-5deg); }
+  40% { transform: skewX(5deg); color: #ff6666; }
+  60% { transform: skewX(-3deg); color: #cc0000; }
+  80% { transform: skewX(3deg); color: #ff0000; }
+}
+
+@keyframes skull-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+@keyframes skull-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-4px) rotate(5deg); }
+}
+
+.suicide-subtitle {
+  color: #ff6666 !important;
+  font-size: 0.85rem !important;
+  text-align: center;
+  font-weight: 600 !important;
+  letter-spacing: 0.1em !important;
+  text-shadow: 0 0 10px rgba(255, 102, 102, 0.5);
+  animation: subtitle-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes subtitle-glow {
+  from { text-shadow: 0 0 10px rgba(255, 102, 102, 0.5); }
+  to { text-shadow: 0 0 20px rgba(255, 102, 102, 0.8), 0 0 30px rgba(255, 0, 0, 0.3); }
+}
+
+.method-select {
+  max-width: 100% !important;
+}
+
+.method-select :deep(.v-field) {
+  background: rgba(20, 5, 5, 0.8) !important;
+  border: 2px solid rgba(239, 68, 68, 0.6) !important;
+  border-radius: 8px !important;
+  font-family: 'VT323', monospace !important;
+  font-size: 1.1rem !important;
+}
+
+.method-select :deep(.v-field__text) {
+  color: #ffcccc !important;
+}
+
+.method-select :deep(.v-icon) {
+  color: #ef4444 !important;
+}
+
+.method-select :deep(.v-field--focused) {
+  border-color: #ff0000 !important;
+  box-shadow: 
+    0 0 0 4px rgba(255, 0, 0, 0.3),
+    0 0 20px rgba(255, 0, 0, 0.4) !important;
+}
+
+.method-select :deep(.v-list-item) {
+  font-family: 'VT323', monospace !important;
+  border-left: 4px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.method-select :deep(.v-list-item--active) {
+  background: rgba(239, 68, 68, 0.2) !important;
+  border-left-color: #ef4444 !important;
+}
+
+.confirm-suicide-btn,
+.cancel-suicide-btn {
+  font-family: 'Press Start 2P', 'VT323', monospace !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.15em !important;
+  border-radius: 6px !important;
+  image-rendering: pixelated;
+}
+
+.confirm-suicide-btn {
+  font-size: 0.85rem !important;
+  padding: 12px 28px !important;
+  min-width: 140px !important;
+}
+
+.cancel-suicide-btn {
+  font-size: 0.8rem !important;
+  border-width: 2px !important;
 }
 </style>

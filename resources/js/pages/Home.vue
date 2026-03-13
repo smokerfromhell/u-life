@@ -376,6 +376,36 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
+
+  <!-- Welcome Back Popup - Retro Pixel Design -->
+  <v-dialog v-model="showWelcomeDialog" max-width="520" rounded="xl">
+    <v-card class="welcome-dialog-card">
+      <!-- Pixel Scanlines Overlay -->
+      <div class="welcome-scanlines absolute inset-0 pointer-events-none z-10"></div>
+      
+      <v-card-title class="welcome-dialog-title text-center relative z-20">
+        <span class="welcome-glitch-title" data-text="WELCOME">{{ welcomeMessage }}</span>
+      </v-card-title>
+      
+      <v-card-text class="welcome-dialog-text text-center relative z-20">
+        <div class="welcome-pixel-art mb-4 mx-auto">
+          <div class="pixel-heart"></div>
+        </div>
+        <p class="welcome-subtitle">Your life simulation awaits...</p>
+      </v-card-text>
+      
+      <v-card-actions class="justify-center pb-6 px-6 relative z-20">
+        <v-btn
+          variant="elevated"
+          color="#00ffcc"
+          class="welcome-enter-btn"
+          @click="closeWelcome"
+        >
+          Enter U:LIFE
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 
@@ -417,6 +447,19 @@ const proRequest = ref({
 const showProPassword = ref(false)
 const showConfirmPassword = ref(false)
 
+// Welcome popup state
+const showWelcomeDialog = ref(false)
+const currentUser = ref(null)
+const welcomeHasCharacter = ref(false)
+const welcomeMessage = computed(() => {
+  if (!currentUser.value) return ''
+  const name = currentUser.value.name || 'Player'
+  if (currentUser.value.is_guest) {
+    return `Welcome, Guest${'###'.repeat(Math.floor(Math.random() * 3) + 1)}!`
+  }
+  return `Welcome back, ${name}!`
+})
+
 const isLoginEnabled = computed(() =>
   email.value && password.value
 )
@@ -455,18 +498,16 @@ const handleCredentialResponse = async (response) => {
     
     console.log('Google auth response:', res.data)
     
+    // Set welcome data
+    currentUser.value = res.data.user
+    welcomeHasCharacter.value = res.data.has_character
+    
     successMessage.value = 'Successfully logged in with Google!'
     snackbarMessage.value = 'Successfully logged in with Google!'
     snackbarColor.value = 'success'
     showSnackbar.value = true
+    showWelcomeDialog.value = true
     
-    // Check if user has a character, redirect accordingly
-    const hasCharacter = res.data.has_character
-    const redirectPath = hasCharacter ? '/game' : '/character-creation'
-    setTimeout(() => {
-      console.log('Redirecting to ' + redirectPath)
-      router.push(redirectPath)
-    }, 1500)
   } catch (error) {
     console.error('Google authentication error:', error)
     const errorMsg = error.response?.data?.message || error.message || 'Google login failed'
@@ -561,17 +602,16 @@ const login = async () => {
     })
     successMessage.value = response.data.message
 
-    // Show success popup
+    // Set welcome data
+    currentUser.value = response.data.user
+    welcomeHasCharacter.value = response.data.has_character
+
+    // Show welcome popup instead of immediate redirect
     snackbarMessage.value = 'Successfully logged in!'
     snackbarColor.value = 'success'
     showSnackbar.value = true
+    showWelcomeDialog.value = true
 
-    // Check if user has a character, redirect accordingly
-    const hasCharacter = response.data.has_character
-    const redirectPath = hasCharacter ? '/game' : '/character-creation'
-    setTimeout(() => {
-      router.push(redirectPath)
-    }, 1000)
   } catch (error) {
     errorMessage.value = error.response?.data?.message || 'Login failed'
 
@@ -593,14 +633,17 @@ const startGuest = async (shareConsent) => {
 
     guestDialog.value = false
 
+    // Set welcome data
+    currentUser.value = response.data.user
+    welcomeHasCharacter.value = response.data.has_character
+
     snackbarMessage.value = shareConsent
       ? 'Guest mode started (sharing enabled).'
       : 'Guest mode started (private).'
     snackbarColor.value = 'success'
     showSnackbar.value = true
+    showWelcomeDialog.value = true
 
-    const hasCharacter = response.data.has_character
-    router.push(hasCharacter ? '/game' : '/character-creation')
   } catch (error) {
     const errorMsg = error.response?.data?.message || error.message || 'Failed to start guest mode'
     snackbarMessage.value = errorMsg
@@ -660,6 +703,16 @@ const submitProfessionalRequest = async () => {
     showSnackbar.value = true
   } finally {
     loading.value = false
+  }
+}
+
+const closeWelcome = () => {
+  showWelcomeDialog.value = false
+  if (currentUser.value && welcomeHasCharacter.value !== null) {
+    const redirectPath = welcomeHasCharacter.value ? '/game' : '/character-creation'
+    setTimeout(() => {
+      router.push(redirectPath)
+    }, 300)
   }
 }
 const goToRegister = () => {
@@ -1229,6 +1282,167 @@ const goToForgotPassword = () => {
 }
 
 /* ============================================
+   WELCOME DIALOG - RETRO PIXEL DESIGN
+   ============================================ */
+.welcome-dialog-card {
+  background: linear-gradient(180deg, rgba(15, 10, 35, 0.98) 0%, rgba(5, 5, 20, 0.98) 100%) !important;
+  border: 2px solid rgba(0, 255, 204, 0.4) !important;
+  border-radius: 24px !important;
+  box-shadow: 
+    0 35px 100px rgba(0, 0, 0, 0.7),
+    0 0 60px rgba(0, 255, 204, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  position: relative;
+  animation: welcome-bounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes welcome-bounce {
+  0% { transform: scale(0.3) rotate(-3deg); opacity: 0; }
+  50% { transform: scale(1.05); }
+  70% { transform: scale(0.98) rotate(1deg); }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+.welcome-scanlines {
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 255, 204, 0.03) 2px,
+    rgba(0, 255, 204, 0.03) 4px
+  );
+  mix-blend-mode: screen;
+}
+
+.welcome-dialog-title {
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: clamp(1.1rem, 4vw, 1.4rem) !important;
+  padding: 24px 20px 16px !important;
+  color: #ffffff !important;
+  text-shadow: 
+    3px 3px 0 #000,
+    0 0 20px #ff00ff,
+    0 0 40px #00ffcc;
+  position: relative;
+}
+
+.welcome-glitch-title {
+  position: relative;
+  animation: welcome-glitch 3s infinite;
+  display: block;
+}
+
+.welcome-glitch-title::before,
+.welcome-glitch-title::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.welcome-glitch-title::before {
+  animation: welcome-glitch-cyan 3s infinite;
+  color: #00ffcc;
+  left: -1px;
+  clip-path: polygon(0 0, 100% 0, 100% 33%, 0 33%);
+}
+
+.welcome-glitch-title::after {
+  animation: welcome-glitch-magenta 3s infinite;
+  color: #ff00ff;
+  left: 1px;
+  clip-path: polygon(0 67%, 100% 67%, 100% 100%, 0 100%);
+}
+
+@keyframes welcome-glitch {
+  0%, 85%, 100% { transform: translate(0); }
+  87% { transform: translate(-2px, 1px); }
+  89% { transform: translate(2px, -1px); }
+  91% { transform: translate(-1px, 2px); }
+}
+
+@keyframes welcome-glitch-cyan {
+  0%, 94% { opacity: 0.4; transform: translateX(1px); }
+  97% { opacity: 1; transform: translateX(-1px); }
+}
+
+@keyframes welcome-glitch-magenta {
+  0%, 94% { opacity: 0.4; transform: translateX(-1px); }
+  97% { opacity: 1; transform: translateX(1px); }
+}
+
+.welcome-dialog-text {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-family: 'VT323', monospace !important;
+  padding: 0 24px 20px !important;
+  font-size: 1.1rem;
+}
+
+.welcome-pixel-art {
+  width: 64px;
+  height: 64px;
+}
+
+.pixel-heart {
+  width: 100%;
+  height: 100%;
+  background: 
+    conic-gradient(from 45deg, transparent 0deg 90deg, #ff69b4 90deg 180deg, transparent 180deg 270deg, #ff1493 270deg);
+  mask: 
+    radial-gradient(circle closest-side at 30% 30%, #ff69b4 10%, transparent 11%),
+    radial-gradient(circle closest-side at 70% 30%, #ff69b4 10%, transparent 11%),
+    radial-gradient(circle closest-side at 50% 60%, #ff1493 20%, transparent 21%);
+  mask-composite: exclude;
+  animation: heart-beat 1.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 12px rgba(255, 105, 180, 0.6));
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+}
+
+@keyframes heart-beat {
+  0%, 100% { transform: scale(1); }
+  14% { transform: scale(1.1); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.05); }
+  70% { transform: scale(1); }
+}
+
+.welcome-subtitle {
+  font-size: 0.95rem !important;
+  color: rgba(0, 255, 204, 0.95) !important;
+  text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+  margin-top: 8px !important;
+}
+
+.welcome-enter-btn {
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 0.75rem !important;
+  letter-spacing: 0.1em !important;
+  min-width: 160px !important;
+  padding: 12px 24px !important;
+  border-radius: 12px !important;
+  box-shadow: 
+    0 8px 25px rgba(0, 255, 204, 0.3),
+    0 0 30px rgba(255, 0, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.25s ease;
+}
+
+.welcome-enter-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 
+    0 12px 35px rgba(0, 255, 204, 0.4),
+    0 0 40px rgba(255, 0, 255, 0.3);
+}
+
+.welcome-enter-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* ============================================
    RESPONSIVE
    ============================================ */
 @media (max-width: 380px) {
@@ -1246,4 +1460,3 @@ const goToForgotPassword = () => {
   }
 }
 </style>
-

@@ -234,4 +234,3 @@ const createHeatmap = () => {
   /* ... */
 }
 </style>
-
