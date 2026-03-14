@@ -723,4 +723,3 @@ $character->current_narrative = $narrative . (($outcomeType === 'positive') ? '_
         return $type;
     }
 }
-

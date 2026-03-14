@@ -826,33 +826,39 @@ $events = [
                 $authUser = Auth::user();
                 $shouldLog = $authUser && ($authUser->share_consent === true);
 
-                if ($shouldLog && Schema::hasTable('shared_decision_logs')) {
+                if ($shouldLog) {
+                    $logData = [
+                        'event_title' => $event->event_choice ?? $event->title ?? null,
+                        'event_description' => $event->outcome ?? $event->description ?? null,
+                        'choice_text' => $choice['text'] ?? null,
+                        'stat_effects_text' => $statEffects,
+                        'effects' => $effects,
+                        'stats_before' => $beforeSnapshot['stats'],
+                        'stats_after' => $afterSnapshot['stats'],
+                        'hidden_stats_before' => $beforeSnapshot['hidden_stats'],
+                        'hidden_stats_after' => $afterSnapshot['hidden_stats'],
+                        'effective_stats_before' => $beforeSnapshot['effective_stats'],
+                        'effective_stats_after' => $afterSnapshot['effective_stats'],
+                        'effective_stats_delta' => $effectiveDelta,
+                        'mbti' => $this->eventService->calculateMBTI($afterSnapshot['effective_stats'] ?? $beforeSnapshot['effective_stats'] ?? [], $validated['event_type'], $validated['choice_index'], $outcomeType),
+                        'narrative_before' => $beforeSnapshot['narrative'],
+                        'narrative_after' => $afterSnapshot['narrative'],
+                        'active_event_paths_before' => $beforeSnapshot['active_event_paths'],
+                        'active_event_paths_after' => $afterSnapshot['active_event_paths'],
+                    ];
+
                     SharedDecisionLog::create([
                         'anon_user_id' => Privacy::anonymize('user', $authUser->id),
-                        'anon_character_id' => Privacy::anonymize('character', $character->id),
+                        'anon_character_id' => $character->anon_character_id,
                         'is_guest' => (bool) ($authUser->is_guest ?? false),
                         'day' => $beforeSnapshot['day'],
                         'event_type' => $validated['event_type'],
                         'event_id' => $validated['event_id'],
                         'choice_index' => $validated['choice_index'],
-                        'data' => [
-                            'event_title' => $event->event_choice ?? $event->title ?? null,
-                            'event_description' => $event->outcome ?? $event->description ?? null,
-                            'choice_text' => $choice['text'] ?? null,
-                            'stat_effects_text' => $statEffects,
-                            'effects' => $effects,
-                            'stats_before' => $beforeSnapshot['stats'],
-                            'stats_after' => $afterSnapshot['stats'],
-                            'hidden_stats_before' => $beforeSnapshot['hidden_stats'],
-                            'hidden_stats_after' => $afterSnapshot['hidden_stats'],
-                            'effective_stats_before' => $beforeSnapshot['effective_stats'],
-                            'effective_stats_after' => $afterSnapshot['effective_stats'],
-                            'effective_stats_delta' => $effectiveDelta,
-                            'narrative_before' => $beforeSnapshot['narrative'],
-                            'narrative_after' => $afterSnapshot['narrative'],
-                            'active_event_paths_before' => $beforeSnapshot['active_event_paths'],
-                            'active_event_paths_after' => $afterSnapshot['active_event_paths'],
-                        ],
+                        'event_title' => $logData['event_title'],
+                        'choice_text' => $logData['choice_text'],
+                        'effects' => $logData['effects'],
+                        'data' => $logData,
                     ]);
                 }
             } catch (\Throwable $logError) {

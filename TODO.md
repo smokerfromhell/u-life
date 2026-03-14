@@ -1,23 +1,27 @@
-# Fix Survival Popup Button in Game.vue
+# Fix Memory Logs Fetch Error in Game.vue
 
-## Status: ✅ COMPLETE
+## Step 1: Update Character Model (add anon_character_id support) ✅
+- [x] Edit app/Models/Character.php (add fillable + accessor)
 
-**Goal**: Make "CONTINUE LIVING" button clickable in survival popup.
+## Step 2: Fix CharacterController decisionLogs query ✅
+- [x] Edit app/Http/Controllers/CharacterController.php (map data JSON fields)
 
-### Steps:
-1. ✅ **Remove `persistent` prop** from survival dialog (allow backdrop dismiss)
-2. ✅ **Add explicit `z-index: 10; pointer-events: auto`** to CONTINUE button
-3. ✅ **Update `closeSurvivalPopup()`** with `nextTick()` + force reflow
-4. ✅ **Add CSS**: Ensure `.survival-glow, .survival-scanlines { pointer-events: none !important; }`
-5. ✅ **Test**: Verify button works, popup dismisses, game resumes *(User test recommended)*
-6. ✅ **Mobile test**: Confirm touch events work *(User test recommended)*
+## Step 3: Fix EventController logging (set anon_character_id, top-level fields) ✅
+- [x] Edit app/Http/Controllers/EventController.php (ensure logging populates correctly)
 
-**Files**: `resources/js/pages/Game.vue` *(4 targeted fixes applied)*
+## Step 4: Improve Game.vue error handling & UX ✅
+- [x] Edit resources/js/pages/Game.vue (better error handling)
 
----
+## Step 5: Database Migration Check & Run ✅
+- [x] anon_character_id accessor added (no migration needed - computed)
+- [x] Table shared_decision_logs exists
 
-**Progress**: 4/4 code fixes complete ✅
+## Step 6: Testing
+- [ ] Enable share_consent in profile
+- [ ] Make decisions → toggle Memory Log → verify data loads
+- [ ] Test empty state & errors
 
-*Updated by BLACKBOXAI - Survival button now fully clickable*
-
+## Step 7: Cleanup
+- [ ] `php artisan cache:clear && php artisan config:clear`
+- [ ] Frontend: `npm run dev`
 

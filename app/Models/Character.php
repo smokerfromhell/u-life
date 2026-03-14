@@ -7,12 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
+use App\Support\Privacy;
+
 class Character extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'user_id',
+        'anon_character_id',
         'name',
         'age_group',
         'previous_age_group',
@@ -30,6 +33,24 @@ class Character extends Model
         'effective_stats',
         'image',
     ];
+
+    /**
+     * Accessor for anon_character_id - generates if not set
+     */
+    public function getAnonCharacterIdAttribute()
+    {
+        if (isset($this->attributes['anon_character_id']) && !empty($this->attributes['anon_character_id'])) {
+            return $this->attributes['anon_character_id'];
+        }
+
+        // Generate anonymized ID if not set (requires id to be loaded)
+        if (!$this->exists || !$this->id) {
+            return 'pending-' . uniqid();
+        }
+        $anonId = Privacy::anonymize('character', $this->id);
+        $this->setAttribute('anon_character_id', $anonId);
+        return $anonId;
+    }
 
     protected $casts = [
         'stats' => 'array',

@@ -25,4 +25,3 @@ class SharedDecisionLog extends Model
         'data' => 'encrypted:array',
     ];
 }
-

@@ -5,6 +5,7 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\GuestController;
 use App\Http\Controllers\Admin\SharedDecisionLogController;
 use App\Http\Controllers\ProfessionalAccountRequestController;
+use App\Http\Controllers\AnalyticsController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['web'])->group(function () {
@@ -36,6 +37,7 @@ Route::middleware(['web'])->group(function () {
         Route::post('/characters/{character}/apply-event', [EventController::class, 'applyEventOutcome']);
         Route::post('/characters/{character}/redraw-events', [EventController::class, 'redrawEvents']);
         Route::post('/characters/{character}/redraw-event-type', [EventController::class, 'redrawEventType']);
+        Route::get('/characters/{character}/decision-logs', [CharacterController::class, 'decisionLogs']);
 
         // Admin analytics (RBAC via role/permission)
         Route::get('/admin/shared-decision-logs', [SharedDecisionLogController::class, 'index']);

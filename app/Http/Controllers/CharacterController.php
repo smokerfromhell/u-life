@@ -259,4 +259,31 @@ class CharacterController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get decision logs (memory) for character
+     */
+    public function decisionLogs(Character $character)
+    {
+        if ($character->user_id !== Auth::id()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $logs = \App\Models\SharedDecisionLog::where('anon_character_id', $character->anon_character_id)
+            ->latest('created_at')
+            ->take(50)
+            ->get();
+
+        $formattedLogs = $logs->map(function ($log) {
+            $data = $log->data ?? [];
+            return [
+                'event_title' => data_get($data, 'event_title', $log->event_title ?? 'Unknown Event'),
+                'choice_text' => data_get($data, 'choice_text', $log->choice_text ?? 'Unknown Choice'),
+                'effects' => data_get($data, 'effects', $log->effects ?? []),
+                'created_at' => $log->created_at,
+            ];
+        });
+
+        return response()->json($formattedLogs);
+    }
 }

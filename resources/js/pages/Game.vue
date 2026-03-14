@@ -69,6 +69,15 @@
                 {{ showStats ? 'Hide Skills' : 'Show Skills' }}
               </v-btn>
               <v-btn
+                size="small"
+                class="retro-btn retro-memory-btn"
+                prepend-icon="mdi-history"
+                :color="showMemories ? 'warning' : 'info'"
+                @click="toggleMemories"
+              >
+                {{ showMemories ? 'Hide Memory' : 'Memory Log' }}
+              </v-btn>
+              <v-btn
                 size="x-small"
                 class="retro-btn retro-edit-btn"
                 prepend-icon="mdi-pencil"
@@ -129,6 +138,45 @@
                       {{ talent.name }}
                     </v-chip>
                     <span v-if="!character.talents || character.talents.length === 0" class="no-talents">No talents yet</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </v-expand-transition>
+          
+          <!-- Memory Log Panel -->
+          <v-expand-transition>
+            <div v-if="showMemories" class="memory-panel-enhanced">
+              <div class="memory-header">
+                <h4 class="section-title memory-title">MEMORY LOG</h4>
+                <v-btn 
+                  size="x-small" 
+                  variant="tonal" 
+                  color="info" 
+                  @click="fetchMemories(true)"
+                  :loading="loadingMemories"
+                  class="refresh-memory-btn"
+                >
+                  Refresh
+                </v-btn>
+              </div>
+              <div v-if="memoryLogs.length === 0" class="no-memories">
+                No decisions logged yet.<br>
+                <small>Enable "Share your data" in profile to start recording.</small>
+              </div>
+              <div v-else class="memory-entries" ref="memoryScroll">
+                <div 
+                  v-for="(log, index) in memoryLogs" 
+                  :key="index"
+                  class="memory-entry"
+                >
+                  <div class="memory-date">
+                    {{ new Date(log.created_at).toLocaleDateString() }}
+                  </div>
+                  <div class="memory-event">{{ log.event_title }}</div>
+                  <div class="memory-choice">→ {{ log.choice_text }}</div>
+                  <div v-if="log.effects" class="memory-effects">
+                    {{ Object.entries(log.effects).map(([k,v]) => `${v > 0 ? '+' : ''}${v} ${k}`).join(', ') }}
                   </div>
                 </div>
               </div>
@@ -509,7 +557,7 @@
                     >
                       <template #label>
                         <span style="font-family: 'VT323', monospace; font-size: 16px; color: rgba(255,255,255,0.75);">
-                          {{ shareConsent ? 'Sharing enabled' : 'Private mode' }}
+                          Share your data?
                         </span>
                       </template>
                     </v-switch>
@@ -868,6 +916,10 @@ const canRedrawDaily = ref(true)
 const canRedrawCultural = ref(true)
 const canRedrawAgeSpecific = ref(true)
 const canRedrawProfession = ref(true)
+
+const showMemories = ref(false)
+const memoryLogs = ref([])
+const loadingMemories = ref(false)
 
 // Animation state for 5-card random event
 const showCardAnimation = ref(false)
@@ -1417,6 +1469,51 @@ const redrawEventType = async (eventType) => {
  */
 const toggleStats = () => {
   showStats.value = !showStats.value
+}
+
+/**
+ * Toggle memory log panel
+ */
+const toggleMemories = () => {
+  showMemories.value = !showMemories.value
+  if (showMemories.value && memoryLogs.value.length === 0) {
+    fetchMemories()
+  }
+}
+
+const fetchMemories = async (refresh = false) => {
+  if (!character.value?.id) return
+  
+  try {
+    loadingMemories.value = true
+    const response = await fetch(`/api/characters/${character.value.id}/decision-logs`)
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('Memory fetch error:', response.status, errorText)
+      
+      if (response.status === 404) {
+        memoryLogs.value = []
+        return
+      }
+      
+      throw new Error(`HTTP ${response.status}: ${errorText}`)
+    }
+    
+    const logs = await response.json()
+    memoryLogs.value = logs
+  } catch (error) {
+    console.error('Error fetching memories:', error)
+    
+    // Don't spam narration for network errors - just log to console
+    if (error.message.includes('Failed') || error.message.includes('HTTP')) {
+      console.warn('Memory log fetch failed - network/server issue:', error.message)
+    } else {
+      narrationHistory.value.push('Failed to load memory log.')
+    }
+  } finally {
+    loadingMemories.value = false
+  }
 }
 
 /**
@@ -2276,6 +2373,17 @@ const startNewGame = () => {
 .retro-exit-btn:hover { 
   background: linear-gradient(135deg, #f87171, #ef4444) !important;
   box-shadow: 0 6px 12px rgba(239, 68, 68, 0.5), 0 0 20px rgba(239, 68, 68, 0.4) !important;
+}
+
+.retro-memory-btn {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
+  border-color: #60a5fa !important;
+  color: white !important;
+}
+
+.retro-memory-btn:hover { 
+  background: linear-gradient(135deg, #60a5fa, #3b82f6) !important;
+  box-shadow: 0 6px 12px rgba(59, 130, 246, 0.4), 0 0 20px rgba(59, 130, 246, 0.3) !important;
 }
 
 /* ========================================
@@ -5640,5 +5748,107 @@ const startNewGame = () => {
 .cancel-suicide-btn {
   font-size: 0.8rem !important;
   border-width: 2px !important;
+}
+
+/* Memory Panel Styles */
+.memory-panel-enhanced {
+  margin-top: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(15,10,25,0.95), rgba(25,20,40,0.98));
+  border: 2px solid rgba(59,130,246,0.4);
+  border-radius: 16px;
+  box-shadow: 
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    0 0 30px rgba(59,130,246,0.25),
+    0 12px 40px rgba(0,0,0,0.6);
+  font-family: 'Press Start 2P', 'VT323', monospace;
+  image-rendering: pixelated;
+  position: relative;
+  overflow: hidden;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.memory-panel-enhanced::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    repeating-linear-gradient(90deg, transparent 0, transparent 3px, rgba(59,130,246,0.06) 3px, rgba(59,130,246,0.06) 6px),
+    repeating-linear-gradient(0deg, transparent 0, transparent 4px, rgba(139,92,246,0.05) 4px, rgba(139,92,246,0.05) 8px);
+  pointer-events: none;
+}
+
+.memory-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(59,130,246,0.3);
+}
+
+.memory-title {
+  color: #3b82f6 !important;
+}
+
+.refresh-memory-btn {
+  font-size: 0.65rem !important;
+}
+
+.no-memories {
+  color: #64748b;
+  font-style: italic;
+  text-align: center;
+  padding: 40px 20px;
+  font-size: 0.9rem;
+}
+
+.no-memories small {
+  display: block;
+  margin-top: 8px;
+  opacity: 0.7;
+  font-size: 0.8rem;
+}
+
+.memory-entries {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.memory-entry {
+  padding: 12px;
+  margin-bottom: 12px;
+  background: rgba(10,10,25,0.6);
+  border-radius: 8px;
+  border-left: 3px solid #3b82f6;
+}
+
+.memory-date {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-bottom: 4px;
+  font-family: 'VT323', monospace;
+}
+
+.memory-event {
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 4px;
+  font-family: 'VT323', monospace;
+  font-size: 0.95rem;
+}
+
+.memory-choice {
+  color: #00ffcc;
+  font-family: 'VT323', monospace;
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+}
+
+.memory-effects {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  font-family: 'VT323', monospace;
 }
 </style>

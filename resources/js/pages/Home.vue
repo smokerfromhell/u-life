@@ -259,6 +259,41 @@
     </v-card>
   </v-dialog>
 
+  <!-- Normal Player Consent Dialog -->
+  <v-dialog v-model="normalConsentDialog" max-width="520" rounded="xl">
+    <v-card class="guest-dialog-card">
+      <v-card-title class="guest-dialog-title text-center">
+        <span class="glitch-title" data-text="SHARE YOUR DATA?">SHARE YOUR DATA?</span>
+      </v-card-title>
+      <v-card-text class="guest-dialog-text text-center">
+        <p class="mb-3">Help improve U:LIFE!</p>
+        <p class="text-white/60 text-sm" style="font-family: 'VT323', monospace; font-size: 16px;">
+          Share your gameplay data (choices + stat changes) to help improve the game?
+        </p>
+      </v-card-text>
+      <v-card-actions class="justify-center gap-3 pb-6 px-6">
+        <v-btn
+          variant="outlined"
+          color="white"
+          class="guest-private-btn"
+          :disabled="loading"
+          @click="startNormalConsent(false)"
+        >
+          Play Private
+        </v-btn>
+        <v-btn
+          variant="elevated"
+          color="#00ffcc"
+          class="guest-share-btn"
+          :disabled="loading"
+          @click="startNormalConsent(true)"
+        >
+          Play & Share
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
   <!-- Professional Account Request Dialog -->
   <v-dialog v-model="professionalDialog" max-width="520" rounded="xl">
     <v-card class="guest-dialog-card">
@@ -434,6 +469,7 @@ const showSnackbar = ref(false)
 const snackbarMessage = ref('')
 const snackbarColor = ref('success')
 const guestDialog = ref(false)
+const normalConsentDialog = ref(false)
 const professionalDialog = ref(false)
 const proRequest = ref({
   name: '',
@@ -501,12 +537,17 @@ const handleCredentialResponse = async (response) => {
     // Set welcome data
     currentUser.value = res.data.user
     welcomeHasCharacter.value = res.data.has_character
+
+    if (currentUser.value.is_guest) {
+      showWelcomeDialog.value = true
+    } else {
+      normalConsentDialog.value = true
+    }
     
     successMessage.value = 'Successfully logged in with Google!'
     snackbarMessage.value = 'Successfully logged in with Google!'
     snackbarColor.value = 'success'
     showSnackbar.value = true
-    showWelcomeDialog.value = true
     
   } catch (error) {
     console.error('Google authentication error:', error)
@@ -606,11 +647,15 @@ const login = async () => {
     currentUser.value = response.data.user
     welcomeHasCharacter.value = response.data.has_character
 
-    // Show welcome popup instead of immediate redirect
+    if (currentUser.value.is_guest) {
+      showWelcomeDialog.value = true
+    } else {
+      normalConsentDialog.value = true
+    }
+
     snackbarMessage.value = 'Successfully logged in!'
     snackbarColor.value = 'success'
     showSnackbar.value = true
-    showWelcomeDialog.value = true
 
   } catch (error) {
     errorMessage.value = error.response?.data?.message || 'Login failed'
@@ -646,6 +691,32 @@ const startGuest = async (shareConsent) => {
 
   } catch (error) {
     const errorMsg = error.response?.data?.message || error.message || 'Failed to start guest mode'
+    snackbarMessage.value = errorMsg
+    snackbarColor.value = 'error'
+    showSnackbar.value = true
+  } finally {
+    loading.value = false
+  }
+}
+
+const startNormalConsent = async (shareConsent) => {
+  loading.value = true
+  try {
+    const response = await axios.post('/api/consent', {
+      share_consent: shareConsent
+    })
+
+    normalConsentDialog.value = false
+
+    snackbarMessage.value = shareConsent
+      ? 'Data sharing enabled.'
+      : 'Private mode enabled.'
+    snackbarColor.value = 'success'
+    showSnackbar.value = true
+    showWelcomeDialog.value = true
+
+  } catch (error) {
+    const errorMsg = error.response?.data?.message || error.message || 'Failed to set consent'
     snackbarMessage.value = errorMsg
     snackbarColor.value = 'error'
     showSnackbar.value = true
