@@ -550,48 +550,154 @@
       </v-theme-provider>
     </v-dialog>
 
-    <!-- Suicide Dialog -->
-    <v-dialog v-model="suicideDialog" max-width="600" max-height="90vh" persistent rounded="xl" content-class="suicide-dialog-content">
-      <v-card class="suicide-dialog" theme="dark" style="min-height: 400px; max-height: 90vh; overflow-y: auto;">
-        <v-card-title class="suicide-title glitch" data-text="Are you sure you want to die?">
-          <div style="font-size: 1.5rem; line-height: 1.2; padding: 8px 0;">
-            Are you sure?
+    <!-- Suicide Dialog - RETRO PIXEL EDITION -->
+    <v-dialog v-model="suicideDialog" max-width="850" max-height="92vh" persistent rounded="0" content-class="suicide-dialog-content">
+      <v-card class="suicide-dialog retro-pixel-death" style="min-height: 500px; max-height: 85vh; overflow-y: auto; image-rendering: pixelated;">
+        <!-- CRT Glow Overlay -->
+        <div class="death-glow" aria-hidden="true"></div>
+        <div class="death-scanlines" aria-hidden="true"></div>
+        <div class="death-vignette" aria-hidden="true"></div>
+        
+        <!-- SKULL HEADER -->
+        <v-card-title class="death-title glitch-death" data-text="FINAL FATE 💀">
+          <div style="font-size: clamp(1.4rem, 4vw, 2.2rem); line-height: 1.1; padding: 12px 0; text-align: center;">
+            YOUR FINAL FATE
+            <div style="font-size: 3.5rem; margin: 0.2em 0; animation: skull-bounce 2s infinite;">💀</div>
           </div>
         </v-card-title>
-        <v-card-subtitle class="suicide-subtitle mb-4">Final decision. No turning back.</v-card-subtitle>
-        <v-card-text class="suicide-text">
-          <v-select
-            v-model="selectedMethod"
-            :items="suicideMethods"
-            label="Choose method"
-            variant="outlined"
-            density="compact"
-            class="method-select"
-            item-title="name"
-            hide-no-data
-            prepend-inner-icon="mdi-death-star"
-          />
+        
+        <v-card-subtitle class="death-subtitle mb-6 text-center">
+          <span>CHOOSE YOUR END - NO TURNING BACK</span>
+          <div style="font-size: 3rem; margin-top: 8px;">⚰️</div>
+        </v-card-subtitle>
+        
+        <!-- ALL METHODS GRID - RETRO PIXEL CARDS -->
+        <v-card-text class="death-methods-container">
+          <div class="methods-grid">
+            <div 
+              v-for="(method, idx) in suicideMethods" 
+              :key="idx"
+              class="death-method-card"
+              :style="{ '--method-delay': `${idx * 0.15}s` }"
+              :class="{ 'selected-method': method === selectedSuicideMethod }"
+              @click="selectSuicideMethod(method)"
+            >
+              <div class="method-icon">💀</div>
+              <div class="method-name">{{ method.name }}</div>
+            </div>
+          </div>
+          <div class="death-warning mt-8 p-4">
+            <span class="warning-text">ALL PATHS LEAD TO DARKNESS</span>
+          </div>
         </v-card-text>
-        <v-card-actions class="justify-center gap-3 pb-6">
+        
+        <!-- SINGLE MASSIVE CONFIRM BUTTON -->
+        <v-card-actions class="death-actions justify-center pb-8">
           <v-btn 
-            variant="outlined" 
-            @click="suicideDialog = false"
-            class="cancel-suicide-btn"
-          >
-            Live On
-          </v-btn>
-          <v-btn 
-            color="error" 
+            size="x-large"
             variant="elevated"
-            @click="confirmSuicide" 
-            :disabled="!selectedMethod"
-            class="confirm-suicide-btn"
+            color="error"
+            class="death-confirm-btn pulse-danger"
+            @click="confirmSuicide"
+            :disabled="!selectedSuicideMethod"
+            style="font-size: 1.4rem; padding: 20px 60px; min-width: 280px;"
           >
-            End Life
+            💀 END BY {{ selectedSuicideMethod ? selectedSuicideMethod.name.toUpperCase() : 'CHOOSE METHOD' }} 💀
+          </v-btn>
+<v-btn 
+            variant="tonal" 
+            color="grey"
+            size="large"
+            @click="cancelSuicide"
+            class="live-on-btn"
+          >
+            LIVE ON...
           </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Step 4: MIRACULOUS SURVIVAL POPUP (Retro Pixel) -->
+    <v-dialog v-model="showSurvivalPopup" max-width="650" rounded="0" content-class="survival-popup-content">
+      <v-card class="survival-popup retro-pixel-survival" style="image-rendering: pixelated;">
+
+        <!-- Glow + Scanlines -->
+        <div class="survival-glow" aria-hidden="true"></div>
+        <div class="survival-scanlines" aria-hidden="true"></div>
+        
+        <!-- Header -->
+        <v-card-title class="survival-title glitch-survival">
+          <div style="font-size: clamp(1.4rem, 5vw, 2rem); line-height: 1.1;">
+            🌟 MIRACULOUS SURVIVAL 🌟
+          </div>
+        </v-card-title>
+        
+        <v-card-subtitle class="survival-subtitle mb-6 text-center">
+          You miraculously survived...<br>
+          <span style="font-size: 1.4rem; color: #00ff88;">Maybe it's not your time yet</span>
+        </v-card-subtitle>
+        
+        <!-- Message -->
+        <v-card-text class="survival-message text-center">
+          <div style="font-size: 1.6rem; margin-bottom: 12px;">Your attempt did not succeed.</div>
+          <div style="font-size: 1.1rem; opacity: 0.9;">Sometimes life has other plans...</div>
+        </v-card-text>
+        
+        <!-- CONTINUE Button -->
+        <v-card-actions class="survival-actions justify-center pb-8">
+        <v-btn 
+            size="x-large"
+            color="warning"
+            class="survival-btn pulse-warning"
+            @click="closeSurvivalPopup"
+            style="z-index: 10; pointer-events: auto; font-size: 1.3rem; padding: 18px 48px; min-width: 260px;"
+          >
+            CONTINUE LIVING... 👻
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Step 5: BLOODY HELLISH GAME OVER OVERLAY ☠️🩸 -->
+    <v-overlay v-model="showGameOverOverlay" contained z-index="9999" class="gameover-hell-overlay align-center justify-center text-center">
+      <div class="gameover-hell-container">
+        <!-- Circling Death Emojis (4 orbiting) -->
+        <div class="death-orbit" style="--orbit-delay: 0s; --orbit-radius: 120px;">☠️</div>
+        <div class="death-orbit" style="--orbit-delay: -3s; --orbit-radius: 160px;">💀</div>
+        <div class="death-orbit" style="--orbit-delay: -6s; --orbit-radius: 200px;">🩸</div>
+        <div class="death-orbit" style="--orbit-delay: -9s; --orbit-radius: 240px;">🔥</div>
+        
+        <!-- MASSIVE DISTORTED STAMP -->
+        <div class="gameover-stamp glitch-hell" data-text="GAME OVER">
+          G A M E&nbsp;&nbsp;&nbsp;O V E R
+        </div>
+        
+        <!-- Bloody Subtitle -->
+        <div class="hell-subtitle">
+          {{ selectedSuicideMethod?.name?.toUpperCase() || 'FATE UNKNOWN' }}<br>
+          <span>FINAL DAY: {{ character.currentDay }}</span>
+        </div>
+        
+        <!-- Blood Splatter Effects -->
+        <div class="blood-splatter" aria-hidden="true"></div>
+        <div class="blood-drips-1" aria-hidden="true"></div>
+        <div class="blood-drips-2" aria-hidden="true"></div>
+        
+        <!-- Hellfire Background Glow -->
+        <div class="hellfire-glow" aria-hidden="true"></div>
+        
+        <!-- REINCARNATE Button -->
+        <v-btn 
+          size="x-large" 
+          color="error" 
+          class="restart-hell-btn pulse-hellfire"
+          style="font-size: 1.4rem; padding: 20px 60px; margin-top: 40px;"
+          @click="startNewGame"
+        >
+          👹 REINCARNATE 👹
+        </v-btn>
+      </div>
+    </v-overlay>
 
     <!-- 5-Card Random Event Animation Overlay -->
     <v-overlay v-model="showCardAnimation" contained class="card-animation-overlay align-center justify-center text-center" z-index="999">
@@ -699,13 +805,16 @@ const shareConsent = ref(false)
 const savingConsent = ref(false)
 
 const suicideDialog = ref(false)
-const selectedMethod = ref('')
+const selectedSuicideMethod = ref(null)
+const showSurvivalPopup = ref(false)
+const showGameOverOverlay = ref(false)
+
 const suicideMethods = ref([
-  { name: 'Jump off bridge', prob: 0.95 },
-  { name: 'Jump in front of car', prob: 0.92 },
-  { name: 'Hanging', prob: 0.97 },
-  { name: 'Overdose', prob: 0.88 },
-  { name: 'Gunshot', prob: 0.94 }
+  { name: 'JUMP OFF BRIDGE' },
+  { name: 'CAR COLLISION' },
+  { name: 'HANGING' },
+  { name: 'OVERDOSE' },
+  { name: 'GUNSHOT' }
 ])
 
 // If the dialog is closed via scrim click / ESC, ensure cards are clickable again.
@@ -1586,28 +1695,49 @@ const showMilestone = (milestone) => {
  * Suicide methods
  */
 const suicide = () => {
-  selectedMethod.value = ''
   suicideDialog.value = true
 }
 
-const confirmSuicide = () => {
-  const method = selectedMethod.value
-  if (!method) return
+const selectSuicideMethod = (method) => {
+  selectedSuicideMethod.value = method
+}
 
-  const methodData = suicideMethods.value.find(m => m.name === method)
-  const successProb = methodData?.prob ?? 0.92
-  const success = Math.random() < successProb
+const cancelSuicide = () => {
+  suicideDialog.value = false
+  selectedSuicideMethod.value = null
+}
+
+const closeSurvivalPopup = async () => {
+  showSurvivalPopup.value = false
+  selectedSuicideMethod.value = null  // Reset for next try
+  await nextTick()
+  // Force Vuetify dialog state sync
+  setTimeout(() => {
+    window.dispatchEvent(new Event('resize'))
+  }, 50)
+}
+
+const confirmSuicide = () => {
+  // TRULY RANDOM SUCCESS - REGENERATED EVERY ATTEMPT (0-50%)
+  const successRate = Math.random() * 0.5
+  const success = Math.random() < successRate
+  
+  console.log(`[DEBUG] ${selectedSuicideMethod.value.name}: rate=${successRate.toFixed(3)} → ${success ? 'HELL' : 'SURVIVE'}`)
 
   suicideDialog.value = false
 
   if (success) {
-    narrationHistory.value.push(`💀 You ended your life by ${method}.`)
-    narrationHistory.value.push('Your journey ends here.')
+    // RARE SUCCESS → FULL HELL OVERLAY (Step 5 prepares this)
+    narrationHistory.value.push(`💀 ${selectedSuicideMethod.value.name.toUpperCase()}: FATE SEALED`)
+    narrationHistory.value.push('GAME OVER → ETERNAL DARKNESS')
+    showGameOverOverlay.value = true
     gameOver.value = true
   } else {
-    narrationHistory.value.push(`☠️ You attempted ${method}, but survived.`)
-    narrationHistory.value.push('Barely alive... -Hospital visit. -Health.')
-    // Optional: minor stat penalty (client-side preview)
+    // SURVIVAL (most common)
+    narrationHistory.value.push(`☠️ ${selectedSuicideMethod.value.name} → FAILED`)
+    narrationHistory.value.push('😈 JOKES ON YOU - MIRACULOUS SURVIVAL!')
+    effectiveStats.value.visible.Health = Math.max(0, effectiveStats.value.visible.Health - 30)
+    showSurvivalPopup.value = true
   }
 }
 
@@ -4053,21 +4183,35 @@ const startNewGame = () => {
   }
 }
 
-/* Suicide Button & Dialog Styles */
+/* ENHANCED RETRO PIXEL SUICIDE BUTTON */
 .suicide-btn {
-  background: linear-gradient(135deg, #ef4444, #dc2626, #b91c1c) !important;
+  background: 
+    linear-gradient(135deg, #ff0000, #cc0000, #990000),
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 4px,
+      rgba(255,255,255,0.1) 4px,
+      rgba(255,255,255,0.1) 8px
+    ) !important;
   color: #ffffff !important;
-  font-weight: 700 !important;
-  font-size: 1.05rem !important;
+  font-weight: 900 !important;
+  font-size: 1.1rem !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.08em !important;
-  font-family: 'VT323', monospace !important;
-  border-radius: 12px !important;
+  letter-spacing: 0.12em !important;
+  font-family: 'Press Start 2P', monospace !important;
+  border-radius: 8px !important;
+  border: 3px solid #ff3333 !important;
   box-shadow: 
-    0 8px 25px rgba(239, 68, 68, 0.4),
-    0 0 35px rgba(239, 68, 68, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+    0 12px 35px rgba(255,0,0,0.5),
+    0 0 50px rgba(255,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.3),
+    0 0 0 1px rgba(255,255,255,0.2) !important;
   transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+  image-rendering: pixelated !important;
+  text-shadow: 
+    2px 2px 0 #000,
+    0 0 15px #ff0000 !important;
 }
 
 /* 5-CARD ANIMATION STYLES */
@@ -4318,28 +4462,449 @@ const startNewGame = () => {
 
 @media (max-width: 768px) {
   .cards-arc {
-    gap: 12px;
-    height: 200px;
+    gap: 8px;
+    height: 220px;
+    perspective: 800px;
   }
   
   .animation-card {
-    width: 90px;
-    height: 130px;
+    width: 85px;
+    height: 120px;
+    font-size: 0.9rem;
   }
   
-  .animation-card.pos-0 { transform: rotateY(-20deg) translateX(-80px) translateZ(-60px); }
-  .animation-card.pos-1 { transform: rotateY(-10deg) translateX(-40px) translateZ(-30px); }
+  .phase-choose .animation-card.pos-0 { transform: translateX(-100px) rotateY(180deg) translateZ(-10px); }
+  .phase-choose .animation-card.pos-1 { transform: translateX(-50px) rotateY(180deg) translateZ(-5px); }
+  .phase-choose .animation-card.pos-2 { transform: rotateY(180deg) translateZ(0); }
+  .phase-choose .animation-card.pos-3 { transform: translateX(50px) rotateY(180deg) translateZ(-5px); }
+  .phase-choose .animation-card.pos-4 { transform: translateX(100px) rotateY(180deg) translateZ(-10px); }
+  
+  .animation-card.pos-0 { transform: rotateY(-25deg) translateX(-70px) translateZ(-50px); }
+  .animation-card.pos-1 { transform: rotateY(-12deg) translateX(-35px) translateZ(-25px); }
   .animation-card.pos-2 { transform: rotateY(0deg) translateZ(0); }
-  .animation-card.pos-3 { transform: rotateY(10deg) translateX(40px) translateZ(-30px); }
-  .animation-card.pos-4 { transform: rotateY(20deg) translateX(80px) translateZ(-60px); }
+  .animation-card.pos-3 { transform: rotateY(12deg) translateX(35px) translateZ(-25px); }
+  .animation-card.pos-4 { transform: rotateY(25deg) translateX(70px) translateZ(-50px); }
+  
+  .card-back { font-size: 2.2rem !important; }
+  .card-title-mini { font-size: 0.35rem; }
+}
+
+/* RETRO DEATH DIALOG - SUPER PIXEL GAMING */
+.suicide-dialog-content::deep(.v-overlay__content) {
+  animation: death-entrance 0.8s cubic-bezier(0.36, 0, 0.66, -0.56);
+}
+
+@keyframes death-entrance {
+  0% { 
+    opacity: 0; 
+    transform: scale(0.7) rotate(-5deg); 
+  }
+  50% { transform: scale(1.05) rotate(2deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0); }
+}
+
+.death-glow {
+  position: absolute;
+  inset: -50px;
+  background: 
+    radial-gradient(ellipse at 30% 20%, rgba(255,50,50,0.3) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 70%, rgba(200,0,0,0.2) 0%, transparent 60%),
+    radial-gradient(circle at center, rgba(255,0,0,0.15) 0%, transparent 70%);
+  filter: blur(40px);
+  z-index: 0;
+  pointer-events: none;
+  animation: death-glow-pulse 3s ease-in-out infinite;
+}
+
+@keyframes death-glow-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+.death-scanlines {
+  position: absolute;
+  inset: 0;
+  background: 
+    repeating-linear-gradient(0deg, rgba(255,0,0,0.08), rgba(255,0,0,0.08) 1px, transparent 1px, transparent 2px),
+    repeating-linear-gradient(90deg, rgba(139,0,0,0.06), rgba(139,0,0,0.06) 2px, transparent 2px, transparent 4px);
+  z-index: 1;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+.death-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.85) 90%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.retro-pixel-death {
+  background: 
+    linear-gradient(170deg, #2a0a0a 0%, #1a0505 50%, #100303 100%),
+    #111;
+  border: 4px solid #ff0000 !important;
+  box-shadow: 
+    inset 0 0 0 2px rgba(255,255,255,0.1),
+    0 0 0 2px #ff0000,
+    0 40px 120px rgba(255,0,0,0.4),
+    0 0 80px rgba(255,0,0,0.3),
+    inset 0 0 40px rgba(0,0,0,0.8);
+  font-family: 'Press Start 2P', monospace !important;
+  text-rendering: optimizeSpeed;
+  image-rendering: pixelated;
+  position: relative;
+  overflow: hidden;
+}
+
+.retro-pixel-death::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    repeating-linear-gradient(90deg, transparent 0, transparent 3px, rgba(255,50,50,0.1) 3px, rgba(255,50,50,0.1) 6px),
+    repeating-linear-gradient(0deg, transparent 0, transparent 4px, rgba(139,0,0,0.08) 4px, rgba(139,0,0,0.08) 8px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.glitch-death {
+  animation: death-glitch 4s infinite;
+  color: #ff4444 !important;
+  text-shadow: 
+    0 0 30px #ff0000,
+    4px 0 0 #000, -4px 0 0 #ff0000,
+    0 4px 0 #000, 0 -4px 0 #ff0000,
+    2px 2px 0 rgba(255,0,0,0.5) !important;
+}
+
+@keyframes death-glitch {
+  0%, 90%, 100% { transform: none; color: #ff4444; }
+  20% { transform: skewX(-12deg); color: #ff6666; }
+  40% { transform: skewX(12deg); color: #cc0000; }
+  60% { transform: skewX(-8deg); color: #ff0000; }
+  80% { transform: skewX(8deg); color: #990000; }
+}
+
+.death-subtitle {
+  color: #ff8888 !important;
+  font-size: clamp(0.95rem, 2.5vw, 1.3rem) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.2em !important;
+  text-shadow: 0 0 20px rgba(255,100,100,0.8);
+  animation: subtitle-shake 0.5s infinite;
+}
+
+@keyframes subtitle-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+.death-methods-container {
+  padding: 0 !important;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.methods-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+  padding: 40px 35px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.death-method-card {
+  background: linear-gradient(145deg, #3a1a1a, #2a0f0f);
+  border: 3px solid #ff3333;
+  border-radius: 12px;
+  padding: 25px 20px;
+  text-align: center;
+  position: relative;
+  animation: method-pop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+  animation-delay: var(--method-delay);
+  opacity: 0;
+  transform: scale(0.8) translateY(30px);
+  box-shadow: 
+    0 12px 35px rgba(255,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.15),
+    0 0 25px rgba(255,50,50,0.2);
+  transition: all 0.3s ease;
+  font-family: 'Press Start 2P', monospace !important;
+  image-rendering: pixelated;
+}
+
+.death-method-card:hover {
+  transform: scale(1.05) !important;
+  border-color: #ff6666 !important;
+  box-shadow: 
+    0 20px 50px rgba(255,0,0,0.5),
+    0 0 40px rgba(255,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.3);
+}
+
+@keyframes method-pop {
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.method-icon {
+  font-size: 4rem;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 0 20px rgba(255,0,0,0.8));
+  animation: skull-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes skull-glow {
+  from { filter: drop-shadow(0 0 15px rgba(255,0,0,0.6)); }
+  to { filter: drop-shadow(0 0 30px rgba(255,0,0,1)); }
+}
+
+.method-name {
+  font-size: clamp(1rem, 3vw, 1.4rem) !important;
+  font-weight: 900 !important;
+  color: #ffddcc !important;
+  margin-bottom: 12px;
+  letter-spacing: 0.15em !important;
+  text-shadow: 
+    3px 3px 0 #000,
+    0 0 20px rgba(255,100,100,0.8) !important;
+  line-height: 1.1;
+}
+
+.method-prob {
+  background: linear-gradient(135deg, #ff3333, #cc0000);
+  color: #000 !important;
+  font-weight: 900 !important;
+  font-size: 1.1rem !important;
+  padding: 10px 20px;
+  border-radius: 8px;
+  text-shadow: none !important;
+  box-shadow: 
+    0 6px 20px rgba(255,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.3);
+  image-rendering: pixelated;
+}
+
+.death-warning {
+  background: rgba(139,0,0,0.4);
+  border: 2px solid #ff5555;
+  border-radius: 12px;
+  text-align: center;
+  margin: 0 25px;
+}
+
+.warning-text {
+  color: #ffaaaa !important;
+  font-size: 1.4rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.2em !important;
+  text-shadow: 0 0 15px rgba(255,100,100,0.9);
+  animation: warning-flicker 1.5s infinite;
+}
+
+@keyframes warning-flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.death-actions {
+  background: linear-gradient(180deg, rgba(20,5,5,0.9), rgba(10,0,0,0.95));
+  border-top: 3px solid #ff0000;
+  padding-top: 25px !important;
+  gap: 20px !important;
+}
+
+.death-confirm-btn {
+  font-family: 'Press Start 2P', monospace !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.2em !important;
+  border-radius: 8px !important;
+  image-rendering: pixelated !important;
+  border: 4px solid #ff0000 !important;
+  box-shadow: 
+    0 15px 45px rgba(255,0,0,0.6),
+    0 0 60px rgba(255,0,0,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.3) !important;
+  background: 
+    linear-gradient(145deg, #ff3333, #cc0000, #990000),
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.15) 0px, rgba(255,255,255,0.15) 2px, transparent 2px, transparent 4px) !important;
+  color: #ffffff !important;
+  text-shadow: 
+    4px 4px 0 #000,
+    0 0 25px #ff0000 !important;
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+}
+
+.death-confirm-btn:hover:not(:disabled) {
+  transform: translateY(-8px) scale(1.08) !important;
+  box-shadow: 
+    0 30px 80px rgba(255,0,0,0.8),
+    0 0 80px rgba(255,0,0,0.7),
+    inset 0 1px 0 rgba(255,255,255,0.4) !important;
+  filter: brightness(1.2) drop-shadow(0 0 30px #ff0000);
+}
+
+.death-confirm-btn:active:not(:disabled) {
+  transform: translateY(-3px) scale(1.03) !important;
+}
+
+.pulse-danger {
+  animation: danger-pulse 1.2s infinite;
+}
+
+@keyframes danger-pulse {
+  0%, 100% { 
+    box-shadow: 
+      0 15px 45px rgba(255,0,0,0.6),
+      0 0 60px rgba(255,0,0,0.5); 
+  }
+  50% { 
+    box-shadow: 
+      0 25px 65px rgba(255,0,0,0.9),
+      0 0 90px rgba(255,0,0,0.8); 
+  }
+}
+
+.live-on-btn {
+  font-family: 'VT323', monospace !important;
+  font-size: 1.1rem !important;
+  background: linear-gradient(135deg, rgba(100,100,100,0.8), rgba(60,60,60,0.9)) !important;
+  border: 2px solid #666 !important;
+  color: #ddd !important;
+  text-shadow: 2px 2px 0 #000 !important;
+}
+
+.live-on-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(120,120,120,0.9), rgba(80,80,80,0.95)) !important;
+  transform: translateY(-4px) !important;
+}
+
+/* ENHANCED RETRO PIXEL DEATH SCROLLBAR */
+.death-methods-container {
+  scrollbar-width: thin;
+  scrollbar-color: linear-gradient(#ff0000, #cc0000) #1a0505;
+}
+
+.death-methods-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.death-methods-container::-webkit-scrollbar-track {
+  background: linear-gradient(180deg, #1a0505, #100303);
+  border-radius: 4px;
+  border: 1px solid #330000;
+  box-shadow: inset 0 0 6px rgba(0,0,0,0.8);
+}
+
+.death-methods-container::-webkit-scrollbar-thumb {
+  background: linear-gradient(145deg, #ff3333, #cc0000, #990000);
+  border-radius: 4px;
+  border: 1px solid #ff5555;
+  box-shadow: 
+    0 0 8px rgba(255,0,0,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.2),
+    inset 0 -1px 0 rgba(0,0,0,0.5);
+  image-rendering: pixelated;
+  min-height: 20px;
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.death-methods-container::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(145deg, #ff6666, #ff0000, #cc0000);
+  transform: scale(1.2);
+  box-shadow: 
+    0 0 16px rgba(255,0,0,0.9),
+    0 4px 12px rgba(255,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.3);
+  animation: scrollbar-shake 0.6s cubic-bezier(0.36, 0, 0.66, -0.56);
+}
+
+.death-methods-container::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(145deg, #ff0000, #990000);
+  transform: scale(1.1);
+  box-shadow: 
+    0 2px 8px rgba(255,0,0,0.7),
+    inset 0 2px 4px rgba(0,0,0,0.4);
+}
+
+@keyframes scrollbar-shake {
+  0%, 100% { transform: translateX(0) scale(1.2); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-1px) scale(1.2); }
+  20%, 40%, 60%, 80% { transform: translateX(1px) scale(1.2); }
+}
+
+/* Mobile/touch refinement */
+@media (hover: none), (pointer: coarse) {
+  .death-methods-container::-webkit-scrollbar-thumb:hover {
+    transform: none;
+    animation: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .methods-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    padding: 25px 20px;
+    max-height: 300px;
+  }
+  
+  .death-method-card {
+    padding: 30px 25px;
+    min-height: 160px;
+  }
+  
+  .death-actions {
+    flex-direction: column-reverse !important;
+    gap: 20px !important;
+    padding: 30px 20px 35px !important;
+  }
+  
+  .death-confirm-btn {
+    order: 2;
+    min-width: 100% !important;
+    padding: 25px 40px !important;
+    font-size: 1.6rem !important;
+  }
+  
+  .live-on-btn {
+    order: 1;
+    min-height: 56px;
+  }
+  
+  .retro-pixel-death {
+    margin: 12px !important;
+    min-height: 520px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .death-method-card, .glitch-death, .pulse-danger {
+    animation: none !important;
+  }
 }
 
 .suicide-btn:hover:not(:disabled) {
-  transform: translateY(-4px) scale(1.02) !important;
+  transform: translateY(-6px) scale(1.05) !important;
   box-shadow: 
-    0 16px 45px rgba(239, 68, 68, 0.5),
-    0 0 45px rgba(239, 68, 68, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+    0 25px 60px rgba(255,0,0,0.6),
+    0 0 60px rgba(255,0,0,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.4),
+    0 0 0 1px rgba(255,100,100,0.8) !important;
+  filter: brightness(1.1) drop-shadow(0 0 20px #ff0000);
+}
+
+.suicide-btn:active:not(:disabled) {
+  transform: translateY(-2px) scale(1.02) !important;
 }
 
 .suicide-dialog-content::deep(.v-card) {
@@ -4607,6 +5172,470 @@ const startNewGame = () => {
   padding: 12px 28px !important;
   min-width: 140px !important;
 }
+
+/* ===== STEP 7: NEW SUICIDE CSS ENHANCEMENTS ===== */
+
+/* Selected Method Pulsing Blood Glow */
+.death-method-card.selected-method {
+  border-color: #ff6666 !important;
+  background: linear-gradient(145deg, #4a2020, #3a1515) !important;
+  box-shadow: 
+    0 0 40px rgba(255,50,50,0.8),
+    0 20px 60px rgba(255,0,0,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.2),
+    0 0 0 2px rgba(255,100,100,0.8) !important;
+  animation: selected-blood-pulse 1.5s infinite, method-pop 0.6s ease-out;
+  transform: scale(1.05);
+}
+
+@keyframes selected-blood-pulse {
+  0%, 100% { box-shadow: 0 0 40px rgba(255,50,50,0.8), 0 20px 60px rgba(255,0,0,0.6); }
+  50% { box-shadow: 0 0 60px rgba(255,0,0,1), 0 30px 80px rgba(255,0,0,0.8), 0 0 0 4px rgba(255,100,100,1); }
+}
+
+/* Disabled Confirm = Cracked Skull Glass */
+.death-confirm-btn:disabled {
+  background: linear-gradient(145deg, #2a0f0f, #1a0505) !important;
+  border: 3px solid #660000 !important;
+  opacity: 0.6;
+  position: relative;
+  cursor: not-allowed !important;
+}
+
+.death-confirm-btn:disabled::before {
+  content: '⚠️ CHOOSE METHOD';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 900;
+  color: #ff4444;
+  text-shadow: 0 0 10px #ff0000;
+  z-index: 1;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(100,0,0,0.8),
+    rgba(100,0,0,0.8) 4px,
+    rgba(200,0,0,0.6) 4px,
+    rgba(200,0,0,0.6) 8px
+  );
+  animation: crack-shake 2s infinite;
+}
+
+@keyframes crack-shake {
+  0%, 100% { background-position: 0 0; }
+  50% { background-position: 8px 8px; }
+}
+
+/* ===== SURVIVAL POPUP RETRO STYLE ===== */
+.survival-popup-content::deep(.v-overlay__content) {
+  animation: survival-bounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes survival-bounce {
+  0% { transform: scale(0.7) rotate(5deg); opacity: 0; }
+  60% { transform: scale(1.05) rotate(-2deg); }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+.retro-pixel-survival {
+  background: linear-gradient(145deg, #2a1a1a, #1a0f0f) !important;
+  border: 4px solid #ffaa00 !important;
+  box-shadow: 
+    0 0 0 2px #ffaa00,
+    0 40px 120px rgba(255,170,0,0.5),
+    0 0 80px rgba(255,170,0,0.4),
+    inset 0 0 40px rgba(0,0,0,0.8);
+  font-family: 'Press Start 2P', monospace !important;
+  image-rendering: pixelated;
+  position: relative;
+  overflow: hidden;
+  max-height: 85vh;
+}
+
+.survival-glow,
+.survival-scanlines {
+  pointer-events: none !important;
+}
+
+.survival-glow {
+  position: absolute;
+  inset: -30px;
+  background: 
+    radial-gradient(ellipse, rgba(255,170,0,0.4) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255,200,100,0.3) 0%, transparent 60%);
+  filter: blur(30px);
+  animation: survival-glow-pulse 2s ease-in-out infinite;
+  z-index: 0;
+}
+
+.survival-scanlines {
+  pointer-events: none !important;
+}
+
+@keyframes survival-glow-pulse {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+.survival-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(255,170,0,0.1),
+    rgba(255,170,0,0.1) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  z-index: 1;
+  mix-blend-mode: overlay;
+}
+
+.survival-title {
+  color: #ffaa00 !important;
+  text-align: center !important;
+  font-size: clamp(1.4rem, 6vw, 2.2rem) !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.2em !important;
+  text-shadow: 
+    0 0 30px #ffaa00,
+    4px 0 0 #000, -4px 0 0 #ffaa00,
+    0 4px 0 #000, 0 -4px 0 #ffaa00 !important;
+  animation: survival-glitch 3s infinite;
+}
+
+@keyframes survival-glitch {
+  0%, 90% { transform: none; }
+  20% { transform: skewX(-8deg); }
+  40%, 60% { transform: skewX(8deg); }
+  80% { transform: skewX(-4deg); }
+}
+
+.survival-subtitle {
+  color: #ffdd99 !important;
+  font-size: clamp(1rem, 3vw, 1.4rem) !important;
+  font-weight: 700 !important;
+  text-shadow: 0 0 20px rgba(255,170,0,0.8);
+}
+
+.survival-message {
+  color: #ffcc99 !important;
+  font-size: 1.3rem !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  text-shadow: 0 0 15px rgba(255,170,0,0.6);
+  animation: message-fade 0.8s ease-out;
+}
+
+@keyframes message-fade {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.survival-btn {
+  background: linear-gradient(135deg, #ffaa00, #ff8800, #ff6600) !important;
+  border: 3px solid #ffdd99 !important;
+  color: #000 !important;
+  font-weight: 900 !important;
+  text-shadow: none !important;
+  box-shadow: 
+    0 15px 45px rgba(255,170,0,0.6),
+    0 0 40px rgba(255,170,0,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.4) !important;
+  font-family: 'Press Start 2P', monospace !important;
+  image-rendering: pixelated;
+}
+
+.pulse-warning {
+  animation: warning-pulse 1.2s infinite;
+}
+
+@keyframes warning-pulse {
+  0%, 100% { box-shadow: 0 15px 45px rgba(255,170,0,0.6); }
+  50% { box-shadow: 0 25px 65px rgba(255,170,0,0.9), 0 0 60px rgba(255,170,0,0.8); }
+}
+
+.survival-actions {
+  background: linear-gradient(180deg, rgba(25,15,15,0.9), rgba(15,5,5,0.95));
+  border-top: 3px solid #ffaa00;
+}
+
+/* ===== HELLISH GAME OVER CSS ===== */
+.gameover-hell-overlay {
+  background: 
+    radial-gradient(circle at 50% 20%, rgba(139,0,0,0.95) 0%, rgba(80,0,0,0.98) 40%, #000 70%),
+    linear-gradient(45deg, rgba(200,0,0,0.6) 0%, transparent 50%, rgba(139,0,0,0.8) 100%);
+  animation: hell-shake 0.15s infinite, hellfire-flicker 4s ease-in-out infinite;
+}
+
+@keyframes hell-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px) translateY(1px); }
+  75% { transform: translateX(2px) translateY(-1px); }
+}
+
+@keyframes hellfire-flicker {
+  0%, 100% { filter: brightness(1) hue-rotate(0deg); }
+  25% { filter: brightness(1.1) hue-rotate(5deg); }
+  50% { filter: brightness(0.9) hue-rotate(-3deg); }
+  75% { filter: brightness(1.15) hue-rotate(8deg); }
+}
+
+.gameover-hell-container {
+  text-align: center;
+  position: relative;
+  max-width: 90vw;
+  animation: container-hell-glow 3s ease-in-out infinite alternate;
+}
+
+@keyframes container-hell-glow {
+  from { filter: drop-shadow(0 0 40px rgba(255,0,0,0.8)); }
+  to { filter: drop-shadow(0 0 80px rgba(255,50,50,1)) hue-rotate(10deg); }
+}
+
+.death-orbit {
+  position: absolute;
+  inset: 0;
+  font-size: clamp(3rem, 12vw, 6rem);
+  filter: drop-shadow(0 0 30px rgba(255,0,0,0.9));
+  animation: orbit-hell linear infinite, skull-rot 3s infinite;
+  will-change: transform;
+}
+
+@keyframes orbit-hell {
+  from { 
+    transform: rotate(0deg) translateX(var(--orbit-radius, 180px)) rotate(0deg) scale(1); 
+  }
+  to { 
+    transform: rotate(360deg) translateX(var(--orbit-radius, 180px)) rotate(-360deg) scale(1.1); 
+  }
+}
+
+@keyframes skull-rot {
+  0%, 100% { transform: rotateY(0deg) rotateZ(0deg); }
+  25% { transform: rotateY(180deg) rotateZ(-90deg); }
+  50% { transform: rotateY(360deg) rotateZ(-180deg); }
+  75% { transform: rotateY(180deg) rotateZ(-270deg); }
+}
+
+.gameover-stamp {
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: clamp(3rem, 18vw, 8rem) !important;
+  font-weight: 900 !important;
+  color: #ff0000 !important;
+  letter-spacing: 0.3em !important;
+  line-height: 0.8 !important;
+  margin: 20px 0 !important;
+  transform: rotate(-8deg) translateY(-20px);
+  text-shadow: 
+    0 0 60px #ff0000,
+    10px 0 0 #000, -10px 0 0 #ff0000,
+    0 10px 0 #000, 0 -10px 0 #ff0000,
+    5px 5px 0 rgba(139,0,0,0.8),
+    -5px -5px 0 rgba(200,0,0,0.7) !important;
+  position: relative;
+  z-index: 10;
+  animation: stamp-crush 4s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite,
+             hell-glitch 2.5s infinite;
+}
+
+@keyframes stamp-crush {
+  0%, 90% { transform: rotate(-8deg) scale(1) translateY(-20px); }
+  95% { transform: rotate(-12deg) scale(1.02) translateY(-15px); }
+  100% { transform: rotate(-6deg) scale(0.98) translateY(-25px); }
+}
+
+@keyframes hell-glitch {
+  0%, 85%, 100% { transform: rotate(-8deg); }
+  88% { transform: rotate(-15deg) skewX(12deg); }
+  92% { transform: rotate(-3deg) skewX(-8deg); }
+  96% { transform: rotate(-10deg) skewX(6deg); }
+}
+
+.glitch-hell::before,
+.glitch-hell::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  color: #ff4444;
+  opacity: 0.8;
+  z-index: -1;
+}
+
+.glitch-hell::before {
+  animation: hell-glitch-before 2.5s infinite;
+  transform: translate(4px, 2px);
+  clip-path: polygon(0 0, 100% 0, 100% 40%, 0 40%);
+}
+
+.glitch-hell::after {
+  animation: hell-glitch-after 2.5s infinite;
+  transform: translate(-4px, -2px);
+  clip-path: polygon(0 60%, 100% 60%, 100% 100%, 0 100%);
+}
+
+@keyframes hell-glitch-before {
+  0%, 90% { clip-path: polygon(0 0, 100% 0, 100% 40%, 0 40%); }
+  92% { clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%); }
+  94% { clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%); }
+}
+
+@keyframes hell-glitch-after {
+  0%, 90% { clip-path: polygon(0 60%, 100% 60%, 100% 100%, 0 100%); }
+  93% { clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%); }
+  97% { clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%); }
+}
+
+.hell-subtitle {
+  color: #ff6666 !important;
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: clamp(1.1rem, 4vw, 1.8rem) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.15em !important;
+  text-shadow: 
+    0 0 25px rgba(255,100,100,0.9),
+    3px 3px 0 #000 !important;
+  margin: 30px 0 40px;
+  animation: subtitle-bleed 3s ease-in-out infinite;
+}
+
+@keyframes subtitle-bleed {
+  0%, 100% { filter: hue-rotate(0deg) brightness(1); }
+  50% { filter: hue-rotate(15deg) brightness(1.1); text-shadow: 0 0 35px rgba(255,50,50,1); }
+}
+
+.blood-splatter,
+.blood-drips-1,
+.blood-drips-2 {
+  position: absolute;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.blood-splatter {
+  top: 15%;
+  left: 10%;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(ellipse, rgba(139,0,0,0.9) 0%, rgba(200,0,0,0.7) 30%, transparent 70%);
+  border-radius: 50%;
+  filter: blur(2px);
+  animation: splatter-float 6s ease-in-out infinite;
+}
+
+@keyframes splatter-float {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+  33% { transform: translate(20px, -10px) scale(1.1); opacity: 0.8; }
+  66% { transform: translate(-15px, 15px) scale(0.95); opacity: 0.4; }
+}
+
+.blood-drips-1 {
+  top: 40%;
+  right: 20%;
+  width: 8px;
+  height: 60px;
+  background: linear-gradient(to bottom, transparent, #8b0000, #660000);
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  animation: drip-fall-1 4s linear infinite;
+}
+
+.blood-drips-2 {
+  bottom: 30%;
+  left: 25%;
+  width: 6px;
+  height: 45px;
+  background: linear-gradient(to bottom, transparent, #a00000, #800000);
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  animation: drip-fall-2 5s linear infinite 1s;
+}
+
+@keyframes drip-fall-1 {
+  0% { transform: translateY(-100px) scaleY(0.3); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateY(100px) scaleY(1.2); opacity: 0; }
+}
+
+@keyframes drip-fall-2 {
+  0% { transform: translateY(-80px) scaleY(0.4); opacity: 0; }
+  25% { opacity: 1; }
+  75% { opacity: 1; }
+  100% { transform: translateY(80px) scaleY(1.1); opacity: 0; }
+}
+
+.hellfire-glow {
+  position: absolute;
+  inset: -100px;
+  background: 
+    radial-gradient(ellipse at 20% 80%, rgba(255,100,0,0.6) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 40%, rgba(200,50,0,0.5) 0%, transparent 60%),
+    radial-gradient(circle at center, rgba(255,0,0,0.3) 0%, transparent 70%);
+  filter: blur(50px);
+  animation: hellfire-pulse 3s ease-in-out infinite;
+  mix-blend-mode: screen;
+  z-index: 0;
+}
+
+@keyframes hellfire-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.15); }
+}
+
+.restart-hell-btn {
+  font-family: 'Press Start 2P', monospace !important;
+  font-weight: 900 !important;
+  border: 4px solid #ff4400 !important;
+  background: linear-gradient(145deg, #ff6600, #cc4400, #aa3300) !important;
+  color: #fff !important;
+  text-shadow: 
+    3px 3px 0 #000,
+    0 0 20px #ff4400 !important;
+  box-shadow: 
+    0 20px 60px rgba(255,100,0,0.7),
+    0 0 50px rgba(255,68,0,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.3) !important;
+  image-rendering: pixelated;
+  position: relative;
+  z-index: 20;
+}
+
+.pulse-hellfire {
+  animation: hellfire-btn-pulse 1.8s infinite;
+}
+
+@keyframes hellfire-btn-pulse {
+  0%, 100% { 
+    box-shadow: 0 20px 60px rgba(255,100,0,0.7), 0 0 40px rgba(255,68,0,0.5); 
+    transform: scale(1);
+  }
+  50% { 
+    box-shadow: 0 30px 90px rgba(255,100,0,1), 0 0 70px rgba(255,68,0,0.9); 
+    transform: scale(1.05);
+  }
+}
+
+.restart-hell-btn:hover:not(:disabled) {
+  transform: translateY(-12px) scale(1.08) !important;
+  box-shadow: 
+    0 40px 120px rgba(255,100,0,0.9),
+    0 0 80px rgba(255,68,0,0.8) !important;
+}
+
+.selected-method .method-icon {
+  animation: selected-skull-glow 1s infinite alternate !important;
+  filter: drop-shadow(0 0 25px #ff6666) !important;
+}
+
+@keyframes selected-skull-glow {
+  from { filter: drop-shadow(0 0 20px rgba(255,100,100,0.8)); }
+  to { filter: drop-shadow(0 0 40px rgba(255,50,50,1)); }
+}
+
+/* Remove unused stat % class */
+.stat-percent { display: none; }
 
 .cancel-suicide-btn {
   font-size: 0.8rem !important;

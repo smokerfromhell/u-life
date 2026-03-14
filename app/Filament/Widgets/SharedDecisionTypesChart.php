@@ -18,27 +18,33 @@ class SharedDecisionTypesChart extends ChartWidget
 
     protected function getData(): array
     {
-        $since = Carbon::now()->subDays(7);
+        $userId = \Illuminate\Support\Facades\Auth::check() ? \Illuminate\Support\Facades\Auth::id() : 0;
+        $cacheKey = 'decision_chart_' . md5($userId);
+        
+        return \Illuminate\Support\Facades\Cache::remember($cacheKey, 600, function () { // 10min cache
+            $since = Carbon::now()->subDays(7);
 
-        $rows = SharedDecisionLog::query()
-            ->select('event_type', DB::raw('count(*) as aggregate'))
-            ->where('created_at', '>=', $since)
-            ->groupBy('event_type')
-            ->orderByDesc('aggregate')
-            ->get();
+            $rows = SharedDecisionLog::query()
+                ->select('event_type', DB::raw('count(*) as aggregate'))
+                ->where('created_at', '>=', $since)
+                ->groupBy('event_type')
+                ->orderByDesc('aggregate')
+                ->limit(10)  // Top 10 only
+                ->get();
 
-        $labels = $rows->pluck('event_type')->all();
-        $data = $rows->pluck('aggregate')->map(fn($v) => (int) $v)->all();
+            $labels = $rows->pluck('event_type')->all();
+            $data = $rows->pluck('aggregate')->map(fn($v) => (int) $v)->all();
 
-        return [
-            'datasets' => [
-                [
-                    'label' => 'Decisions',
-                    'data' => $data,
+            return [
+                'datasets' => [
+                    [
+                        'label' => 'Decisions',
+                        'data' => $data,
+                    ],
                 ],
-            ],
-            'labels' => $labels,
-        ];
+                'labels' => $labels,
+            ];
+        });
     }
 }
 
