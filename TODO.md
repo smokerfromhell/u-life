@@ -1,13 +1,19 @@
-# Fix Shared Decision Logs Discrepancy Task
+# U:LIFE User Agreement Implementation Plan
 
-## Status: Completed
+## Overview
+Add User Agreement/Terms of Service modal to Home.vue, shown on first visit (localStorage tracked). Content covers game usage, data privacy, liability. Styled in galaxy cyberpunk theme.
 
-### Steps:
-1. [x] Create this TODO.md 
-2. [x] Edit EventController.php to add share_consent check before creating SharedDecisionLog
-3. [x] Clear Laravel caches (php artisan cache:clear, config:clear, view:clear)
-4. [x] Test by making a game decision with a consented user (future logs now gated by consent)
-5. [x] Verify admin dashboard shows consistent numbers (logs now only from consented users)
-6. [x] Mark complete and attempt_completion
+## Steps
+- [ ] 1. Create TODO.md (current)
+- [ ] 2. Add User Agreement dialog template to Home.vue
+- [ ] 3. Add script logic (ref, localStorage check, accept handler)
+- [ ] 4. Add cyberpunk styles for modal
+- [ ] 5. Test modal shows once per browser
+- [ ] 6. Update TODO.md complete
+- [ ] 7. Final verification
 
-Changes implemented: EventController now only creates SharedDecisionLog if user.share_consent is true. Existing logs remain but future ones align with consent count.
+## Details
+- Modal blocks UI until accepted
+- localStorage key: 'ulife_terms_accepted_v1'
+- Content: Standard terms adapted for game (13+, fictional sim, data opt-in via existing consent)
+

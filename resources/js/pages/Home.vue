@@ -294,8 +294,110 @@
     </v-card>
   </v-dialog>
 
+  <!-- User Agreement / Terms of Service Dialog - NEW -->
+  <v-dialog v-model="showTermsDialog" persistent fullscreen hide-overlay>
+    <v-card class="terms-dialog-card" style="height: 100vh; backdrop-filter: blur(5px);">
+      <!-- Pixel Scanlines -->
+      <div class="terms-scanlines absolute inset-0 pointer-events-none z-10"></div>
+      
+      <div class="terms-container h-full flex flex-col">
+        <!-- Header -->
+        <div class="terms-header p-6 border-b border-white/10 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <v-icon size="32" color="#00ffcc" class="terms-icon">mdi-file-document-check-outline</v-icon>
+            <span class="glitch-title terms-title" data-text="TERMS OF SERVICE" style="font-family: 'Press Start 2P', monospace; font-size: 1.4rem;">TERMS OF SERVICE</span>
+          </div>
+          <v-btn icon @click="showTermsDialog = false" size="small" variant="text" class="close-btn">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </div>
+        
+        <!-- Scrollable Content -->
+        <div class="terms-content flex-1 overflow-y-auto p-6 space-y-4 text-sm leading-relaxed" style="font-family: 'VT323', monospace; font-size: 14px; scrollbar-width: thin;">
+          <div>
+            <h3 class="text-lg font-bold mb-3 text-cyan-300" style="font-family: 'Press Start 2P', monospace;">1. Introduction</h3>
+            <p>Welcome to U:LIFE! These Terms of Service ("Terms") govern your access to and use of U:LIFE, a life simulation game. By accessing or using the Service, you agree to be bound by these Terms.</p>
+          </div>
+          
+          <div>
+            <h3 class="text-lg font-bold mb-3 text-cyan-300" style="font-family: 'Press Start 2P', monospace;">2. Eligibility</h3>
+            <p>You must be at least 13 years old to use U:LIFE. By using the Service, you represent that you meet this requirement.</p>
+          </div>
+          
+          <div>
+            <h3 class="text-lg font-bold mb-3 text-cyan-300" style="font-family: 'Press Start 2P', monospace;">3. Account & Guest Mode</h3>
+            <p>Keep your account secure. Guest mode is anonymous. You may opt-in to share gameplay data via consent prompts.</p>
+          </div>
+          
+          <div>
+            <h3 class="text-lg font-bold mb-3 text-cyan-300" style="font-family: 'Press Start 2P', monospace;">4. User Conduct</h3>
+            <p>Do not cheat, harass, or upload harmful content. We may terminate violating accounts.</p>
+          </div>
+          
+          <div>
+            <h3 class="text-lg font-bold mb-3 text-cyan-300" style="font-family: 'Press Start 2P', monospace;">5. Data Privacy</h3>
+            <p>Guest data is anonymous if private. Shared data helps improve simulations (aggregated, no personal IDs). See our <a href="#" class="terms-link hover:underline">Privacy Policy</a>.</p>
+          </div>
+          
+          <div>
+            <h3 class="text-lg font-bold mb-3 text-cyan-300" style="font-family: 'Press Start 2P', monospace;">6. Intellectual Property</h3>
+            <p>U:LIFE and its simulations are proprietary. You may not copy or reverse-engineer.</p>
+          </div>
+          
+          <div>
+            <h3 class="text-lg font-bold mb-3 text-cyan-300" style="font-family: 'Press Start 2P', monospace;">7. Disclaimers</h3>
+            <p>U:LIFE is fiction/entertainment. Not real life/professional advice. Life outcomes vary.</p>
+          </div>
+          
+          <div>
+            <h3 class="text-lg font-bold mb-3 text-cyan-300" style="font-family: 'Press Start 2P', monospace;">8. Termination</h3>
+            <p>We may suspend/terminate access for violations. You may delete your account anytime.</p>
+          </div>
+          
+          <div>
+            <h3 class="text-lg font-bold mb-3 text-cyan-300" style="font-family: 'Press Start 2P', monospace;">9. Governing Law</h3>
+            <p>These Terms governed by laws of [Your Jurisdiction].</p>
+          </div>
+          
+          <div>
+            <p class="text-xs text-white/60 mb-4">Last updated: {{ new Date().toLocaleDateString() }}</p>
+            <v-checkbox 
+              v-model="termsAccepted" 
+              label="I agree to the Terms of Service" 
+              color="#00ffcc"
+              hide-details
+              density="compact"
+              class="terms-checkbox"
+            ></v-checkbox>
+          </div>
+        </div>
+        
+        <!-- Footer Actions -->
+        <div class="terms-footer p-6 border-t border-white/10 bg-black/20">
+          <div class="flex gap-3 justify-end">
+            <v-btn variant="outlined" color="white" @click="showTermsDialog = false" :disabled="loading" size="large">
+              Decline
+            </v-btn>
+            <v-btn 
+              color="#00ffcc" 
+              variant="elevated" 
+              @click="acceptTerms" 
+              :disabled="!termsAccepted || loadingTerms"
+              size="large"
+              :loading="loadingTerms"
+            >
+              Accept & Continue
+            </v-btn>
+          </div>
+        </div>
+      </div>
+    </v-card>
+  </v-dialog>
+
+
   <!-- Professional Account Request Dialog -->
   <v-dialog v-model="professionalDialog" max-width="520" rounded="xl">
+
     <v-card class="guest-dialog-card">
       <v-card-title class="guest-dialog-title text-center">
         <span class="glitch-title" data-text="PRO ACCESS">PRO ACCESS</span>
@@ -483,8 +585,14 @@ const proRequest = ref({
 const showProPassword = ref(false)
 const showConfirmPassword = ref(false)
 
+// User Agreement state - NEW
+const showTermsDialog = ref(false)
+const termsAccepted = ref(false)
+const loadingTerms = ref(false)
+
 // Welcome popup state
 const showWelcomeDialog = ref(false)
+
 const currentUser = ref(null)
 const welcomeHasCharacter = ref(false)
 const welcomeMessage = computed(() => {
@@ -630,6 +738,15 @@ const initializeGoogleSignIn = () => {
     console.error('Error initializing Google Sign-In:', error)
   }
 }
+
+// Check terms acceptance on mount
+const checkTermsAcceptance = () => {
+  const accepted = localStorage.getItem('ulife_terms_accepted_v1')
+  if (accepted !== 'true') {
+    showTermsDialog.value = true
+  }
+}
+
 
 const login = async () => {
   loading.value = true
