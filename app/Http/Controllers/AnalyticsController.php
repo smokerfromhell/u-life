@@ -51,7 +51,8 @@ $stats = [
         foreach ($logs as $log) {
             $data = $log->data ?? [];
             $eventType = $log->event_type;
-            $mbti = $data['mbti'] ?? 'Unknown';
+            // Use dedicated mbti column
+            $mbti = $log->mbti ?? 'Analyzing...';
             $traits = str_split($mbti);
 
             // MBTI distribution

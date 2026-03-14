@@ -13,6 +13,27 @@ class Character extends Model
 {
     use HasFactory;
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Generate and save anon_character_id when creating a new character
+        static::creating(function ($character) {
+            if (empty($character->anon_character_id)) {
+                // We'll generate it after the character is saved to get the ID
+                // For now, use a temporary value that will be updated in the created event
+            }
+        });
+
+        // Update anon_character_id after creation with the actual ID
+        static::created(function ($character) {
+            if (empty($character->anon_character_id)) {
+                $anonId = Privacy::anonymize('character', $character->id);
+                $character->update(['anon_character_id' => $anonId]);
+            }
+        });
+    }
+
     protected $fillable = [
         'user_id',
         'anon_character_id',
@@ -32,6 +53,12 @@ class Character extends Model
         'age_bonus',
         'effective_stats',
         'image',
+        // Life Stats
+        'health',
+        'happiness',
+        'finance',
+        'relationship_status',
+        'career_level',
     ];
 
     /**
@@ -76,6 +103,12 @@ class Character extends Model
         'shown_event_ids' => '[]',
         'completed_event_chains' => '[]',
         'active_event_paths' => '[]',
+        // Life Stats defaults
+        'health' => 100,
+        'happiness' => 100,
+        'finance' => 0,
+        'relationship_status' => 'single',
+        'career_level' => 'unemployed',
     ];
 
     public function getCurrentStateAttribute()

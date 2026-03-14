@@ -3,6 +3,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Character;
 use App\Models\SharedDecisionLog;
+use App\Models\LifeStatsSnapshot;
+use App\Models\DecisionLog;
 use App\Models\DailyEvent;
 use App\Models\CulturalEvent;
 use App\Models\AgeSpecificEvent;
@@ -747,6 +749,12 @@ $events = [
                 'effective_stats' => $character->effective_stats,
                 'narrative' => $character->current_narrative,
                 'active_event_paths' => $character->active_event_paths,
+                // Life stats before
+                'health' => $character->health ?? 100,
+                'happiness' => $character->happiness ?? 100,
+                'finance' => $character->finance ?? 0,
+                'relationship_status' => $character->relationship_status ?? 'single',
+                'career_level' => $character->career_level ?? 'unemployed',
             ];
 
             // Get the event
@@ -824,9 +832,26 @@ $events = [
 
             try {
                 $authUser = Auth::user();
-                $shouldLog = $authUser && ($authUser->share_consent === true);
-
-                if ($shouldLog) {
+                
+                Log::info('SharedDecisionLog check', [
+                    'user_id' => $authUser ? $authUser->id : 'none',
+                    'is_guest' => $authUser ? ($authUser->is_guest ?? false) : 'N/A',
+                    'share_consent' => $authUser ? ($authUser->share_consent ?? null) : 'N/A',
+                    'character_id' => $character->id,
+                    'event_type' => $validated['event_type'],
+                    'event_id' => $validated['event_id'],
+                ]);
+                
+                // Log ALL user decisions for admin analytics (share_consent controls public display, not admin visibility)
+                if ($authUser) {
+                    Log::info('Creating SharedDecisionLog for user', [
+                        'user_id' => $authUser->id,
+                        'user_name' => $authUser->name,
+                        'is_guest' => $authUser->is_guest ?? false,
+                        'share_consent' => $authUser->share_consent ?? null,
+                        'character_id' => $character->id,
+                    ]);
+                    
                     $logData = [
                         'event_title' => $event->event_choice ?? $event->title ?? null,
                         'event_description' => $event->outcome ?? $event->description ?? null,
@@ -840,33 +865,135 @@ $events = [
                         'effective_stats_before' => $beforeSnapshot['effective_stats'],
                         'effective_stats_after' => $afterSnapshot['effective_stats'],
                         'effective_stats_delta' => $effectiveDelta,
-                        'mbti' => $this->eventService->calculateMBTI($afterSnapshot['effective_stats'] ?? $beforeSnapshot['effective_stats'] ?? [], $validated['event_type'], $validated['choice_index'], $outcomeType),
+                        'mbti' => $this->eventService->calculateMBTI(
+                            $afterSnapshot['effective_stats'] ?? $beforeSnapshot['effective_stats'] ?? [], 
+                            $validated['event_type'], 
+                            $validated['choice_index'], 
+                            $outcomeType
+                        ),
                         'narrative_before' => $beforeSnapshot['narrative'],
                         'narrative_after' => $afterSnapshot['narrative'],
                         'active_event_paths_before' => $beforeSnapshot['active_event_paths'],
                         'active_event_paths_after' => $afterSnapshot['active_event_paths'],
                     ];
 
-                    SharedDecisionLog::create([
-                        'anon_user_id' => Privacy::anonymize('user', $authUser->id),
-                        'anon_character_id' => $character->anon_character_id,
-                        'is_guest' => (bool) ($authUser->is_guest ?? false),
-                        'day' => $beforeSnapshot['day'],
-                        'event_type' => $validated['event_type'],
-                        'event_id' => $validated['event_id'],
-                        'choice_index' => $validated['choice_index'],
-                        'event_title' => $logData['event_title'],
-                        'choice_text' => $logData['choice_text'],
-                        'effects' => $logData['effects'],
-                        'data' => $logData,
-                    ]);
+                    $userName = ($authUser->is_guest ?? false) ? 'Guest' : ($authUser->name ?? 'Guest');
+
+                    // Ensure character has anon_character_id saved to database
+                    // Check using getAttributes to see the current state
+                    $currentAnonId = $character->getAttributes()['anon_character_id'] ?? null;
+                    if (empty($currentAnonId)) {
+                        // Generate and save the anon_character_id directly
+                        $anonId = Privacy::anonymize('character', $character->id);
+                        $character->update(['anon_character_id' => $anonId]);
+                    }
+                    
+                    // Refresh to get the anon_character_id from database
+                    $character->refresh();
+
+                    if (($authUser->share_consent ?? false)) {
+                        // Include life stats in the log data
+                        $logDataWithLifeStats = array_merge($logData ?? [], [
+                            'life_stats' => [
+                                'health' => $character->health ?? 100,
+                                'happiness' => $character->happiness ?? 100,
+                                'finance' => $character->finance ?? 0,
+                                'relationship_status' => $character->relationship_status ?? 'single',
+                                'career_level' => $character->career_level ?? 'unemployed',
+                            ],
+                        ]);
+
+                        SharedDecisionLog::create([
+                            'anon_user_id' => class_exists(Privacy::class) ? Privacy::anonymize('user', $authUser->id) : 'anon_' . $authUser->id,
+                            'anon_character_id' => $character->anon_character_id ?? 'anon_' . $character->id,
+                            'is_guest' => (bool) ($authUser->is_guest ?? false),
+                            'user_name' => $userName,
+                            'day' => $beforeSnapshot['day'],
+                            'event_type' => $validated['event_type'],
+                            'event_id' => $validated['event_id'],
+                            'choice_index' => $validated['choice_index'],
+                            'event_title' => $logData['event_title'] ?? null,
+                            'choice_text' => $logData['choice_text'] ?? null,
+                            'effects' => $logData['effects'] ?? null,
+                            'mbti' => $logData['mbti'] ?? null,
+                            'data' => $logDataWithLifeStats,
+                        ]);
+                        
+                        Log::info('SharedDecisionLog created successfully', [
+                            'log_id' => SharedDecisionLog::latest()->first()?->id,
+                        ]);
+
+                        // Also save to LifeStatsSnapshot for dedicated tracking
+                        LifeStatsSnapshot::create([
+                            'anon_user_id' => class_exists(Privacy::class) ? Privacy::anonymize('user', $authUser->id) : 'anon_' . $authUser->id,
+                            'anon_character_id' => $character->anon_character_id ?? 'anon_' . $character->id,
+                            'is_guest' => (bool) ($authUser->is_guest ?? false),
+                            'user_name' => $userName,
+                            'day' => $beforeSnapshot['day'],
+                            'event_type' => $validated['event_type'],
+                            'event_id' => $validated['event_id'],
+                            'choice_index' => $validated['choice_index'],
+                            'event_title' => $logData['event_title'] ?? null,
+                            'choice_text' => $logData['choice_text'] ?? null,
+                            'health' => $character->health ?? 100,
+                            'happiness' => $character->happiness ?? 100,
+                            'finance' => $character->finance ?? 0,
+                            'relationship_status' => $character->relationship_status ?? 'single',
+                            'career_level' => $character->career_level ?? 'unemployed',
+                            'mbti' => $logData['mbti'] ?? null,
+                            'data' => $logData,
+                        ]);
+
+                        // Also save comprehensive DecisionLog for all decisions (tracks all decisions regardless of share_consent)
+                        DecisionLog::create([
+                            'character_id' => $character->id,
+                            'user_id' => $authUser->id ?? null,
+                            'anon_user_id' => class_exists(Privacy::class) ? Privacy::anonymize('user', $authUser->id ?? 0) : 'anon_' . ($authUser->id ?? 0),
+                            'anon_character_id' => $character->anon_character_id ?? 'anon_' . $character->id,
+                            'is_guest' => (bool) ($authUser->is_guest ?? false),
+                            'user_name' => $userName,
+                            'day' => $beforeSnapshot['day'],
+                            'age_group' => $character->age_group,
+                            'event_type' => $validated['event_type'],
+                            'event_id' => $validated['event_id'],
+                            'event_title' => $logData['event_title'] ?? null,
+                            'choice_index' => $validated['choice_index'],
+                            'choice_text' => $logData['choice_text'] ?? null,
+                            'outcome' => $logData['event_description'] ?? null,
+                            'effects' => json_encode($effects),
+                            // Before state
+                            'before_health' => $beforeSnapshot['health'] ?? ($character->health ?? 100),
+                            'before_happiness' => $beforeSnapshot['happiness'] ?? ($character->happiness ?? 100),
+                            'before_finance' => $beforeSnapshot['finance'] ?? ($character->finance ?? 0),
+                            'before_relationship_status' => $beforeSnapshot['relationship_status'] ?? ($character->relationship_status ?? 'single'),
+                            'before_career_level' => $beforeSnapshot['career_level'] ?? ($character->career_level ?? 'unemployed'),
+                            // After state
+                            'after_health' => $character->health ?? 100,
+                            'after_happiness' => $character->happiness ?? 100,
+                            'after_finance' => $character->finance ?? 0,
+                            'after_relationship_status' => $character->relationship_status ?? 'single',
+                            'after_career_level' => $character->career_level ?? 'unemployed',
+                            // Changes
+                            'health_change' => ($character->health ?? 100) - ($beforeSnapshot['health'] ?? ($character->health ?? 100)),
+                            'happiness_change' => ($character->happiness ?? 100) - ($beforeSnapshot['happiness'] ?? ($character->happiness ?? 100)),
+                            'finance_change' => ($character->finance ?? 0) - ($beforeSnapshot['finance'] ?? ($character->finance ?? 0)),
+                            // Additional
+                            'mbti' => $logData['mbti'] ?? null,
+                            'data' => $logData,
+                        ]);
+                    } else {
+                        Log::info('Skipped SharedDecisionLog - no share_consent', [
+                            'user_id' => $authUser->id,
+                        ]);
+                    }
                 }
             } catch (\Throwable $logError) {
-                Log::warning('Failed to log character decision', [
+                Log::error('Failed to log character decision', [
                     'character_id' => $character->id,
                     'event_type' => $validated['event_type'] ?? null,
                     'event_id' => $validated['event_id'] ?? null,
                     'error' => $logError->getMessage(),
+                    'trace' => $logError->getTraceAsString(),
                 ]);
             }
 

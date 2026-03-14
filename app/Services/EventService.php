@@ -673,7 +673,8 @@ $character->current_narrative = $narrative . (($outcomeType === 'positive') ? '_
     }
 
     /**
-     * Calculate MBTI (EXISTING)
+     * Calculate MBTI based on character stats, event type, choice, and outcome
+     * Refined to be more accurate based on personality correlations
      */
     public function calculateMBTI(array $characterStats, string $eventType, string $choiceIndex, string $outcomeType): string
     {
@@ -684,41 +685,112 @@ $character->current_narrative = $narrative . (($outcomeType === 'positive') ? '_
             'J' => 50, 'P' => 50
         ];
 
+        // Convert choiceIndex to integer
+        $choiceIndex = is_numeric($choiceIndex) ? (int) $choiceIndex : 0;
+
+        // ============ E/I Dimension (Extraversion vs Introversion) ============
+        // Social/cultural events favor extroversion
         if (in_array($eventType, ['cultural', 'social'])) {
-            $mbtiScores['E'] += 10;
-            $mbtiScores['I'] -= 5;
-        } elseif (in_array($eventType, ['profession', 'daily_routine'])) {
-            $mbtiScores['I'] += 12;
-            $mbtiScores['E'] -= 6;
+            $mbtiScores['E'] += 12;
+            $mbtiScores['I'] -= 6;
+        }
+        // Profession/career events favor introversion
+        elseif (in_array($eventType, ['profession', 'career', 'daily_routine'])) {
+            $mbtiScores['I'] += 14;
+            $mbtiScores['E'] -= 7;
+        }
+        
+        // Social stat affects E/I
+        $social = $characterStats['Social'] ?? 50;
+        $mbtiScores['E'] += ($social - 50) * 0.15;
+        $mbtiScores['I'] -= ($social - 50) * 0.1;
+
+        // ============ N/S Dimension (Intuition vs Sensing) ============
+        // Creative events favor intuition
+        if (strpos($eventType, 'creative') !== false) {
+            $mbtiScores['N'] += 18;
+            $mbtiScores['S'] -= 10;
+        }
+        
+        // Creativity stat strongly affects N/S
+        $creativity = $characterStats['Creativity'] ?? 50;
+        $mbtiScores['N'] += ($creativity - 50) * 0.2;
+        $mbtiScores['S'] -= ($creativity - 50) * 0.15;
+
+        // Knowledge-based events favor sensing
+        if (strpos($eventType, 'education') !== false || strpos($eventType, 'study') !== false) {
+            $mbtiScores['S'] += 12;
+            $mbtiScores['N'] -= 6;
         }
 
-        if (strpos($eventType, 'creative') !== false || $characterStats['Creativity'] > 70) {
-            $mbtiScores['N'] += 15;
-            $mbtiScores['S'] -= 8;
-        }
-
+        // ============ T/F Dimension (Thinking vs Feeling) ============
+        // Career/success outcomes favor thinking
         if (in_array($eventType, ['profession', 'career']) || strpos($outcomeType, 'Success') !== false) {
-            $mbtiScores['T'] += 12;
-            $mbtiScores['F'] -= 6;
-        } elseif (strpos($outcomeType, 'Happy') !== false || strpos($outcomeType, 'Family') !== false) {
-            $mbtiScores['F'] += 14;
-            $mbtiScores['T'] -= 7;
+            $mbtiScores['T'] += 15;
+            $mbtiScores['F'] -= 8;
+        }
+        // Family/happy outcomes favor feeling
+        elseif (strpos($outcomeType, 'Happy') !== false || strpos($outcomeType, 'Family') !== false || strpos($outcomeType, 'Love') !== false) {
+            $mbtiScores['F'] += 18;
+            $mbtiScores['T'] -= 10;
+        }
+        
+        // Empathy affects T/F
+        $empathy = $characterStats['Empathy'] ?? 50;
+        $mbtiScores['F'] += ($empathy - 50) * 0.2;
+        $mbtiScores['T'] -= ($empathy - 50) * 0.15;
+
+        // ============ J/P Dimension (Judging vs Perceiving) ============
+        // Planned events favor judging
+        if (strpos($eventType, 'planned') !== false) {
+            $mbtiScores['J'] += 14;
+            $mbtiScores['P'] -= 7;
+        }
+        // Spontaneous events favor perceiving
+        if (strpos($eventType, 'surprise') !== false || strpos($eventType, 'random') !== false) {
+            $mbtiScores['P'] += 12;
+            $mbtiScores['J'] -= 6;
+        }
+        
+        // Discipline affects J/P
+        $discipline = $characterStats['Discipline'] ?? 50;
+        $mbtiScores['J'] += ($discipline - 50) * 0.2;
+        $mbtiScores['P'] -= ($discipline - 50) * 0.15;
+
+        // ============ Choice Index Impact ============
+        // First choice (0): Embrace/Fully Accept - more extroverted, decisive
+        if ($choiceIndex === 0) {
+            $mbtiScores['E'] += 10;
+            $mbtiScores['J'] += 8;
+        }
+        // Second choice (1): Normal/Moderate - balanced (no change)
+        // Third choice (2): Reject/Avoid - more introverted, cautious
+        elseif ($choiceIndex === 2) {
+            $mbtiScores['I'] += 10;
+            $mbtiScores['P'] += 8;
+        }
+        // Fourth+ choice (3+): Skip/Do Nothing - more perceiving
+        elseif ($choiceIndex >= 3) {
+            $mbtiScores['P'] += 14;
+            $mbtiScores['I'] += 7;
         }
 
-        if (strpos($eventType, 'planned') !== false || $characterStats['Discipline'] > 70) {
-            $mbtiScores['J'] += 10;
-            $mbtiScores['P'] -= 5;
-        }
-
+        // Clamp scores between 0-100
         foreach (['E', 'I', 'N', 'S', 'T', 'F', 'J', 'P'] as $trait) {
             $mbtiScores[$trait] = max(0, min(100, $mbtiScores[$trait]));
         }
 
+        // Determine MBTI type (always favor one over the other, even if equal)
         $type = '';
-        $type .= $mbtiScores['E'] > $mbtiScores['I'] ? 'E' : 'I';
-        $type .= $mbtiScores['N'] > $mbtiScores['S'] ? 'N' : 'S';
-        $type .= $mbtiScores['T'] > $mbtiScores['F'] ? 'T' : 'F';
-        $type .= $mbtiScores['J'] > $mbtiScores['P'] ? 'J' : 'P';
+        $type .= $mbtiScores['E'] >= $mbtiScores['I'] ? 'E' : 'I';
+        $type .= $mbtiScores['N'] >= $mbtiScores['S'] ? 'N' : 'S';
+        $type .= $mbtiScores['T'] >= $mbtiScores['F'] ? 'T' : 'F';
+        $type .= $mbtiScores['J'] >= $mbtiScores['P'] ? 'J' : 'P';
+
+        Log::info('MBTI Calculated', [
+            'type' => $type,
+            'scores' => $mbtiScores,
+        ]);
 
         return $type;
     }

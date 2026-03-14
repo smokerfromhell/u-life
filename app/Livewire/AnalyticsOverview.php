@@ -18,7 +18,7 @@ class AnalyticsOverview extends StatsOverviewWidget
                 ->description('Anonymous play')
                 ->descriptionIcon('heroicon-m-user-group')
                 ->color('warning'),
-            Stat::make('INTP Users', \App\Models\SharedDecisionLog::whereJsonContains('data->mbti', 'INTP')->count())
+            Stat::make('INTP Users', \App\Models\SharedDecisionLog::where('mbti', 'INTP')->count())
                 ->description('Logician pattern')
                 ->descriptionIcon('heroicon-m-sparkles')
                 ->color('gray'),

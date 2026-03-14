@@ -20,6 +20,12 @@ class CharacterInfolist
                 TextEntry::make('profession')->placeholder('—'),
                 TextEntry::make('current_day')->label('Day'),
                 TextEntry::make('current_narrative')->placeholder('—'),
+                // Life Stats
+                TextEntry::make('health')->label('Health')->badge()->color(fn (int $state): string => $state >= 70 ? 'success' : ($state >= 40 ? 'warning' : 'danger')),
+                TextEntry::make('happiness')->label('Happiness')->badge()->color(fn (int $state): string => $state >= 70 ? 'success' : ($state >= 40 ? 'warning' : 'danger')),
+                TextEntry::make('finance')->label('Finance')->badge()->color(fn (int $state): string => $state >= 0 ? 'success' : 'danger'),
+                TextEntry::make('relationship_status')->label('Relationship')->badge(),
+                TextEntry::make('career_level')->label('Career')->badge(),
                 KeyValueEntry::make('effective_stats')->label('Effective Stats'),
                 KeyValueEntry::make('stats')->label('Base Stats'),
                 KeyValueEntry::make('hidden_stats')->label('Hidden Stats'),

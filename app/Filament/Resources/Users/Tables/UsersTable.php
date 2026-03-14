@@ -26,7 +26,11 @@ class UsersTable
                     ->sortable(),
                 IconColumn::make('share_consent')
                     ->boolean()
-                    ->label('Sharing')
+                    ->label('Sharing Data')
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('gray')
                     ->sortable(),
                 TextColumn::make('email_verified_at')
                     ->dateTime()

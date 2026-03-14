@@ -32,6 +32,30 @@ class CharactersTable
                 TextColumn::make('current_day')
                     ->label('Day')
                     ->sortable(),
+                // Life Stats
+                TextColumn::make('health')
+                    ->label('Health')
+                    ->badge()
+                    ->color(fn (int $state): string => $state >= 70 ? 'success' : ($state >= 40 ? 'warning' : 'danger'))
+                    ->sortable(),
+                TextColumn::make('happiness')
+                    ->label('Happiness')
+                    ->badge()
+                    ->color(fn (int $state): string => $state >= 70 ? 'success' : ($state >= 40 ? 'warning' : 'danger'))
+                    ->sortable(),
+                TextColumn::make('finance')
+                    ->label('Finance')
+                    ->badge()
+                    ->color(fn (int $state): string => $state >= 0 ? 'success' : 'danger')
+                    ->sortable(),
+                TextColumn::make('relationship_status')
+                    ->label('Relationship')
+                    ->badge()
+                    ->sortable(),
+                TextColumn::make('career_level')
+                    ->label('Career')
+                    ->badge()
+                    ->sortable(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -44,6 +68,23 @@ class CharactersTable
                     'adult' => 'Adult',
                     'old' => 'Old',
                 ]),
+                SelectFilter::make('relationship_status')->options([
+                    'single' => 'Single',
+                    'dating' => 'Dating',
+                    'engaged' => 'Engaged',
+                    'married' => 'Married',
+                    'divorced' => 'Divorced',
+                    'widowed' => 'Widowed',
+                ])->label('Relationship'),
+                SelectFilter::make('career_level')->options([
+                    'unemployed' => 'Unemployed',
+                    'entry' => 'Entry Level',
+                    'junior' => 'Junior',
+                    'senior' => 'Senior',
+                    'manager' => 'Manager',
+                    'executive' => 'Executive',
+                    'retired' => 'Retired',
+                ])->label('Career'),
                 TernaryFilter::make('profession')
                     ->label('Has profession')
                     ->trueLabel('Yes')

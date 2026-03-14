@@ -14,6 +14,7 @@ use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use App\Filament\Widgets\AdminStatsOverview;
 use App\Filament\Widgets\SharedDecisionTypesChart;
+use App\Filament\Widgets\LifeStatsOverview;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -42,6 +43,7 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 AdminStatsOverview::class,
                 SharedDecisionTypesChart::class,
+                LifeStatsOverview::class,
                 AccountWidget::class,
                 FilamentInfoWidget::class,
             ])

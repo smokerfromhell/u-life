@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
-
 class GuestController extends Controller
 {
     public function start(Request $request)
@@ -82,6 +81,7 @@ class GuestController extends Controller
             ], 501);
         }
 
+        $oldConsent = $user->share_consent;
         $user->share_consent = $validated['share_consent'];
         $user->save();
 

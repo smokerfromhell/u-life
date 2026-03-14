@@ -1159,17 +1159,21 @@ const applyChoice = async (choiceIndex) => {
     const choice = selectedEvent.value.choices[choiceIndex]
     const choiceText = choice?.text || 'Accept'
     
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+    
     const response = await fetch(`/api/characters/${character.value.id}/apply-event`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': csrfToken || ''
       },
       body: JSON.stringify({
         event_type: selectedEvent.value.type,
         event_id: selectedEvent.value.id,
         choice_index: choiceIndex
-      })
+      }),
+      credentials: 'include'
     })
     
     // Check if response is ok, if not throw detailed error

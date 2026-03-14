@@ -16,18 +16,12 @@ class SharedDecisionLogsTable
     {
         return $table
             ->columns([
-                TextColumn::make('id')->sortable(),
-                TextColumn::make('created_at')->dateTime()->sortable(),
-                TextColumn::make('event_type')->badge()->sortable(),
-                TextColumn::make('day')->badge()->sortable(),
-                IconColumn::make('is_guest')->boolean()->label('Guest')->sortable(),
-                TextColumn::make('event_id')->sortable(),
-                TextColumn::make('choice_index')->sortable(),
-                
-                // MBTI Personality Trait
-                TextColumn::make('data.mbti')
-                    ->label('MBTI Type')
+                // MBTI Type - styled as a personality badge
+                TextColumn::make('mbti_type')
+                    ->label('Personality')
                     ->badge()
+                    ->size('sm')
+                    ->fontFamily('mono')
                     ->color(fn (string $state): string => match ($state) {
                         'INTP' => 'gray',
                         'INTJ' => 'indigo',
@@ -45,32 +39,77 @@ class SharedDecisionLogsTable
                         'ISFP' => 'violet',
                         'ESFJ' => 'yellow',
                         'ESFP' => 'red',
+                        'Analyzing...' => 'warning',
+                        'Pending' => 'gray',
                         default => 'gray',
-                    })
-                    ->formatStateUsing(fn ($state) => $state ?? 'Analyzing...'),
+                    }),
                 
-                TextColumn::make('anon_user_id')
-                    ->label('Anon User')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->visible(fn() => (bool) Auth::user()?->hasRole('Super Admin')),
-                TextColumn::make('anon_character_id')
-                    ->label('Anon Character')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->visible(fn() => (bool) Auth::user()?->hasRole('Super Admin')),
+                // User Name - Who made the decision
+                TextColumn::make('user_name')
+                    ->label('Player')
+                    ->searchable()
+                    ->size('sm'),
+                
+                // Event Type - styled as badge
+                TextColumn::make('event_type')
+                    ->label('Event Type')
+                    ->badge()
+                    ->color('info')
+                    ->size('sm'),
+                
+                // Event Title - What happened
+                TextColumn::make('event_title')
+                    ->label('Event')
+                    ->searchable()
+                    ->size('sm')
+                    ->wrap(),
+                
+                // Choice Text - What they chose
+                TextColumn::make('choice_text')
+                    ->label('Choice')
+                    ->searchable()
+                    ->size('sm')
+                    ->wrap()
+                    ->limit(50),
+                
+                // Day - when it happened
+                TextColumn::make('day')
+                    ->label('Day')
+                    ->badge()
+                    ->color('success')
+                    ->sortable(),
+                
+                // Guest indicator
+                IconColumn::make('is_guest')
+                    ->boolean()
+                    ->label('Guest')
+                    ->sortable()
+                    ->size('sm'),
             ])
             ->filters([
-                SelectFilter::make('event_type')->options([
-                    'daily' => 'Daily',
-                    'cultural' => 'Cultural',
-                    'ageSpecific' => 'Story',
-                    'trigger' => 'Trigger',
-                    'profession' => 'Profession',
-                ]),
+                SelectFilter::make('event_type')
+                    ->label('Event Type')
+                    ->options([
+                        'daily' => 'Daily',
+                        'cultural' => 'Cultural',
+                        'ageSpecific' => 'Story',
+                        'trigger' => 'Trigger',
+                        'profession' => 'Profession',
+                    ]),
                 TernaryFilter::make('is_guest')
-                    ->label('Guest sessions')
+                    ->label('Account Type')
                     ->trueLabel('Guest')
                     ->falseLabel('Registered'),
+                SelectFilter::make('mbti_type')
+                    ->label('Personality Type')
+                    ->options([
+                        'INTP' => 'INTP', 'INTJ' => 'INTJ', 'ENTP' => 'ENTP', 'ENTJ' => 'ENTJ',
+                        'INFP' => 'INFP', 'INFJ' => 'INFJ', 'ENFP' => 'ENFP', 'ENFJ' => 'ENFJ',
+                        'ISTJ' => 'ISTJ', 'ISTP' => 'ISTP', 'ESTJ' => 'ESTJ', 'ESTP' => 'ESTP',
+                        'ISFJ' => 'ISFJ', 'ISFP' => 'ISFP', 'ESFJ' => 'ESFJ', 'ESFP' => 'ESFP',
+                    ]),
             ])
+            ->defaultSort('created_at', 'desc')
             ->recordActions([
                 ViewAction::make()
                     ->visible(fn() => (bool) Auth::user()?->hasRole('Super Admin')),
