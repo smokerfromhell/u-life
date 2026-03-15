@@ -92,12 +92,22 @@ class DecisionLogService
     /**
      * Log FULL decision with before/after life stats - MAIN AUDIT LOG
      * Used by EventService after stat changes
+     * Only creates DecisionLog if user has given share_consent
      */
     public function logFullDecision(Character $character, array $event, int $choiceIndex, array $beforeLifeStats, array $afterLifeStats, string $choiceText = null, string $outcomeType = 'neutral'): bool
     {
         try {
             // Get authenticated user via request - more reliable for Intelephense
             $authUser = \request()->user();
+            
+            // Only log to DecisionLog if user has given share_consent (clicked "PLAY & SHARE")
+            if (!$authUser || !($authUser->share_consent ?? false)) {
+                Log::info('Skipped DecisionLog - no share_consent', [
+                    'character_id' => $character->id,
+                    'user_id' => $authUser?->id,
+                ]);
+                return true;
+            }
             
             // Get effective stats from character for personality-based MBTI calculation
             $characterStatsForMBTI = array_merge(
