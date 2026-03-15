@@ -69,15 +69,6 @@
                 {{ showStats ? 'Hide Skills' : 'Show Skills' }}
               </v-btn>
               <v-btn
-                size="small"
-                class="retro-btn retro-memory-btn"
-                prepend-icon="mdi-history"
-                :color="showMemories ? 'warning' : 'info'"
-                @click="toggleMemories"
-              >
-                {{ showMemories ? 'Hide Memory' : 'Memory Log' }}
-              </v-btn>
-              <v-btn
                 size="x-small"
                 class="retro-btn retro-edit-btn"
                 prepend-icon="mdi-pencil"
@@ -138,45 +129,6 @@
                       {{ talent.name }}
                     </v-chip>
                     <span v-if="!character.talents || character.talents.length === 0" class="no-talents">No talents yet</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </v-expand-transition>
-          
-          <!-- Memory Log Panel -->
-          <v-expand-transition>
-            <div v-if="showMemories" class="memory-panel-enhanced">
-              <div class="memory-header">
-                <h4 class="section-title memory-title">MEMORY LOG</h4>
-                <v-btn 
-                  size="x-small" 
-                  variant="tonal" 
-                  color="info" 
-                  @click="fetchMemories(true)"
-                  :loading="loadingMemories"
-                  class="refresh-memory-btn"
-                >
-                  Refresh
-                </v-btn>
-              </div>
-              <div v-if="memoryLogs.length === 0" class="no-memories">
-                No decisions logged yet.<br>
-                <small>Enable "Share your data" in profile to start recording.</small>
-              </div>
-              <div v-else class="memory-entries" ref="memoryScroll">
-                <div 
-                  v-for="(log, index) in memoryLogs" 
-                  :key="index"
-                  class="memory-entry"
-                >
-                  <div class="memory-date">
-                    {{ new Date(log.created_at).toLocaleDateString() }}
-                  </div>
-                  <div class="memory-event">{{ log.event_title }}</div>
-                  <div class="memory-choice">→ {{ log.choice_text }}</div>
-                  <div v-if="log.effects" class="memory-effects">
-                    {{ Object.entries(log.effects).map(([k,v]) => `${v > 0 ? '+' : ''}${v} ${k}`).join(', ') }}
                   </div>
                 </div>
               </div>
@@ -917,10 +869,6 @@ const canRedrawCultural = ref(true)
 const canRedrawAgeSpecific = ref(true)
 const canRedrawProfession = ref(true)
 
-const showMemories = ref(false)
-const memoryLogs = ref([])
-const loadingMemories = ref(false)
-
 // Animation state for 5-card random event
 const showCardAnimation = ref(false)
 const animationCards = ref([])
@@ -1473,51 +1421,6 @@ const redrawEventType = async (eventType) => {
  */
 const toggleStats = () => {
   showStats.value = !showStats.value
-}
-
-/**
- * Toggle memory log panel
- */
-const toggleMemories = () => {
-  showMemories.value = !showMemories.value
-  if (showMemories.value && memoryLogs.value.length === 0) {
-    fetchMemories()
-  }
-}
-
-const fetchMemories = async (refresh = false) => {
-  if (!character.value?.id) return
-  
-  try {
-    loadingMemories.value = true
-    const response = await fetch(`/api/characters/${character.value.id}/decision-logs`)
-    
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('Memory fetch error:', response.status, errorText)
-      
-      if (response.status === 404) {
-        memoryLogs.value = []
-        return
-      }
-      
-      throw new Error(`HTTP ${response.status}: ${errorText}`)
-    }
-    
-    const logs = await response.json()
-    memoryLogs.value = logs
-  } catch (error) {
-    console.error('Error fetching memories:', error)
-    
-    // Don't spam narration for network errors - just log to console
-    if (error.message.includes('Failed') || error.message.includes('HTTP')) {
-      console.warn('Memory log fetch failed - network/server issue:', error.message)
-    } else {
-      narrationHistory.value.push('Failed to load memory log.')
-    }
-  } finally {
-    loadingMemories.value = false
-  }
 }
 
 /**

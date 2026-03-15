@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 use App\Support\Privacy;
 
@@ -138,5 +139,23 @@ class Character extends Model
     public function talents(): BelongsToMany
     {
         return $this->belongsToMany(Talent::class, 'character_talent');
+    }
+
+    /**
+     * Get the life stats snapshots for this character.
+     */
+    public function lifeStatsSnapshots(): HasMany
+    {
+        return $this->hasMany(LifeStatsSnapshot::class, 'anon_character_id', 'anon_character_id');
+    }
+
+    /**
+     * Get the latest life stats snapshot for this character.
+     */
+    public function latestSnapshot(): HasMany
+    {
+        return $this->hasMany(LifeStatsSnapshot::class, 'anon_character_id', 'anon_character_id')
+            ->latest()
+            ->limit(1);
     }
 }

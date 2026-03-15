@@ -364,41 +364,68 @@ Log::error('Error in getStatefulEvents', [
     }
 
     /**
-     * Apply stat effects to character (EXISTING)
+     * Get current life stats snapshot from character
      */
-    public function applyStatEffects(Character $character, ?string $effectsText): array
+    public function getLifeStats(Character $character): array
     {
-        if (empty($effectsText)) {
-            return [];
-        }
+        return [
+            'health' => $character->health ?? 100,
+            'happiness' => $character->happiness ?? 100,
+            'finance' => $character->finance ?? 0,
+            'relationship_status' => $character->relationship_status ?? 'single',
+            'career_level' => $character->career_level ?? 'unemployed',
+        ];
+    }
+
+    /**
+     * Apply stat effects to character WITH AUTOMATIC LOGGING (NEW MAIN METHOD)
+     */
+    public function applyStatEffects(Character $character, ?string $effectsText, array $event = [], int $choiceIndex = 0, string $choiceText = null): array
+    {
+        // Capture BEFORE life stats
+        $beforeLifeStats = $this->getLifeStats($character);
         
-        $effects = $this->parseStatEffects($effectsText);
-        
-        if (empty($effects)) {
-            return [];
-        }
-        
-        $baseStats = is_array($character->stats) ? $character->stats : [];
-        $hiddenStats = is_array($character->hidden_stats) ? $character->hidden_stats : [];
-        $effectiveStats = is_array($character->effective_stats) ? $character->effective_stats : [];
-        
-        if (empty($effectiveStats)) {
-            $effectiveStats = array_merge($baseStats, $hiddenStats);
-        }
-        
-        foreach ($effects as $stat => $value) {
-            if (!isset($effectiveStats[$stat])) {
-                $effectiveStats[$stat] = 0;
+        // Apply effects (existing logic)
+        $rawEffects = $this->parseStatEffects($effectsText);
+        if (!empty($rawEffects)) {
+            $baseStats = is_array($character->stats) ? $character->stats : [];
+            $hiddenStats = is_array($character->hidden_stats) ? $character->hidden_stats : [];
+            $effectiveStats = is_array($character->effective_stats) ? $character->effective_stats : [];
+            
+            if (empty($effectiveStats)) {
+                $effectiveStats = array_merge($baseStats, $hiddenStats);
             }
             
-            $effectiveStats[$stat] += $value;
-            $effectiveStats[$stat] = max(0, min(100, $effectiveStats[$stat]));
+            foreach ($rawEffects as $stat => $value) {
+                if (!isset($effectiveStats[$stat])) {
+                    $effectiveStats[$stat] = 0;
+                }
+                
+                $effectiveStats[$stat] += $value;
+                $effectiveStats[$stat] = max(0, min(100, $effectiveStats[$stat]));
+            }
+
+            $character->effective_stats = $effectiveStats;
         }
-
-        $character->effective_stats = $effectiveStats;
+        
         $character->save();
-
-        return $effects;
+        
+        // Capture AFTER life stats
+        $afterLifeStats = $this->getLifeStats($character);
+        $outcomeType = $this->determineOutcomeType($effectsText);
+        
+        // LOG EVERY STAT CHANGE - MAIN AUDIT TRAIL
+        app(\App\Services\DecisionLogService::class)->logFullDecision(
+            $character, 
+            $event,
+            $choiceIndex, 
+            $beforeLifeStats, 
+            $afterLifeStats, 
+            $choiceText, 
+            $outcomeType
+        );
+        
+        return $rawEffects;
     }
 
     /**

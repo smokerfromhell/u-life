@@ -5,7 +5,9 @@ namespace App\Filament\Resources\Analytics\LifeStatsSnapshots\Pages;
 use App\Filament\Resources\Analytics\LifeStatsSnapshotResource;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\BooleanColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 
 class ListLifeStatsSnapshots extends ListRecords
 {
@@ -16,12 +18,15 @@ class ListLifeStatsSnapshots extends ListRecords
         return $table
             ->columns([
                 TextColumn::make('id')->sortable(),
+                TextColumn::make('anon_character_id')->label('Character ID')->searchable(),
                 TextColumn::make('user_name')->label('Player')->searchable(),
+                BooleanColumn::make('is_guest')->label('Guest')->sortable(),
                 TextColumn::make('day')->label('Day')->badge()->sortable(),
                 TextColumn::make('event_type')->label('Event Type')->badge()->sortable(),
                 TextColumn::make('event_title')->label('Event')->searchable(),
+                TextColumn::make('choice_index')->label('Choice #')->badge()->sortable(),
                 TextColumn::make('choice_text')->label('Choice')->searchable()->limit(50),
-                // Life Stats
+                // Life Stats - matching CharactersTable
                 TextColumn::make('health')
                     ->label('Health')
                     ->badge()
@@ -79,6 +84,10 @@ class ListLifeStatsSnapshots extends ListRecords
                         'executive' => 'Executive',
                         'retired' => 'Retired',
                     ]),
+                TernaryFilter::make('is_guest')
+                    ->label('Guest Users')
+                    ->trueLabel('Yes')
+                    ->falseLabel('No'),
             ])
             ->defaultSort('created_at', 'desc');
     }

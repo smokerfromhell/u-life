@@ -28,9 +28,9 @@ class ListDecisionLogs extends ListRecords
                 TextColumn::make('before_happiness')->label('Happiness Before')->badge()->color(fn (int $state): string => $state >= 70 ? 'success' : ($state >= 40 ? 'warning' : 'danger')),
                 TextColumn::make('before_finance')->label('Finance Before')->badge()->color(fn (int $state): string => $state >= 0 ? 'success' : 'danger'),
                 // Changes
-                TextColumn::make('health_change')->label('Health Δ')->badge()->color(fn (int $state): string => $state >= 0 ? 'success' : 'danger'),
-                TextColumn::make('happiness_change')->label('Happiness Δ')->badge()->color(fn (int $state): string => $state >= 0 ? 'success' : 'danger'),
-                TextColumn::make('finance_change')->label('Finance Δ')->badge()->color(fn (int $state): string => $state >= 0 ? 'success' : 'danger'),
+                TextColumn::make('health_change')->label('Health')->badge()->color(fn (int $state): string => $state >= 0 ? 'success' : 'danger'),
+                TextColumn::make('happiness_change')->label('Happiness')->badge()->color(fn (int $state): string => $state >= 0 ? 'success' : 'danger'),
+                TextColumn::make('finance_change')->label('Finance')->badge()->color(fn (int $state): string => $state >= 0 ? 'success' : 'danger'),
                 // After state
                 TextColumn::make('after_health')->label('Health After')->badge()->color(fn (int $state): string => $state >= 70 ? 'success' : ($state >= 40 ? 'warning' : 'danger')),
                 TextColumn::make('after_happiness')->label('Happiness After')->badge()->color(fn (int $state): string => $state >= 70 ? 'success' : ($state >= 40 ? 'warning' : 'danger')),

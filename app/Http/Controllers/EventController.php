@@ -742,28 +742,16 @@ $events = [
                 'choice_index' => 'required|integer|min:0'
             ]);
 
-            $beforeSnapshot = [
-                'day' => $character->current_day,
-                'stats' => $character->stats,
-                'hidden_stats' => $character->hidden_stats,
-                'effective_stats' => $character->effective_stats,
-                'narrative' => $character->current_narrative,
-                'active_event_paths' => $character->active_event_paths,
-                // Life stats before
-                'health' => $character->health ?? 100,
-                'happiness' => $character->happiness ?? 100,
-                'finance' => $character->finance ?? 0,
-                'relationship_status' => $character->relationship_status ?? 'single',
-                'career_level' => $character->career_level ?? 'unemployed',
-            ];
-
-            // Get the event
+            // Get the event FIRST (for logging)
             $event = $this->getEventById($validated['event_type'], $validated['event_id']);
             
             if (!$event) {
                 return response()->json(['error' => 'Event not found'], 404);
             }
 
+            // Format for API response + logging
+            $eventData = $this->formatEvent($event, $validated['event_type']);
+            
             // Get the choice
             $choices = $this->formatChoices($event->choices ?? null);
             $choice = $choices[$validated['choice_index']] ?? null;
@@ -772,11 +760,32 @@ $events = [
                 return response()->json(['error' => 'Choice not found'], 404);
             }
 
-            // Apply stat effects from the choice (or default event effects if choice doesn't specify)
+            $choiceText = $choice['text'] ?? 'Unknown Choice';
+
+            // Capture BEFORE state - before any character modifications
+            $beforeSnapshot = [
+                'day' => $character->current_day,
+                'stats' => $character->stats,
+                'hidden_stats' => $character->hidden_stats,
+                'effective_stats' => $character->effective_stats,
+                'narrative' => $character->current_narrative,
+                'active_event_paths' => $character->active_event_paths,
+                'health' => $character->health ?? 100,
+                'happiness' => $character->happiness ?? 100,
+                'finance' => $character->finance ?? 0,
+                'relationship_status' => $character->relationship_status ?? 'single',
+                'career_level' => $character->career_level ?? 'unemployed',
+            ];
+
+            // Apply stat effects with FULL LOGGING (now passes event/choice data)
             $statEffects = $choice['stat_effects'] ?? $event->stat_effects;
-            
-            // Apply the stat effects
-            $effects = $this->eventService->applyStatEffects($character, $statEffects);
+            $effects = $this->eventService->applyStatEffects(
+                $character, 
+                $statEffects,
+                $eventData,  // ← NEW: passes formatted event data for logging
+                $validated['choice_index'],
+                $choiceText
+            );
 
             // FSM State advance
             $outcomeType = $this->eventService->determineOutcomeType($statEffects);
