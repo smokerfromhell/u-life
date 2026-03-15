@@ -85,4 +85,3 @@ $stats = [
         return 'senior';                       // 70+
     }
 }
-

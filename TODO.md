@@ -1,19 +1,20 @@
-# U:LIFE User Agreement Implementation Plan
+# Fix "Decision logged to memory! ⚠️ Failed to load memory log" Issue
 
-## Overview
-Add User Agreement/Terms of Service modal to Home.vue, shown on first visit (localStorage tracked). Content covers game usage, data privacy, liability. Styled in galaxy cyberpunk theme.
+## Plan Status: ✅ APPROVED - Implementing...
 
-## Steps
-- [ ] 1. Create TODO.md (current)
-- [ ] 2. Add User Agreement dialog template to Home.vue
-- [ ] 3. Add script logic (ref, localStorage check, accept handler)
-- [ ] 4. Add cyberpunk styles for modal
-- [ ] 5. Test modal shows once per browser
-- [ ] 6. Update TODO.md complete
-- [ ] 7. Final verification
+### Steps to Complete:
+- [x] 1. Create TODO.md with approved plan ✅
+- [x] 2. Enhance `app/Services/DecisionLogService.php` - Add robust logging logic with transactions ✅
+- [x] 3. Update `app/Http/Controllers/EventController.php` - Use service, return log status, improve error handling ✅
+- [x] 4. Update `app/Http/Controllers/CharacterController.php` - Improve `decisionLogs()` response format ✅
+- [x] 5. Update `resources/js/pages/Game.vue` - Fix optimistic messaging + fetchMemories() error handling ✅
 
-## Details
-- Modal blocks UI until accepted
-- localStorage key: 'ulife_terms_accepted_v1'
-- Content: Standard terms adapted for game (13+, fictional sim, data opt-in via existing consent)
+**Current Step**: 8/8 ✅
+
+**Completed**:
+- [x] 6. Verified: End-to-end test successful - single "📝 Decision logged to memory!" message, no failure message, memories populate correctly.
+- [x] 7. Laravel logs clean - no "Failed to log character decision" errors after fixes.
+- [x] 8. Task complete: Double-message issue resolved ✅
+
+**Current Step**: 1/8 ✅
 

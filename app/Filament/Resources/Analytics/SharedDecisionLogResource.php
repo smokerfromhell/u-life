@@ -65,12 +65,12 @@ class SharedDecisionLogResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        return (bool) Auth::user()?->hasRole('Super Admin') || (bool) Auth::user()?->hasRole('Professional');
+        return (bool) Auth::user()?->hasRole('Super Admin') || (bool) Auth::user()?->hasRole('Admin') || (bool) Auth::user()?->hasRole('Professional');
     }
 
     public static function canViewAny(): bool
     {
-        return (bool) Auth::user()?->hasRole('Super Admin') || (bool) Auth::user()?->hasRole('Professional');
+        return (bool) Auth::user()?->hasRole('Super Admin') || (bool) Auth::user()?->hasRole('Admin') || (bool) Auth::user()?->hasRole('Professional');
     }
 
     public static function canView(Model $record): bool

@@ -22,3 +22,7 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Accidental PsySH/shell temp files (prevent accidental commits)
+*type}
+*type

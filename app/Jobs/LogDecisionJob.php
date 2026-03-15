@@ -38,7 +38,14 @@ class LogDecisionJob implements ShouldQueue
      */
     public function handle(DecisionLogService $service): void
     {
-        $service->logDecision($this->data);
+        $service->logDecision(
+            $this->data['character'],
+            $this->data['eventId'],
+            $this->data['eventType'],
+            $this->data['choices'],
+            $this->data['outcome'] ?? null,
+            $this->data['mbti'] ?? null
+        );
     }
 
     /**
