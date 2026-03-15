@@ -2,26 +2,25 @@
 
 namespace App\Filament\Resources\Analytics;
 
-use App\Filament\Resources\Analytics\Pages\ListSharedDecisionLogs;
-use App\Filament\Resources\Analytics\Pages\ViewSharedDecisionLog;
-use App\Filament\Resources\Analytics\Schemas\SharedDecisionLogInfolist;
-use App\Filament\Resources\Analytics\Tables\SharedDecisionLogsTable;
+use App\Filament\Resources\Analytics\UserAnalytics\Pages\ListUserAnalytics;
 use App\Models\SharedDecisionLog;
+use App\Models\LifeStatsSnapshot;
 use BackedEnum;
 use Filament\Resources\Resource;
-use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\UnionScope;
 
-class SharedDecisionLogResource extends Resource
+class UserAnalyticsResource extends Resource
 {
-    protected static ?string $model = SharedDecisionLog::class;
+    protected static ?string $model = ListUserAnalytics::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChartBar;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
 
     protected static string|\UnitEnum|null $navigationGroup = 'Analytics';
+
+    protected static ?string $navigationLabel = 'User Analytics';
 
     protected static ?string $recordTitleAttribute = 'id';
 
@@ -45,24 +44,6 @@ class SharedDecisionLogResource extends Resource
         return false;
     }
 
-    public static function infolist(Schema $schema): Schema
-    {
-        return SharedDecisionLogInfolist::configure($schema);
-    }
-
-    public static function table(Table $table): Table
-    {
-        return SharedDecisionLogsTable::configure($table);
-    }
-
-    public static function getPages(): array
-    {
-        return [
-            'index' => ListSharedDecisionLogs::route('/'),
-            'view' => ViewSharedDecisionLog::route('/{record}'),
-        ];
-    }
-
     public static function shouldRegisterNavigation(): bool
     {
         return (bool) Auth::user()?->hasRole('Super Admin') || (bool) Auth::user()?->hasRole('Admin') || (bool) Auth::user()?->hasRole('Professional');
@@ -73,8 +54,10 @@ class SharedDecisionLogResource extends Resource
         return (bool) Auth::user()?->hasRole('Super Admin') || (bool) Auth::user()?->hasRole('Admin') || (bool) Auth::user()?->hasRole('Professional');
     }
 
-    public static function canView(Model $record): bool
+    public static function getPages(): array
     {
-        return (bool) Auth::user()?->hasRole('Super Admin');
+        return [
+            'index' => \App\Filament\Resources\Analytics\UserAnalytics\Pages\ListUserAnalytics::route('/'),
+        ];
     }
 }

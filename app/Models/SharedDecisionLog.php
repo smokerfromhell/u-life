@@ -9,6 +9,8 @@ class SharedDecisionLog extends Model
 {
     use HasFactory;
 
+    protected $table = 'shared_decision_logs';
+
     protected $fillable = [
         'anon_user_id',
         'anon_character_id',

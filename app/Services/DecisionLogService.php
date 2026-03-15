@@ -31,15 +31,8 @@ class DecisionLogService
             // Log to shared decision log for analytics (with anonymized character ID)
             $anonCharacterId = $character->anon_character_id ?? 'unknown';
 
-            SharedDecisionLog::create([
-                'anon_character_id' => $anonCharacterId,
-                'event_id' => $eventId,
-                'event_type' => $eventType,
-                'choices' => json_encode($choices),
-                'outcome' => $outcome,
-                'mbti' => $mbti,
-                'user_name' => $character->user->name ?? null,
-            ]);
+            // SharedDecisionLog removed - using DecisionInsightsResource instead
+
 
             return true;
         } catch (\Exception $e) {

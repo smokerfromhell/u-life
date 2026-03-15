@@ -15,6 +15,9 @@ use Filament\Widgets\FilamentInfoWidget;
 use App\Filament\Widgets\AdminStatsOverview;
 use App\Filament\Widgets\SharedDecisionTypesChart;
 use App\Filament\Widgets\LifeStatsOverview;
+use App\Filament\Resources\Analytics\UserAnalyticsResource;
+use App\Filament\Resources\Analytics\LifeStatsSnapshotResource;
+use App\Filament\Resources\Analytics\SharedDecisionLogResource;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -36,6 +39,9 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
+            ->resources([
+                UserAnalyticsResource::class,
+            ])
             ->pages([
                 Dashboard::class,
             ])
