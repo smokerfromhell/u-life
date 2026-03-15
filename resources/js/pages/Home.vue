@@ -205,7 +205,251 @@
         </div>
       </div>
     </v-container>
+
+    <!-- Bottom Left Links - How to Play, User Agreement, Privacy Policy -->
+    <div class="fixed bottom-4 left-4 z-50 flex flex-col gap-2">
+      <v-btn 
+        variant="text" 
+        size="small" 
+        class="footer-link-btn"
+        @click="showHowToPlay = true"
+      >
+        <v-icon left size="small">mdi-help-circle-outline</v-icon>
+        How to Play
+      </v-btn>
+      <div class="flex gap-3 ml-1">
+        <router-link to="/user-agreement" class="footer-link text-cyan-300/60 hover:text-cyan-300">
+          User Agreement
+        </router-link>
+        <span class="text-cyan-300/40">|</span>
+        <router-link to="/privacy-policy" class="footer-link text-cyan-300/60 hover:text-cyan-300">
+          Privacy Policy
+        </router-link>
+      </div>
+    </div>
+
+    <!-- Bottom Right - Contact / Feedback -->
+    <div class="fixed bottom-4 right-4 z-50">
+      <v-btn 
+        variant="text" 
+        size="small" 
+        class="footer-link-btn"
+        @click="showFeedbackDialog = true"
+      >
+        <v-icon left size="small">mdi-message-text-outline</v-icon>
+        Contact / Feedback
+      </v-btn>
+    </div>
   </div>
+
+  <!-- Retro Pixel Feedback Dialog - Similar to How to Play -->
+  <v-dialog v-model="showFeedbackDialog" max-width="800" max-height="90vh" persistent rounded="0" content-class="feedback-pixel-dialog">
+    <v-card class="retro-pixel-feedback" style="min-height: 550px; max-height: 90vh; overflow-y: auto; image-rendering: pixelated;">
+      <!-- CRT Glow Overlay -->
+      <div class="fbp-glow" aria-hidden="true"></div>
+      <div class="fbp-scanlines" aria-hidden="true"></div>
+      <div class="fbp-vignette" aria-hidden="true"></div>
+      
+      <!-- Header -->
+      <v-card-title class="fbp-title">
+        <div style="font-size: clamp(1.5rem, 4vw, 2.5rem); line-height: 1.1; padding: 16px 0; text-align: center; width: 100%;">
+          SEND FEEDBACK
+          <div style="font-size: 2.5rem; margin: 0.2em 0; animation: fbp-bounce 2s infinite;">💬</div>
+        </div>
+      </v-card-title>
+      
+      <v-card-subtitle class="fbp-subtitle mb-4 text-center">
+        <span>TELL US WHAT YOU THINK</span>
+        <div style="font-size: 2rem; margin-top: 8px;">⭐</div>
+      </v-card-subtitle>
+      
+      <!-- Form Content -->
+      <v-card-text class="fbp-form-container">
+        <div class="feedback-form-grid">
+          <div class="form-field-card" style="--field-delay: 0s">
+            <div class="field-icon">👤</div>
+            <div class="field-title">NAME (OPTIONAL)</div>
+            <v-text-field
+              v-model="feedbackName"
+              variant="underlined"
+              density="compact"
+              hide-details
+              placeholder="Your name"
+              class="pixel-input"
+            ></v-text-field>
+          </div>
+          
+          <div class="form-field-card" style="--field-delay: 0.1s">
+            <div class="field-icon">📧</div>
+            <div class="field-title">EMAIL (OPTIONAL)</div>
+            <v-text-field
+              v-model="feedbackEmail"
+              type="email"
+              variant="underlined"
+              density="compact"
+              hide-details
+              placeholder="your@email.com"
+              class="pixel-input"
+            ></v-text-field>
+          </div>
+          
+          <div class="form-field-card full-width" style="--field-delay: 0.2s">
+            <div class="field-icon">🏷️</div>
+            <div class="field-title">FEEDBACK TYPE</div>
+            <v-select
+              v-model="feedbackType"
+              :items="['Bug Report', 'Feature Suggestion', 'General Feedback', 'Other']"
+              variant="underlined"
+              density="compact"
+              hide-details
+              class="pixel-input"
+            ></v-select>
+          </div>
+          
+          <div class="form-field-card full-width" style="--field-delay: 0.3s">
+            <div class="field-icon">💭</div>
+            <div class="field-title">YOUR MESSAGE *</div>
+            <v-textarea
+              v-model="feedbackMessage"
+              variant="underlined"
+              rows="6"
+              auto-grow
+              hide-details
+              placeholder="Share your thoughts about U:LIFE..."
+              class="pixel-input"
+            ></v-textarea>
+          </div>
+        </div>
+        
+        <div class="fbp-tip mt-6 p-4">
+          <span class="tip-icon">💡</span>
+          <span class="tip-text">Your feedback helps us improve the game!</span>
+        </div>
+      </v-card-text>
+      
+      <!-- Actions -->
+      <v-card-actions class="fbp-actions justify-center pb-6">
+        <v-btn 
+          variant="outlined"
+          color="grey-darken-2"
+          class="fbp-cancel-btn mr-4"
+          @click="showFeedbackDialog = false"
+        >
+          <v-icon left>mdi-close</v-icon>
+          Cancel
+        </v-btn>
+        <v-btn 
+          size="x-large"
+          variant="elevated"
+          color="amber-darken-2"
+          class="fbp-send-btn"
+          :loading="feedbackLoading"
+          @click="submitFeedback"
+        >
+          <v-icon left>mdi-send</v-icon>
+          Send Feedback
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- How to Play Dialog -->
+  <v-dialog v-model="showHowToPlay" max-width="800" max-height="90vh" persistent rounded="0" content-class="howtoplay-dialog-content">
+    <v-card class="retro-pixel-howtoplay" style="min-height: 550px; max-height: 90vh; overflow-y: auto; image-rendering: pixelated;">
+      <!-- CRT Glow Overlay -->
+      <div class="htp-glow" aria-hidden="true"></div>
+      <div class="htp-scanlines" aria-hidden="true"></div>
+      <div class="htp-vignette" aria-hidden="true"></div>
+      
+      <!-- Header -->
+      <v-card-title class="htp-title">
+        <div style="font-size: clamp(1.5rem, 4vw, 2.5rem); line-height: 1.1; padding: 16px 0; text-align: center; width: 100%;">
+          HOW TO PLAY
+          <div style="font-size: 2.5rem; margin: 0.2em 0; animation: htp-bounce 2s infinite;">🎮</div>
+        </div>
+      </v-card-title>
+      
+      <v-card-subtitle class="htp-subtitle mb-4 text-center">
+        <span>MASTER THE GAME OF LIFE</span>
+        <div style="font-size: 2rem; margin-top: 8px;">⭐</div>
+      </v-card-subtitle>
+      
+      <!-- Steps Grid -->
+      <v-card-text class="htp-steps-container">
+        <div class="steps-grid">
+          <div class="step-card" style="--step-delay: 0s">
+            <div class="step-number">1</div>
+            <div class="step-icon">👤</div>
+            <div class="step-title">CREATE CHARACTER</div>
+            <div class="step-desc">Choose name, gender & age group!</div>
+          </div>
+          <div class="step-card" style="--step-delay: 0.1s">
+            <div class="step-number">2</div>
+            <div class="step-icon">🎯</div>
+            <div class="step-title">MAKE DECISIONS</div>
+            <div class="step-desc">Each choice impacts your stats!</div>
+          </div>
+          <div class="step-card" style="--step-delay: 0.2s">
+            <div class="step-number">3</div>
+            <div class="step-icon">📊</div>
+            <div class="step-title">MANAGE STATS</div>
+            <div class="step-desc">Balance Health, Happiness, Intelligence & Wealth!</div>
+          </div>
+          <div class="step-card" style="--step-delay: 0.3s">
+            <div class="step-number">4</div>
+            <div class="step-icon">🎂</div>
+            <div class="step-title">AGE & EVENTS</div>
+            <div class="step-desc">Experience life events from childhood to retirement!</div>
+          </div>
+          <div class="step-card" style="--step-delay: 0.4s">
+            <div class="step-number">5</div>
+            <div class="step-icon">💼</div>
+            <div class="step-title">BUILD CAREER</div>
+            <div class="step-desc">Choose your profession path wisely!</div>
+          </div>
+          <div class="step-card" style="--step-delay: 0.5s">
+            <div class="step-number">6</div>
+            <div class="step-icon">✨</div>
+            <div class="step-title">TALENTS & SKILLS</div>
+            <div class="step-desc">Discover unique talents and skills!</div>
+          </div>
+          <div class="step-card" style="--step-delay: 0.6s">
+            <div class="step-number">7</div>
+            <div class="step-icon">📈</div>
+            <div class="step-title">TRACK PROGRESS</div>
+            <div class="step-desc">View analytics to see your journey!</div>
+          </div>
+          <div class="step-card" style="--step-delay: 0.7s">
+            <div class="step-number">8</div>
+            <div class="step-icon">🔄</div>
+            <div class="step-title">PLAY AGAIN</div>
+            <div class="step-desc">Try different choices and discover possibilities!</div>
+          </div>
+        </div>
+        
+        <div class="htp-tip mt-6 p-4">
+          <span class="tip-icon">💡</span>
+          <span class="tip-text">TIP: Every choice creates a unique story!</span>
+        </div>
+      </v-card-text>
+      
+      <!-- Close Button -->
+      <v-card-actions class="htp-actions justify-center pb-6">
+        <v-btn 
+          size="x-large"
+          variant="elevated"
+          color="amber-darken-2"
+          class="htp-start-btn"
+          @click="showHowToPlay = false"
+          style="font-size: 1.2rem; padding: 16px 50px; min-width: 220px;"
+        >
+          <v-icon left>mdi-play</v-icon>
+          LET'S PLAY!
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
 
   <!-- Snackbar -->
   <v-snackbar
@@ -573,6 +817,15 @@ const snackbarColor = ref('success')
 const guestDialog = ref(false)
 const normalConsentDialog = ref(false)
 const professionalDialog = ref(false)
+const showHowToPlay = ref(false)
+
+// Feedback dialog state
+const showFeedbackDialog = ref(false)
+const feedbackName = ref('')
+const feedbackEmail = ref('')
+const feedbackType = ref('General Feedback')
+const feedbackMessage = ref('')
+const feedbackLoading = ref(false)
 const proRequest = ref({
   name: '',
   email: '',
@@ -747,6 +1000,44 @@ const checkTermsAcceptance = () => {
   }
 }
 
+// Submit Feedback
+const submitFeedback = async () => {
+  if (!feedbackMessage.value.trim()) {
+    snackbarMessage.value = 'Please enter your message'
+    snackbarColor.value = 'error'
+    showSnackbar.value = true
+    return
+  }
+  
+  feedbackLoading.value = true
+  
+  try {
+    await axios.post('/api/feedback', {
+      name: feedbackName.value,
+      email: feedbackEmail.value,
+      type: feedbackType.value,
+      message: feedbackMessage.value
+    })
+    
+    snackbarMessage.value = 'Thank you! Your feedback has been sent.'
+    snackbarColor.value = 'success'
+    showSnackbar.value = true
+    
+    // Reset form
+    feedbackName.value = ''
+    feedbackEmail.value = ''
+    feedbackType.value = 'General Feedback'
+    feedbackMessage.value = ''
+    showFeedbackDialog.value = false
+  } catch (error) {
+    snackbarMessage.value = error.response?.data?.message || 'Failed to send feedback'
+    snackbarColor.value = 'error'
+    showSnackbar.value = true
+  } finally {
+    feedbackLoading.value = false
+  }
+}
+
 
 const login = async () => {
   loading.value = true
@@ -913,6 +1204,647 @@ const goToForgotPassword = () => {
 </script>
 
 <style scoped>
+/* ============================================
+   FOOTER LINKS
+   ============================================ */
+.footer-link-btn {
+  font-family: 'VT323', monospace !important;
+  font-size: 14px !important;
+  color: #67e8f9 !important;
+  text-transform: none !important;
+  letter-spacing: 0.5px !important;
+  opacity: 0.7;
+  transition: all 0.3s ease;
+}
+
+.footer-link-btn:hover {
+  opacity: 1;
+  color: #22d3ee !important;
+}
+
+.footer-link {
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.footer-link:hover {
+  text-decoration: underline;
+}
+
+/* ============================================
+   RETRO PIXEL FEEDBACK DIALOG
+   ============================================ */
+/* ============================================
+   RETRO PIXEL FEEDBACK DIALOG - LIKE HOW TO PLAY
+   ============================================ */
+.feedback-pixel-dialog {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.retro-pixel-feedback {
+  background: 
+    linear-gradient(170deg, #1a1a0a 0%, #0f0f05 50%, #080805 100%),
+    #111;
+  border: 4px solid #ffaa00 !important;
+  box-shadow: 
+    inset 0 0 0 2px rgba(255,255,255,0.1),
+    0 0 0 2px #ffaa00,
+    0 40px 120px rgba(255,170,0,0.35),
+    0 0 80px rgba(255,170,0,0.25),
+    inset 0 0 40px rgba(0,0,0,0.8);
+  font-family: 'Press Start 2P', monospace !important;
+  text-rendering: optimizeSpeed;
+  image-rendering: pixelated;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Glow Effects */
+.fbp-glow {
+  position: absolute;
+  inset: -50px;
+  background: 
+    radial-gradient(ellipse at 30% 20%, rgba(255,200,50,0.25) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 70%, rgba(255,150,0,0.2) 0%, transparent 60%),
+    radial-gradient(circle at center, rgba(255,180,0,0.15) 0%, transparent 70%);
+  filter: blur(40px);
+  z-index: 0;
+  pointer-events: none;
+  animation: fbp-glow-pulse 3s ease-in-out infinite;
+}
+
+@keyframes fbp-glow-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}
+
+.fbp-scanlines {
+  position: absolute;
+  inset: 0;
+  background: 
+    repeating-linear-gradient(0deg, rgba(255,180,0,0.06), rgba(255,180,0,0.06) 1px, transparent 1px, transparent 2px),
+    repeating-linear-gradient(90deg, rgba(200,150,0,0.04), rgba(200,150,0,0.04) 2px, transparent 2px, transparent 4px);
+  z-index: 1;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+.fbp-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.6) 85%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Title */
+.fbp-title {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  justify-content: center;
+  padding: 20px 16px 10px !important;
+  background: linear-gradient(180deg, rgba(255,180,0,0.15), transparent);
+  color: #ffcc00 !important;
+  text-shadow: 
+    0 0 20px #ffaa00,
+    3px 0 0 #000, -3px 0 0 #ffaa00,
+    0 3px 0 #000, 0 -3px 0 #ffaa00,
+    2px 2px 0 rgba(255,170,0,0.5) !important;
+  animation: fbp-title-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes fbp-title-glow {
+  from { text-shadow: 0 0 20px #ffaa00, 3px 0 0 #000, -3px 0 0 #ffaa00, 0 3px 0 #000, 0 -3px 0 #ffaa00; }
+  to { text-shadow: 0 0 40px #ffdd00, 3px 0 0 #000, -3px 0 0 #ffaa00, 0 3px 0 #000, 0 -3px 0 #ffaa00, 0 0 60px rgba(255,200,0,0.5); }
+}
+
+@keyframes fbp-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.fbp-subtitle {
+  position: relative;
+  z-index: 2;
+  font-size: 0.75rem !important;
+  color: #ffcc66 !important;
+  text-shadow: 2px 2px 0 #000;
+  letter-spacing: 2px;
+  background: transparent !important;
+}
+
+/* Form */
+.fbp-form-container {
+  position: relative;
+  z-index: 2;
+  padding: 10px 20px 15px !important;
+}
+
+.feedback-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.form-field-card {
+  background: linear-gradient(145deg, rgba(30,25,10,0.9), rgba(20,15,5,0.95));
+  border: 3px solid #ffaa00;
+  border-radius: 0;
+  padding: 16px 12px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  animation: field-card-appear 0.6s ease-out backwards;
+  animation-delay: var(--field-delay, 0s);
+  box-shadow: 
+    inset 0 0 20px rgba(255,170,0,0.1),
+    0 4px 15px rgba(0,0,0,0.5),
+    0 0 0 1px rgba(255,170,0,0.3);
+  transition: all 0.3s ease;
+}
+
+.form-field-card:hover {
+  transform: translateY(-5px);
+  border-color: #ffcc00;
+  box-shadow: 
+    inset 0 0 30px rgba(255,200,0,0.15),
+    0 8px 25px rgba(0,0,0,0.6),
+    0 0 20px rgba(255,170,0,0.3),
+    0 0 0 2px rgba(255,200,0,0.5);
+}
+
+.form-field-card.full-width {
+  grid-column: 1 / -1;
+}
+
+@keyframes field-card-appear {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.field-icon {
+  font-size: 2rem;
+  margin: 8px 0;
+  animation: icon-bounce 2s infinite;
+  animation-delay: var(--field-delay, 0s);
+}
+
+@keyframes icon-bounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.field-title {
+  font-size: 0.55rem;
+  color: #ffcc00;
+  margin-bottom: 12px;
+  text-shadow: 2px 2px 0 #000;
+  line-height: 1.4;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.pixel-input :deep(.v-field) {
+  background: rgba(20,15,5,0.8) !important;
+  border: 2px solid #cc8800 !important;
+  border-radius: 0 !important;
+}
+
+.pixel-input :deep(.v-label) {
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 0.65rem !important;
+  color: #ffaa00 !important;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.pixel-input :deep(.v-field__input) {
+  font-family: 'VT323', monospace !important;
+  font-size: 1rem !important;
+  color: #ffdd88 !important;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.pixel-input :deep(.v-field--focused) {
+  border-color: #ffcc00 !important;
+  box-shadow: 0 0 20px rgba(255,170,0,0.4) !important;
+}
+
+/* Tip */
+.fbp-tip {
+  background: linear-gradient(90deg, rgba(255,180,0,0.1), rgba(255,150,0,0.15), rgba(255,180,0,0.1));
+  border: 2px solid #ffaa00;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 18px;
+  box-shadow: 
+    inset 0 0 15px rgba(255,170,0,0.1),
+    0 0 15px rgba(255,170,0,0.2);
+  margin: 0 20px;
+}
+
+.tip-icon {
+  font-size: 1.5rem;
+  animation: tip-shine 2s infinite;
+}
+
+@keyframes tip-shine {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.1); }
+}
+
+.tip-text {
+  font-size: 0.55rem;
+  color: #ffdd66;
+  text-shadow: 1px 1px 0 #000;
+  line-height: 1.4;
+  letter-spacing: 0.5px;
+}
+
+/* Actions */
+.fbp-actions {
+  position: relative;
+  z-index: 2;
+  background: linear-gradient(180deg, rgba(20,15,5,0.9), rgba(10,5,0,0.95));
+  padding: 16px 24px 20px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.fbp-cancel-btn {
+  font-family: 'Press Start 2P', monospace !important;
+  border: 2px solid #aa7700 !important;
+  color: #ffcc66 !important;
+  text-shadow: 1px 1px 0 #000;
+  transition: all 0.2s ease;
+  border-radius: 0 !important;
+}
+
+.fbp-cancel-btn:hover {
+  background: rgba(255,170,0,0.2) !important;
+  border-color: #ffaa00 !important;
+  transform: translateY(-2px);
+}
+
+.fbp-send-btn {
+  font-family: 'Press Start 2P', monospace !important;
+  text-rendering: optimizeSpeed;
+  background: linear-gradient(180deg, #ffcc00 0%, #ff9900 50%, #ff7700 100%) !important;
+  color: #1a0a00 !important;
+  border: 3px solid #ffdd00 !important;
+  box-shadow: 
+    0 6px 0 #aa5500,
+    0 8px 20px rgba(255,170,0,0.4),
+    inset 0 2px 0 rgba(255,255,255,0.4),
+    inset 0 -2px 0 rgba(0,0,0,0.2) !important;
+  transition: all 0.15s ease !important;
+  animation: fbp-btn-pulse 2s infinite;
+  border-radius: 0 !important;
+  min-width: 200px;
+  font-size: 0.75rem !important;
+}
+
+@keyframes fbp-btn-pulse {
+  0%, 100% { box-shadow: 0 6px 0 #aa5500, 0 8px 20px rgba(255,170,0,0.4), inset 0 2px 0 rgba(255,255,255,0.4), inset 0 -2px 0 rgba(0,0,0,0.2); }
+  50% { box-shadow: 0 6px 0 #aa5500, 0 12px 30px rgba(255,170,0,0.6), inset 0 2px 0 rgba(255,255,255,0.4), inset 0 -2px 0 rgba(0,0,0,0.2); }
+}
+
+.fbp-send-btn:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 
+    0 9px 0 #aa5500,
+    0 15px 35px rgba(255,170,0,0.5),
+    inset 0 2px 0 rgba(255,255,255,0.5),
+    inset 0 -2px 0 rgba(0,0,0,0.2) !important;
+}
+
+.fbp-send-btn:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 
+    0 3px 0 #aa5500,
+    0 5px 15px rgba(255,170,0,0.3),
+    inset 0 2px 0 rgba(255,255,255,0.3),
+    inset 0 2px 3px rgba(0,0,0,0.3) !important;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  .feedback-form-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .fbp-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .fbp-send-btn {
+    width: 100%;
+  }
+}
+
+/* ============================================
+   RETRO PIXEL HOW TO PLAY DIALOG
+   ============================================ */
+.howtoplay-dialog-content {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.htp-glow {
+  position: absolute;
+  inset: -50px;
+  background: 
+    radial-gradient(ellipse at 30% 20%, rgba(255,200,50,0.25) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 70%, rgba(255,150,0,0.2) 0%, transparent 60%),
+    radial-gradient(circle at center, rgba(255,180,0,0.15) 0%, transparent 70%);
+  filter: blur(40px);
+  z-index: 0;
+  pointer-events: none;
+  animation: htp-glow-pulse 3s ease-in-out infinite;
+}
+
+@keyframes htp-glow-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}
+
+.htp-scanlines {
+  position: absolute;
+  inset: 0;
+  background: 
+    repeating-linear-gradient(0deg, rgba(255,180,0,0.06), rgba(255,180,0,0.06) 1px, transparent 1px, transparent 2px),
+    repeating-linear-gradient(90deg, rgba(200,150,0,0.04), rgba(200,150,0,0.04) 2px, transparent 2px, transparent 4px);
+  z-index: 1;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+.htp-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.6) 85%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.retro-pixel-howtoplay {
+  background: 
+    linear-gradient(170deg, #1a1a0a 0%, #0f0f05 50%, #080805 100%),
+    #111;
+  border: 4px solid #ffaa00 !important;
+  box-shadow: 
+    inset 0 0 0 2px rgba(255,255,255,0.1),
+    0 0 0 2px #ffaa00,
+    0 40px 120px rgba(255,170,0,0.35),
+    0 0 80px rgba(255,170,0,0.25),
+    inset 0 0 40px rgba(0,0,0,0.8);
+  font-family: 'Press Start 2P', monospace !important;
+  text-rendering: optimizeSpeed;
+  image-rendering: pixelated;
+  position: relative;
+  overflow: hidden;
+}
+
+.htp-title {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  justify-content: center;
+  padding: 20px 16px 10px !important;
+  background: linear-gradient(180deg, rgba(255,180,0,0.15), transparent);
+  color: #ffcc00 !important;
+  text-shadow: 
+    0 0 20px #ffaa00,
+    3px 0 0 #000, -3px 0 0 #ffaa00,
+    0 3px 0 #000, 0 -3px 0 #ffaa00,
+    2px 2px 0 rgba(255,170,0,0.5) !important;
+  animation: htp-title-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes htp-title-glow {
+  from { text-shadow: 0 0 20px #ffaa00, 3px 0 0 #000, -3px 0 0 #ffaa00, 0 3px 0 #000, 0 -3px 0 #ffaa00; }
+  to { text-shadow: 0 0 40px #ffdd00, 3px 0 0 #000, -3px 0 0 #ffaa00, 0 3px 0 #000, 0 -3px 0 #ffaa00, 0 0 60px rgba(255,200,0,0.5); }
+}
+
+@keyframes htp-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.htp-subtitle {
+  position: relative;
+  z-index: 2;
+  font-size: 0.75rem !important;
+  color: #ffcc66 !important;
+  text-shadow: 2px 2px 0 #000;
+  letter-spacing: 2px;
+  background: transparent !important;
+}
+
+.htp-steps-container {
+  position: relative;
+  z-index: 2;
+  padding: 10px 20px 15px !important;
+}
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.step-card {
+  background: linear-gradient(145deg, rgba(30,25,10,0.9), rgba(20,15,5,0.95));
+  border: 3px solid #ffaa00;
+  border-radius: 0;
+  padding: 12px 10px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  animation: step-card-appear 0.6s ease-out backwards;
+  animation-delay: var(--step-delay, 0s);
+  box-shadow: 
+    inset 0 0 20px rgba(255,170,0,0.1),
+    0 4px 15px rgba(0,0,0,0.5),
+    0 0 0 1px rgba(255,170,0,0.3);
+  transition: all 0.3s ease;
+}
+
+.step-card:hover {
+  transform: translateY(-5px);
+  border-color: #ffcc00;
+  box-shadow: 
+    inset 0 0 30px rgba(255,200,0,0.15),
+    0 8px 25px rgba(0,0,0,0.6),
+    0 0 20px rgba(255,170,0,0.3),
+    0 0 0 2px rgba(255,200,0,0.5);
+}
+
+@keyframes step-card-appear {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.step-number {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  font-size: 0.5rem;
+  color: #ffaa00;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.step-icon {
+  font-size: 1.8rem;
+  margin: 6px 0;
+  animation: icon-bounce 2s infinite;
+  animation-delay: var(--step-delay, 0s);
+}
+
+@keyframes icon-bounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.step-title {
+  font-size: 0.5rem;
+  color: #ffcc00;
+  margin: 6px 0 4px;
+  text-shadow: 2px 2px 0 #000;
+  line-height: 1.4;
+}
+
+.step-desc {
+  font-size: 0.4rem;
+  color: #ccbb99;
+  line-height: 1.5;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.htp-tip {
+  background: linear-gradient(90deg, rgba(255,180,0,0.1), rgba(255,150,0,0.15), rgba(255,180,0,0.1));
+  border: 2px solid #ffaa00;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px 16px;
+  box-shadow: 
+    inset 0 0 15px rgba(255,170,0,0.1),
+    0 0 15px rgba(255,170,0,0.2);
+}
+
+.tip-icon {
+  font-size: 1.3rem;
+  animation: tip-shine 2s infinite;
+}
+
+@keyframes tip-shine {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.1); }
+}
+
+.tip-text {
+  font-size: 0.5rem;
+  color: #ffdd66;
+  text-shadow: 1px 1px 0 #000;
+  line-height: 1.4;
+}
+
+.htp-actions {
+  position: relative;
+  z-index: 2;
+  background: linear-gradient(180deg, rgba(20,15,5,0.9), rgba(10,5,0,0.95));
+  padding: 16px 24px 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.htp-start-btn {
+  font-family: 'Press Start 2P', monospace !important;
+  text-rendering: optimizeSpeed;
+  background: linear-gradient(180deg, #ffcc00 0%, #ff9900 50%, #ff7700 100%) !important;
+  color: #1a0a00 !important;
+  border: 3px solid #ffdd00 !important;
+  box-shadow: 
+    0 6px 0 #aa5500,
+    0 8px 20px rgba(255,170,0,0.4),
+    inset 0 2px 0 rgba(255,255,255,0.4),
+    inset 0 -2px 0 rgba(0,0,0,0.2) !important;
+  transition: all 0.15s ease !important;
+  animation: btn-pulse 2s infinite;
+}
+
+@keyframes btn-pulse {
+  0%, 100% { box-shadow: 0 6px 0 #aa5500, 0 8px 20px rgba(255,170,0,0.4), inset 0 2px 0 rgba(255,255,255,0.4), inset 0 -2px 0 rgba(0,0,0,0.2); }
+  50% { box-shadow: 0 6px 0 #aa5500, 0 12px 30px rgba(255,170,0,0.6), inset 0 2px 0 rgba(255,255,255,0.4), inset 0 -2px 0 rgba(0,0,0,0.2); }
+}
+
+.htp-start-btn:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 
+    0 9px 0 #aa5500,
+    0 15px 35px rgba(255,170,0,0.5),
+    inset 0 2px 0 rgba(255,255,255,0.5),
+    inset 0 -2px 0 rgba(0,0,0,0.2) !important;
+}
+
+.htp-start-btn:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 
+    0 3px 0 #aa5500,
+    0 5px 15px rgba(255,170,0,0.3),
+    inset 0 2px 0 rgba(255,255,255,0.3),
+    inset 0 2px 3px rgba(0,0,0,0.3) !important;
+}
+
+/* Mobile Responsive */
+@media (max-width: 600px) {
+  .steps-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  
+  .step-card {
+    padding: 10px 6px;
+  }
+  
+  .step-icon {
+    font-size: 1.4rem;
+  }
+  
+  .step-title {
+    font-size: 0.45rem;
+  }
+  
+  .step-desc {
+    font-size: 0.35rem;
+  }
+}
+
 /* ============================================
    GALAXY BACKGROUND - MOVING STARS
    ============================================ */

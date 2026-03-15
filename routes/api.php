@@ -5,6 +5,7 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\GuestController;
 use App\Http\Controllers\Admin\SharedDecisionLogController;
 use App\Http\Controllers\ProfessionalAccountRequestController;
+use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\AnalyticsController;
 use Illuminate\Support\Facades\Route;
 
@@ -12,6 +13,9 @@ Route::middleware(['web'])->group(function () {
     // Guest mode
     Route::post('/guest/start', [GuestController::class, 'start']);
     Route::post('/professional-account-requests', [ProfessionalAccountRequestController::class, 'store']);
+    
+    // Feedback - public, no auth required
+    Route::post('/feedback', [FeedbackController::class, 'store']);
 
     Route::middleware(['auth'])->group(function () {
         // Session info

@@ -1,44 +1,12 @@
-# ✅ FULL DECISION + LIFE VARS LOGGING SYSTEM COMPLETE
+# U:LIFE Project TODO
 
-## All Steps ✅ (Test Ready!)
+## Current Task: Update Home.vue Feedback Popup Design
+- [x] Step 1: Create TODO.md with plan breakdown ✅
+- [x] Step 2: Replace feedback dialog template structure
+- [x] Step 3: Update feedback-related script (if needed)
+- [x] Step 4: Remove old retro CSS and add modern glassmorphism styles
+- [x] Step 5: Test form submission and responsiveness
+- [x] Step 6: Mark complete and attempt_completion
 
-### ✅ 1. DecisionLogService 
-```
-✅ logFullDecision() - before/after life stats + changes
-✅ Preserves existing CharacterDecisionLog/SharedDecisionLog
-✅ Guest/anon/MBTI support
-```
-
-### ✅ 2. EventService AUTO-LOGGING
-```
-✅ applyStatEffects() - before → apply → after → LOG EVERY TIME
-✅ getLifeStats() helper  
-✅ Works for all stat changes
-```
-
-### ✅ 3. EventController Integration
-```
-✅ Passes event/choice data to EventService logging
-✅ Full flow: Game.vue → API → LOG
-```
-
-### ✅ 4. Admin Interface
-```
-✅ Filament ListDecisionLogs.php - Complete table w/ colors/filters
-✅ Health/Happiness/Finance Δ badges
-✅ Event/Age/Relationship/Career filters
-```
-
-## 🚀 DEPLOY & TEST
-
-```
-1. ✅ php artisan migrate (table exists)
-2. ⏳ Test: Game.vue → make decision → check decision_logs table  
-3. ⏳ php artisan filament:cache-components
-4. ⏳ Admin panel: /admin/decision-logs → verify data
-5. 🚀 railway deploy
-```
-
-**CORE SYSTEM LIVE** - Every decision now logs ALL life variable changes!
-
-**Next:** Test or `attempt_completion`?
+## Other TODOs
+*(Existing TODOs from project can be added here if needed)*
