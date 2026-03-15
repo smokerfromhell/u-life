@@ -393,7 +393,10 @@ Log::error('Error in getStatefulEvents', [
             $effectiveStats = is_array($character->effective_stats) ? $character->effective_stats : [];
             
             if (empty($effectiveStats)) {
-                $effectiveStats = array_merge($baseStats, $hiddenStats);
+                // Priority: baseStats > hiddenStats (but exclude life stats from hiddenStats)
+                $lifeStatsKeys = ['health', 'happiness', 'finance', 'relationship_status', 'career_level'];
+                $filteredHiddenStats = array_diff_key($hiddenStats, array_flip($lifeStatsKeys));
+                $effectiveStats = array_merge($filteredHiddenStats, $baseStats);
             }
             
             foreach ($rawEffects as $stat => $value) {
@@ -406,6 +409,18 @@ Log::error('Error in getStatefulEvents', [
             }
 
             $character->effective_stats = $effectiveStats;
+            
+            // CRITICAL: Sync life stats fields so they can be read by getLifeStats()
+            // This ensures the analytics correctly capture before/after stats
+            if (isset($effectiveStats['Health'])) {
+                $character->health = $effectiveStats['Health'];
+            }
+            if (isset($effectiveStats['Happiness'])) {
+                $character->happiness = $effectiveStats['Happiness'];
+            }
+            if (isset($effectiveStats['Wealth']) || isset($effectiveStats['Finance'])) {
+                $character->finance = $effectiveStats['Wealth'] ?? $effectiveStats['Finance'];
+            }
         }
         
         $character->save();
@@ -701,7 +716,7 @@ $character->current_narrative = $narrative . (($outcomeType === 'positive') ? '_
 
     /**
      * Calculate MBTI based on character stats, event type, choice, and outcome
-     * Refined to be more accurate based on personality correlations
+     * Uses cumulative scoring for real life simulation
      */
     public function calculateMBTI(array $characterStats, string $eventType, string $choiceIndex, string $outcomeType): string
     {
@@ -712,102 +727,73 @@ $character->current_narrative = $narrative . (($outcomeType === 'positive') ? '_
             'J' => 50, 'P' => 50
         ];
 
-        // Convert choiceIndex to integer
-        $choiceIndex = is_numeric($choiceIndex) ? (int) $choiceIndex : 0;
+        $choiceIdx = is_numeric($choiceIndex) ? (int) $choiceIndex : 0;
 
-        // ============ E/I Dimension (Extraversion vs Introversion) ============
-        // Social/cultural events favor extroversion
-        if (in_array($eventType, ['cultural', 'social'])) {
-            $mbtiScores['E'] += 12;
-            $mbtiScores['I'] -= 6;
-        }
-        // Profession/career events favor introversion
-        elseif (in_array($eventType, ['profession', 'career', 'daily_routine'])) {
-            $mbtiScores['I'] += 14;
-            $mbtiScores['E'] -= 7;
-        }
+        // E/I: Social stat directly impacts (higher = more extroverted)
+        $social = isset($characterStats['Social']) ? (int)$characterStats['Social'] : 50;
+        $mbtiScores['E'] = 30 + ($social * 0.4);
+        $mbtiScores['I'] = 70 - ($social * 0.4);
         
-        // Social stat affects E/I
-        $social = $characterStats['Social'] ?? 50;
-        $mbtiScores['E'] += ($social - 50) * 0.15;
-        $mbtiScores['I'] -= ($social - 50) * 0.1;
-
-        // ============ N/S Dimension (Intuition vs Sensing) ============
-        // Creative events favor intuition
-        if (strpos($eventType, 'creative') !== false) {
-            $mbtiScores['N'] += 18;
-            $mbtiScores['S'] -= 10;
+        if (in_array($eventType, ['cultural', 'social', 'milestone'])) {
+            $mbtiScores['E'] += 8;
+        } elseif (in_array($eventType, ['profession', 'career', 'ageSpecific'])) {
+            $mbtiScores['I'] += 8;
         }
+
+        // N/S: Creativity stat directly impacts
+        $creativity = isset($characterStats['Creativity']) ? (int)$characterStats['Creativity'] : 50;
+        $mbtiScores['N'] = 30 + ($creativity * 0.4);
+        $mbtiScores['S'] = 70 - ($creativity * 0.4);
         
-        // Creativity stat strongly affects N/S
-        $creativity = $characterStats['Creativity'] ?? 50;
-        $mbtiScores['N'] += ($creativity - 50) * 0.2;
-        $mbtiScores['S'] -= ($creativity - 50) * 0.15;
+        $intelligence = isset($characterStats['Intelligence']) ? (int)$characterStats['Intelligence'] : 50;
+        $mbtiScores['N'] += ($intelligence - 50) * 0.1;
 
-        // Knowledge-based events favor sensing
-        if (strpos($eventType, 'education') !== false || strpos($eventType, 'study') !== false) {
-            $mbtiScores['S'] += 12;
-            $mbtiScores['N'] -= 6;
-        }
-
-        // ============ T/F Dimension (Thinking vs Feeling) ============
-        // Career/success outcomes favor thinking
-        if (in_array($eventType, ['profession', 'career']) || strpos($outcomeType, 'Success') !== false) {
-            $mbtiScores['T'] += 15;
-            $mbtiScores['F'] -= 8;
-        }
-        // Family/happy outcomes favor feeling
-        elseif (strpos($outcomeType, 'Happy') !== false || strpos($outcomeType, 'Family') !== false || strpos($outcomeType, 'Love') !== false) {
-            $mbtiScores['F'] += 18;
-            $mbtiScores['T'] -= 10;
-        }
+        // T/F: Empathy stat directly impacts
+        $empathy = isset($characterStats['Empathy']) ? (int)$characterStats['Empathy'] : 50;
+        $mbtiScores['F'] = 30 + ($empathy * 0.4);
+        $mbtiScores['T'] = 70 - ($empathy * 0.4);
         
-        // Empathy affects T/F
-        $empathy = $characterStats['Empathy'] ?? 50;
-        $mbtiScores['F'] += ($empathy - 50) * 0.2;
-        $mbtiScores['T'] -= ($empathy - 50) * 0.15;
+        $charisma = isset($characterStats['Charisma']) ? (int)$characterStats['Charisma'] : 50;
+        $mbtiScores['F'] += ($charisma - 50) * 0.1;
 
-        // ============ J/P Dimension (Judging vs Perceiving) ============
-        // Planned events favor judging
-        if (strpos($eventType, 'planned') !== false) {
-            $mbtiScores['J'] += 14;
-            $mbtiScores['P'] -= 7;
-        }
-        // Spontaneous events favor perceiving
-        if (strpos($eventType, 'surprise') !== false || strpos($eventType, 'random') !== false) {
-            $mbtiScores['P'] += 12;
-            $mbtiScores['J'] -= 6;
-        }
-        
-        // Discipline affects J/P
-        $discipline = $characterStats['Discipline'] ?? 50;
-        $mbtiScores['J'] += ($discipline - 50) * 0.2;
-        $mbtiScores['P'] -= ($discipline - 50) * 0.15;
+        // J/P: Discipline stat directly impacts
+        $discipline = isset($characterStats['Discipline']) ? (int)$characterStats['Discipline'] : 50;
+        $mbtiScores['J'] = 30 + ($discipline * 0.4);
+        $mbtiScores['P'] = 70 - ($discipline * 0.4);
 
-        // ============ Choice Index Impact ============
-        // First choice (0): Embrace/Fully Accept - more extroverted, decisive
-        if ($choiceIndex === 0) {
-            $mbtiScores['E'] += 10;
-            $mbtiScores['J'] += 8;
-        }
-        // Second choice (1): Normal/Moderate - balanced (no change)
-        // Third choice (2): Reject/Avoid - more introverted, cautious
-        elseif ($choiceIndex === 2) {
-            $mbtiScores['I'] += 10;
+        $strength = isset($characterStats['Strength']) ? (int)$characterStats['Strength'] : 50;
+        $mbtiScores['J'] += ($strength - 50) * 0.1;
+
+        // Choice-based modifiers
+        if ($choiceIdx === 0) {
+            $mbtiScores['J'] += 6;
+            $mbtiScores['E'] += 4;
+        } elseif ($choiceIdx === 1) {
+            $mbtiScores['I'] += 3;
+            $mbtiScores['P'] += 3;
+        } elseif ($choiceIdx === 2) {
+            $mbtiScores['I'] += 6;
+            $mbtiScores['P'] += 4;
+        } elseif ($choiceIdx >= 3) {
             $mbtiScores['P'] += 8;
-        }
-        // Fourth+ choice (3+): Skip/Do Nothing - more perceiving
-        elseif ($choiceIndex >= 3) {
-            $mbtiScores['P'] += 14;
-            $mbtiScores['I'] += 7;
+            $mbtiScores['I'] += 5;
         }
 
-        // Clamp scores between 0-100
+        // Outcome-based modifiers
+        if (stripos($outcomeType, 'success') !== false || stripos($outcomeType, 'positive') !== false) {
+            $mbtiScores['J'] += 3;
+        }
+        if (stripos($outcomeType, 'happy') !== false || stripos($outcomeType, 'love') !== false) {
+            $mbtiScores['F'] += 4;
+        }
+        if (stripos($outcomeType, 'growth') !== false || stripos($outcomeType, 'learn') !== false) {
+            $mbtiScores['N'] += 3;
+        }
+
         foreach (['E', 'I', 'N', 'S', 'T', 'F', 'J', 'P'] as $trait) {
             $mbtiScores[$trait] = max(0, min(100, $mbtiScores[$trait]));
         }
 
-        // Determine MBTI type (always favor one over the other, even if equal)
         $type = '';
         $type .= $mbtiScores['E'] >= $mbtiScores['I'] ? 'E' : 'I';
         $type .= $mbtiScores['N'] >= $mbtiScores['S'] ? 'N' : 'S';
@@ -817,6 +803,7 @@ $character->current_narrative = $narrative . (($outcomeType === 'positive') ? '_
         Log::info('MBTI Calculated', [
             'type' => $type,
             'scores' => $mbtiScores,
+            'stats' => ['Social' => $social, 'Creativity' => $creativity, 'Empathy' => $empathy, 'Discipline' => $discipline],
         ]);
 
         return $type;

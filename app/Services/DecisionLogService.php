@@ -99,6 +99,19 @@ class DecisionLogService
             // Get authenticated user via request - more reliable for Intelephense
             $authUser = \request()->user();
             
+            // Get effective stats from character for personality-based MBTI calculation
+            $characterStatsForMBTI = array_merge(
+                $afterLifeStats,
+                is_array($character->effective_stats) ? $character->effective_stats : [],
+                is_array($character->stats) ? $character->stats : [],
+                is_array($character->hidden_stats) ? $character->hidden_stats : []
+            );
+
+            // Calculate MBTI with the correct stats
+            $mbtiType = app(\App\Services\EventService::class)->calculateMBTI(
+                $characterStatsForMBTI, $event['type'] ?? 'unknown', $choiceIndex, $outcomeType
+            );
+            
             DecisionLog::create([
                 'character_id' => $character->id,
                 'user_id' => $authUser?->id,
@@ -131,10 +144,8 @@ class DecisionLogService
                 'health_change' => ($afterLifeStats['health'] ?? 100) - ($beforeLifeStats['health'] ?? 100),
                 'happiness_change' => ($afterLifeStats['happiness'] ?? 100) - ($beforeLifeStats['happiness'] ?? 100),
                 'finance_change' => ($afterLifeStats['finance'] ?? 0) - ($beforeLifeStats['finance'] ?? 0),
-                // MBTI from EventService
-                'mbti' => app(\App\Services\EventService::class)->calculateMBTI(
-                    $afterLifeStats, $event['type'] ?? 'unknown', $choiceIndex, $outcomeType
-                ),
+                // MBTI
+                'mbti' => $mbtiType,
                 'data' => $event,
             ]);
 

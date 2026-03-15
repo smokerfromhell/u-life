@@ -23,10 +23,10 @@ class EventController extends Controller
 
     // Age progression thresholds (in days) - SHORTENED for faster gameplay
     const AGE_GROUPS = [
-        'child' => ['min' => 0, 'max' => 30],      // Days 0-30
-        'teen' => ['min' => 31, 'max' => 60],      // Days 31-60
-        'adult' => ['min' => 61, 'max' => 90],     // Days 61-90
-        'old' => ['min' => 91, 'max' => 120],      // Days 91-120 (game ends)
+        'child' => ['min' => 0, 'max' => 9],      // Days 0-9
+        'teen' => ['min' => 10, 'max' => 19],      // Days 10-19
+        'adult' => ['min' => 20, 'max' => 35],     // Days 20-35
+        'old' => ['min' => 36, 'max' => 50],      // Days 36-50 (game ends)
     ];
 
     public function __construct(EventService $eventService)
@@ -227,8 +227,9 @@ $events = [
             'stored_age_group' => $storedAgeGroup
         ]);
         
-        // Skip progression if character has explicit age_group preference (respect character creation choice)
-        if ($storedAgeGroup !== 'child' && $currentDay <= 30) {
+        // Skip progression only for explicitly set non-child age groups in early game (respect character creation choice)
+        // Now uses new thresholds: child=0-9, teen=10-19, adult=20-35
+        if ($storedAgeGroup !== 'child' && $currentDay <= 10) {
             Log::info('Skipping age progression - respecting stored age_group', ['age_group' => $storedAgeGroup]);
             return;
         }
@@ -250,13 +251,17 @@ $events = [
     }
 
     /**
-     * Get age group for a given day
+     * Get age group for a given day - SHORTENED for faster gameplay
+     * child: Days 0-9
+     * teen: Days 10-19
+     * adult: Days 20-35
+     * old: Days 36-50 (game ends)
      */
     private function getAgeGroupForDay(int $day): string
     {
-        if ($day <= 30) return 'child';
-        if ($day <= 60) return 'teenager';
-        if ($day <= 90) return 'adult';
+        if ($day <= 9) return 'child';
+        if ($day <= 19) return 'teenager';
+        if ($day <= 35) return 'adult';
         return 'old';
     }
 
@@ -805,8 +810,14 @@ $events = [
             }
 
             // Check for game over condition
+            // Either explicit "End of game" in effects OR reached max days (day 50 = old age)
             $gameOver = false;
+            $currentDay = $character->current_day ?? 1;
+            
             if ($statEffects && strpos($statEffects, 'End of game') !== false) {
+                $gameOver = true;
+            } elseif ($currentDay >= 50) {
+                // Game ends naturally at day 50 (old age)
                 $gameOver = true;
             }
 
@@ -1015,7 +1026,8 @@ $events = [
                 'age_group' => $character->age_group,
                 'current_day' => $character->current_day,
                 'narrative_path' => $character->current_narrative,
-                'active_paths' => $character->active_event_paths
+                'active_paths' => $character->active_event_paths,
+                'milestone' => $this->checkMilestone($character)
             ]);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Error in applyEventOutcome: ' . $e->getMessage(), [

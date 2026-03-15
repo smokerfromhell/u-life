@@ -95,8 +95,8 @@ class Character extends Model
     protected $appends = ['current_state'];
 
     protected $attributes = [
-        'stats' => '{"Intelligence": 0, "Strength": 0, "Charisma": 0, "Creativity": 0, "Wealth": 0, "Luck": 0}',
-        'hidden_stats' => '{"Debt": 0, "Health": 0, "Addiction": 0, "Burnout": 0, "Morality": 0, "Happiness": 0, "Reputation": 0, "Discipline": 0, "Isolation": 0, "Ego": 0}',
+        'stats' => '{"Intelligence": 0, "Strength": 0, "Charisma": 0, "Creativity": 0, "Wealth": 0, "Luck": 0, "Social": 50, "Empathy": 50}',
+        'hidden_stats' => '{"Debt": 0, "Addiction": 0, "Burnout": 0, "Morality": 0, "Reputation": 0, "Discipline": 50, "Isolation": 0, "Ego": 0}',
         'gender_bonus' => '{}',
         'age_bonus' => '{}',
         'effective_stats' => '{}',

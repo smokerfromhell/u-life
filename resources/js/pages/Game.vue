@@ -1158,6 +1158,12 @@ const applyChoice = async (choiceIndex) => {
 
     gameOver.value = data.game_over === true
     
+    // Handle milestone from age transition
+    if (data.milestone) {
+      availableEvents.value.milestone = data.milestone
+      narrationHistory.value.push(`🌟 ${data.milestone.title}: ${data.milestone.description}`)
+    }
+    
     // Log the choice and effects
     narrationHistory.value.push(`You chose: "${choiceText}"`)
     if (data.effects) {
