@@ -69,6 +69,15 @@
                 {{ showStats ? 'Hide Skills' : 'Show Skills' }}
               </v-btn>
               <v-btn
+                size="small"
+                class="retro-btn retro-help-btn"
+                color="success"
+                prepend-icon="mdi-help-circle"
+                @click="showHowToPlay = true"
+              >
+                How to Play
+              </v-btn>
+              <v-btn
                 size="x-small"
                 class="retro-btn retro-edit-btn"
                 prepend-icon="mdi-pencil"
@@ -550,6 +559,103 @@
       </v-theme-provider>
     </v-dialog>
 
+    <!-- How to Play Dialog - RETRO PIXEL EDITION -->
+    <v-dialog v-model="showHowToPlay" max-width="800" max-height="92vh" persistent rounded="0" content-class="howtoplay-dialog-content">
+      <v-card class="retro-pixel-howtoplay" style="min-height: 550px; max-height: 90vh; overflow-y: auto; image-rendering: pixelated;">
+        <!-- CRT Glow Overlay -->
+        <div class="htp-glow" aria-hidden="true"></div>
+        <div class="htp-scanlines" aria-hidden="true"></div>
+        <div class="htp-vignette" aria-hidden="true"></div>
+        
+        <!-- HEADER -->
+        <v-card-title class="htp-title" data-text="HOW TO PLAY">
+          <div style="font-size: clamp(1.5rem, 4vw, 2.5rem); line-height: 1.1; padding: 16px 0; text-align: center; width: 100%;">
+            HOW TO PLAY
+            <div style="font-size: 2.5rem; margin: 0.2em 0; animation: htp-bounce 2s infinite;">🎮</div>
+          </div>
+        </v-card-title>
+        
+        <v-card-subtitle class="htp-subtitle mb-4 text-center">
+          <span>MASTER THE GAME OF LIFE</span>
+          <div style="font-size: 2rem; margin-top: 8px;">⭐</div>
+        </v-card-subtitle>
+        
+        <!-- STEPS GRID -->
+        <v-card-text class="htp-steps-container">
+          <div class="steps-grid">
+            <div class="step-card" style="--step-delay: 0s">
+              <div class="step-number">1</div>
+              <div class="step-icon">👤</div>
+              <div class="step-title">CREATE CHARACTER</div>
+              <div class="step-desc">Choose name, gender & age group. Your choices affect events!</div>
+            </div>
+            <div class="step-card" style="--step-delay: 0.1s">
+              <div class="step-number">2</div>
+              <div class="step-icon">🎯</div>
+              <div class="step-title">MAKE DECISIONS</div>
+              <div class="step-desc">Each choice impacts Health, Happiness, Intelligence & Wealth!</div>
+            </div>
+            <div class="step-card" style="--step-delay: 0.2s">
+              <div class="step-number">3</div>
+              <div class="step-icon">📊</div>
+              <div class="step-title">MANAGE STATS</div>
+              <div class="step-desc">Balance your 4 stats. Low stats = serious consequences!</div>
+            </div>
+            <div class="step-card" style="--step-delay: 0.3s">
+              <div class="step-number">4</div>
+              <div class="step-icon">🎂</div>
+              <div class="step-title">AGE & EVENTS</div>
+              <div class="step-desc">Experience life events from childhood to retirement!</div>
+            </div>
+            <div class="step-card" style="--step-delay: 0.4s">
+              <div class="step-number">5</div>
+              <div class="step-icon">💼</div>
+              <div class="step-title">BUILD CAREER</div>
+              <div class="step-desc">Choose your profession path wisely for success!</div>
+            </div>
+            <div class="step-card" style="--step-delay: 0.5s">
+              <div class="step-number">6</div>
+              <div class="step-icon">✨</div>
+              <div class="step-title">TALENTS & SKILLS</div>
+              <div class="step-desc">Discover unique talents and develop new skills!</div>
+            </div>
+            <div class="step-card" style="--step-delay: 0.6s">
+              <div class="step-number">7</div>
+              <div class="step-icon">📈</div>
+              <div class="step-title">TRACK PROGRESS</div>
+              <div class="step-desc">View analytics to see how your choices shaped your life!</div>
+            </div>
+            <div class="step-card" style="--step-delay: 0.7s">
+              <div class="step-number">8</div>
+              <div class="step-icon">🔄</div>
+              <div class="step-title">PLAY AGAIN</div>
+              <div class="step-desc">Try different choices and discover all possibilities!</div>
+            </div>
+          </div>
+          
+          <div class="htp-tip mt-6 p-4">
+            <span class="tip-icon">💡</span>
+            <span class="tip-text">TIP: There's no winning strategy - every choice creates a unique story!</span>
+          </div>
+        </v-card-text>
+        
+        <!-- CLOSE BUTTON -->
+        <v-card-actions class="htp-actions justify-center pb-6">
+          <v-btn 
+            size="x-large"
+            variant="elevated"
+            color="amber-darken-2"
+            class="htp-start-btn"
+            @click="showHowToPlay = false"
+            style="font-size: 1.2rem; padding: 16px 50px; min-width: 220px;"
+          >
+            <v-icon left>mdi-play</v-icon>
+            LET'S PLAY!
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Suicide Dialog - RETRO PIXEL EDITION -->
     <v-dialog v-model="suicideDialog" max-width="850" max-height="92vh" persistent rounded="0" content-class="suicide-dialog-content">
       <v-card class="suicide-dialog retro-pixel-death" style="min-height: 500px; max-height: 85vh; overflow-y: auto; image-rendering: pixelated;">
@@ -795,6 +901,7 @@ const getRouteCharacterId = () => {
 
 const loading = ref(false)
 const showStats = ref(false)
+const showHowToPlay = ref(false)
 const selectedEvent = ref(null)
 const showEventDialog = ref(false)
 const applyingOutcome = ref(false)
@@ -1008,7 +1115,7 @@ const fetchCharacter = async () => {
     character.value = {
       id: data.id,
       name: data.name,
-      image: "/css/images/player.jpg",
+      image: data.image || '/css/images/player.jpg',
       gender: data.gender,
       ageGroup: data.age_group,
       currentDay: data.current_day || 1,
@@ -4908,7 +5015,312 @@ const startNewGame = () => {
   }
 }
 
+/* ============================================
+   RETRO PIXEL HOW TO PLAY DIALOG STYLES
+   ============================================ */
+
+.htp-glow {
+  position: absolute;
+  inset: -50px;
+  background: 
+    radial-gradient(ellipse at 30% 20%, rgba(255,200,50,0.25) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 70%, rgba(255,150,0,0.2) 0%, transparent 60%),
+    radial-gradient(circle at center, rgba(255,180,0,0.15) 0%, transparent 70%);
+  filter: blur(40px);
+  z-index: 0;
+  pointer-events: none;
+  animation: htp-glow-pulse 3s ease-in-out infinite;
+}
+
+@keyframes htp-glow-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}
+
+.htp-scanlines {
+  position: absolute;
+  inset: 0;
+  background: 
+    repeating-linear-gradient(0deg, rgba(255,180,0,0.06), rgba(255,180,0,0.06) 1px, transparent 1px, transparent 2px),
+    repeating-linear-gradient(90deg, rgba(200,150,0,0.04), rgba(200,150,0,0.04) 2px, transparent 2px, transparent 4px);
+  z-index: 1;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+.htp-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.6) 85%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.retro-pixel-howtoplay {
+  background: 
+    linear-gradient(170deg, #1a1a0a 0%, #0f0f05 50%, #080805 100%),
+    #111;
+  border: 4px solid #ffaa00 !important;
+  box-shadow: 
+    inset 0 0 0 2px rgba(255,255,255,0.1),
+    0 0 0 2px #ffaa00,
+    0 40px 120px rgba(255,170,0,0.35),
+    0 0 80px rgba(255,170,0,0.25),
+    inset 0 0 40px rgba(0,0,0,0.8);
+  font-family: 'Press Start 2P', monospace !important;
+  text-rendering: optimizeSpeed;
+  image-rendering: pixelated;
+  position: relative;
+  overflow: hidden;
+}
+
+.htp-title {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  justify-content: center;
+  padding: 20px 16px 10px !important;
+  background: linear-gradient(180deg, rgba(255,180,0,0.15), transparent);
+  color: #ffcc00 !important;
+  text-shadow: 
+    0 0 20px #ffaa00,
+    3px 0 0 #000, -3px 0 0 #ffaa00,
+    0 3px 0 #000, 0 -3px 0 #ffaa00,
+    2px 2px 0 rgba(255,170,0,0.5) !important;
+  animation: htp-title-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes htp-title-glow {
+  from { text-shadow: 0 0 20px #ffaa00, 3px 0 0 #000, -3px 0 0 #ffaa00, 0 3px 0 #000, 0 -3px 0 #ffaa00; }
+  to { text-shadow: 0 0 40px #ffdd00, 3px 0 0 #000, -3px 0 0 #ffaa00, 0 3px 0 #000, 0 -3px 0 #ffaa00, 0 0 60px rgba(255,200,0,0.5); }
+}
+
+@keyframes htp-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.htp-subtitle {
+  position: relative;
+  z-index: 2;
+  font-size: 0.75rem !important;
+  color: #ffcc66 !important;
+  text-shadow: 2px 2px 0 #000;
+  letter-spacing: 2px;
+  background: transparent !important;
+}
+
+.htp-steps-container {
+  position: relative;
+  z-index: 2;
+  padding: 10px 20px 15px !important;
+}
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 15px;
+}
+
+.step-card {
+  background: linear-gradient(145deg, rgba(30,25,10,0.9), rgba(20,15,5,0.95));
+  border: 3px solid #ffaa00;
+  border-radius: 0;
+  padding: 15px 12px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  animation: step-card-appear 0.6s ease-out backwards;
+  animation-delay: var(--step-delay, 0s);
+  box-shadow: 
+    inset 0 0 20px rgba(255,170,0,0.1),
+    0 4px 15px rgba(0,0,0,0.5),
+    0 0 0 1px rgba(255,170,0,0.3);
+  transition: all 0.3s ease;
+}
+
+.step-card:hover {
+  transform: translateY(-5px);
+  border-color: #ffcc00;
+  box-shadow: 
+    inset 0 0 30px rgba(255,200,0,0.15),
+    0 8px 25px rgba(0,0,0,0.6),
+    0 0 20px rgba(255,170,0,0.3),
+    0 0 0 2px rgba(255,200,0,0.5);
+}
+
+@keyframes step-card-appear {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.step-number {
+  position: absolute;
+  top: 5px;
+  left: 8px;
+  font-size: 0.65rem;
+  color: #ffaa00;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.step-icon {
+  font-size: 2rem;
+  margin: 8px 0;
+  animation: icon-bounce 2s infinite;
+  animation-delay: var(--step-delay, 0s);
+}
+
+@keyframes icon-bounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.step-title {
+  font-size: 0.6rem;
+  color: #ffcc00;
+  margin: 8px 0 5px;
+  text-shadow: 2px 2px 0 #000;
+  line-height: 1.4;
+}
+
+.step-desc {
+  font-size: 0.5rem;
+  color: #ccbb99;
+  line-height: 1.5;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.htp-tip {
+  background: linear-gradient(90deg, rgba(255,180,0,0.1), rgba(255,150,0,0.15), rgba(255,180,0,0.1));
+  border: 2px solid #ffaa00;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 20px;
+  box-shadow: 
+    inset 0 0 15px rgba(255,170,0,0.1),
+    0 0 15px rgba(255,170,0,0.2);
+}
+
+.tip-icon {
+  font-size: 1.5rem;
+  animation: tip-shine 2s infinite;
+}
+
+@keyframes tip-shine {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.1); }
+}
+
+.tip-text {
+  font-size: 0.6rem;
+  color: #ffdd66;
+  text-shadow: 1px 1px 0 #000;
+  line-height: 1.4;
+}
+
+.htp-actions {
+  position: relative;
+  z-index: 2;
+  background: linear-gradient(180deg, rgba(20,15,5,0.9), rgba(10,5,0,0.95));
+  padding: 20px 30px 25px;
+  display: flex;
+  justify-content: center;
+}
+
+.htp-start-btn {
+  font-family: 'Press Start 2P', monospace !important;
+  text-rendering: optimizeSpeed;
+  background: linear-gradient(180deg, #ffcc00 0%, #ff9900 50%, #ff7700 100%) !important;
+  color: #1a0a00 !important;
+  border: 3px solid #ffdd00 !important;
+  box-shadow: 
+    0 6px 0 #aa5500,
+    0 8px 20px rgba(255,170,0,0.4),
+    inset 0 2px 0 rgba(255,255,255,0.4),
+    inset 0 -2px 0 rgba(0,0,0,0.2) !important;
+  transition: all 0.15s ease !important;
+  animation: btn-pulse 2s infinite;
+}
+
+@keyframes btn-pulse {
+  0%, 100% { box-shadow: 0 6px 0 #aa5500, 0 8px 20px rgba(255,170,0,0.4), inset 0 2px 0 rgba(255,255,255,0.4), inset 0 -2px 0 rgba(0,0,0,0.2); }
+  50% { box-shadow: 0 6px 0 #aa5500, 0 12px 30px rgba(255,170,0,0.6), inset 0 2px 0 rgba(255,255,255,0.4), inset 0 -2px 0 rgba(0,0,0,0.2); }
+}
+
+.htp-start-btn:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 
+    0 9px 0 #aa5500,
+    0 15px 35px rgba(255,170,0,0.5),
+    inset 0 2px 0 rgba(255,255,255,0.5),
+    inset 0 -2px 0 rgba(0,0,0,0.2) !important;
+}
+
+.htp-start-btn:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 
+    0 3px 0 #aa5500,
+    0 5px 15px rgba(255,170,0,0.3),
+    inset 0 2px 0 rgba(255,255,255,0.3),
+    inset 0 2px 3px rgba(0,0,0,0.3) !important;
+}
+
+/* How to Play Dialog Content */
+.howtoplay-dialog-content {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Mobile Responsive */
+@media (max-width: 600px) {
+  .steps-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  
+  .step-card {
+    padding: 12px 8px;
+  }
+  
+  .step-icon {
+    font-size: 1.5rem;
+  }
+  
+  .step-title {
+    font-size: 0.5rem;
+  }
+  
+  .step-desc {
+    font-size: 0.4rem;
+  }
+  
+  .htp-tip {
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+  }
+  
+  .htp-actions {
+    padding: 15px 20px 20px;
+  }
+  
+  .htp-start-btn {
+    font-size: 0.8rem !important;
+    padding: 14px 30px !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .step-card, .step-icon, .tip-icon, .htp-title, .htp-start-btn,
   .death-method-card, .glitch-death, .pulse-danger {
     animation: none !important;
   }

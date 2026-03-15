@@ -246,6 +246,28 @@ $events = [
             Log::info('Age progression applied', ['from' => $normalizedCurrentAgeGroup, 'to' => $newAgeGroup]);
             $character->previous_age_group = $normalizedCurrentAgeGroup;
             $character->age_group = $newAgeGroup;
+            
+            // Update profile picture based on new age_group and gender
+            $genderKey = $character->gender;
+            $genderMap = [
+                'male' => 'male',
+                'female' => 'female',
+                'non-binary' => 'male',
+                'transgender' => 'male',
+            ];
+            $genderSuffix = $genderMap[$genderKey] ?? 'male';
+            
+            $ageGroupMap = [
+                'child' => 'child',
+                'teen' => 'teenage',
+                'teenager' => 'teenage',
+                'adult' => 'adult',
+                'old' => 'old',
+            ];
+            $ageGroupPrefix = $ageGroupMap[$newAgeGroup] ?? 'adult';
+            
+            $character->image = "/css/images/profilepicnormal/{$ageGroupPrefix}-{$genderSuffix}.png";
+            
             $character->save();
         }
     }

@@ -77,6 +77,28 @@ class CharacterController extends Controller
         Log::info('Auth ID:', ['user_id' => Auth::id()]);
 
         try {
+            // Determine default profile picture based on age_group and gender
+            $genderKey = $validated['gender'];
+            // Map gender to image filename format
+            $genderMap = [
+                'male' => 'male',
+                'female' => 'female',
+                'non-binary' => 'male', // default to male for non-binary
+                'transgender' => 'male', // default to male for transgender
+            ];
+            $genderSuffix = $genderMap[$genderKey] ?? 'male';
+            
+            // Map age_group to image filename format
+            $ageGroupMap = [
+                'child' => 'child',
+                'teenager' => 'teenage',
+                'adult' => 'adult',
+                'old' => 'old',
+            ];
+            $ageGroupPrefix = $ageGroupMap[$validated['age_group']] ?? 'child';
+            
+            $defaultImage = "/css/images/profilepicnormal/{$ageGroupPrefix}-{$genderSuffix}.png";
+            
             $character = Character::create([
                 'user_id' => $userId,
                 'name' => $validated['name'],
@@ -86,6 +108,7 @@ class CharacterController extends Controller
                 'stats' => $validated['stats'],
                 'hidden_stats' => $validated['hidden_stats'],
                 'effective_stats' => $validated['effective_stats'],
+                'image' => $defaultImage,
             ]);
 
             Log::info('Character created with start_day', [
@@ -201,7 +224,37 @@ class CharacterController extends Controller
         ]);
 
         try {
+            // Check if age_group or gender changed and update profile picture accordingly
+            $oldAgeGroup = $character->age_group;
+            $oldGender = $character->gender;
+            
             $character->update($validated);
+            
+            // Update profile picture if age_group or gender changed and no custom image is set
+            $newAgeGroup = $character->age_group;
+            $newGender = $character->gender;
+            
+            if (($oldAgeGroup !== $newAgeGroup || $oldGender !== $newGender) && 
+                (empty($character->image) || $character->image === '/css/images/player.jpg')) {
+                $genderMap = [
+                    'male' => 'male',
+                    'female' => 'female',
+                    'non-binary' => 'male',
+                    'transgender' => 'male',
+                ];
+                $genderSuffix = $genderMap[$newGender] ?? 'male';
+                
+                $ageGroupMap = [
+                    'child' => 'child',
+                    'teenager' => 'teenage',
+                    'adult' => 'adult',
+                    'old' => 'old',
+                ];
+                $ageGroupPrefix = $ageGroupMap[$newAgeGroup] ?? 'adult';
+                
+                $character->image = "/css/images/profilepicnormal/{$ageGroupPrefix}-{$genderSuffix}.png";
+                $character->save();
+            }
 
             $character->load(['skills', 'talents']);
 
