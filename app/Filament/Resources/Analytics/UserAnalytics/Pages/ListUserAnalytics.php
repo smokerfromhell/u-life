@@ -168,7 +168,7 @@ class ListUserAnalytics extends ListRecords
                     ->sortable()
                     ->size('sm'),
                 
-                // Relationship & Career
+                // Relationship
                 TextColumn::make('after_relationship_status')
                     ->label('Relationship')
                     ->badge()
@@ -176,10 +176,10 @@ class ListUserAnalytics extends ListRecords
                     ->sortable()
                     ->size('sm'),
                 
-                TextColumn::make('after_career_level')
-                    ->label('Career')
+                TextColumn::make('after_profession')
+                    ->label('Profession')
                     ->badge()
-                    ->color('blue')
+                    ->color('green')
                     ->sortable()
                     ->size('sm'),
                 
@@ -222,19 +222,6 @@ class ListUserAnalytics extends ListRecords
                         'married' => 'Married',
                         'divorced' => 'Divorced',
                         'widowed' => 'Widowed',
-                    ]),
-                
-                // Career Filter
-                SelectFilter::make('after_career_level')
-                    ->label('Career Level')
-                    ->options([
-                        'unemployed' => 'Unemployed',
-                        'entry' => 'Entry Level',
-                        'junior' => 'Junior',
-                        'senior' => 'Senior',
-                        'manager' => 'Manager',
-                        'executive' => 'Executive',
-                        'retired' => 'Retired',
                     ]),
                 
                 // MBTI Filter

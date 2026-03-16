@@ -24,6 +24,7 @@ class SharedDecisionLog extends Model
         'choice_text',
         'effects',
         'mbti',
+        'profession',
         'data',
     ];
 

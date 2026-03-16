@@ -836,6 +836,75 @@
         <div class="phase-indicator">{{ getPhaseLabel(animationPhase) }}</div>
       </div>
     </v-overlay>
+
+    <!-- Profession Choice Dialog -->
+    <v-dialog
+      v-model="showProfessionChoiceDialog"
+      max-width="800"
+      rounded="xl"
+      content-class="profession-dialog-content"
+    >
+      <v-card v-if="professionChoices.length > 0" class="profession-dialog">
+        <div class="profession-glow" aria-hidden="true"></div>
+        <div class="profession-scanlines" aria-hidden="true"></div>
+        
+        <v-card-title class="profession-title">
+          <v-icon class="profession-title-icon" size="32">mdi-briefcase</v-icon>
+          <span class="profession-title-text">CHOOSE YOUR CAREER</span>
+        </v-card-title>
+        
+        <v-card-subtitle class="profession-subtitle text-center">
+          Select your professional path wisely - it will affect future career events!
+        </v-card-subtitle>
+        
+        <v-card-text class="profession-cards-container">
+          <div class="profession-cards-grid">
+            <div
+              v-for="(choice, idx) in professionChoices"
+              :key="idx"
+              class="profession-choice-card"
+              :class="{ 'selected': selectingProfession }"
+              @click="selectingProfession ? null : selectProfession(choice)"
+              :disabled="selectingProfession"
+            >
+              <div class="profession-card-icon">
+                <v-icon size="48">mdi-account-tie</v-icon>
+              </div>
+              <div class="profession-card-name">{{ choice.profession }}</div>
+              <div class="profession-card-desc">{{ choice.description }}</div>
+              <v-btn
+                v-if="!selectingProfession"
+                color="primary"
+                variant="tonal"
+                size="small"
+                class="mt-2"
+              >
+                Choose
+              </v-btn>
+              <v-progress-circular
+                v-else
+                indeterminate
+                size="24"
+                color="primary"
+                class="mt-2"
+              />
+            </div>
+          </div>
+        </v-card-text>
+        
+        <v-card-actions class="profession-actions justify-center pb-6">
+          <v-btn
+            variant="outlined"
+            color="error"
+            size="large"
+            @click="closeProfessionChoiceDialog"
+            :disabled="selectingProfession"
+          >
+            Cancel
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -984,6 +1053,11 @@ const animationTimer = ref(null)
 const winnerIndex = ref(-1)
 const selectedAnimationCardIndex = ref(null)
 const shufflePositions = ref([0,1,2,3,4])
+
+// Profession choice dialog state
+const showProfessionChoiceDialog = ref(false)
+const professionChoices = ref([])
+const selectingProfession = ref(false)
 
 // Enhanced riffle shuffle simulation
 const shuffleArray = (arr) => {
@@ -1804,8 +1878,75 @@ const logout = async () => {
  */
 const showMilestone = (milestone) => {
   if (milestone) {
-    narrationHistory.value.push(`🌟 ${milestone.title}: ${milestone.description}`)
+    // Check if this is a profession milestone with choices
+    if (milestone.is_profession_milestone && milestone.profession_choices && milestone.profession_choices.length > 0) {
+      professionChoices.value = milestone.profession_choices
+      showProfessionChoiceDialog.value = true
+      narrationHistory.value.push(`🌟 ${milestone.title}: ${milestone.description}`)
+    } else {
+      narrationHistory.value.push(`🌟 ${milestone.title}: ${milestone.description}`)
+    }
   }
+}
+
+/**
+ * Select a profession from the milestone choice
+ */
+const selectProfession = async (choice) => {
+  if (!character.value?.id || selectingProfession.value) return
+  
+  try {
+    selectingProfession.value = true
+    
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+    
+    const response = await fetch(`/api/characters/${character.value.id}/set-profession`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': csrfToken || ''
+      },
+      body: JSON.stringify({
+        profession: choice.profession
+      }),
+      credentials: 'include'
+    })
+    
+    if (!response.ok) {
+      throw new Error('Failed to set profession')
+    }
+    
+    const data = await response.json()
+    
+    // Update character with the new profession
+    character.value.profession = data.profession
+    
+    // Close dialog
+    showProfessionChoiceDialog.value = false
+    professionChoices.value = []
+    
+    // Add narration
+    narrationHistory.value.push(`💼 You chose: ${data.profession}!`)
+    narrationHistory.value.push(data.message)
+    
+    // Refresh events to show profession-specific events
+    await fetchEvents()
+    
+  } catch (error) {
+    console.error('Error selecting profession:', error)
+    narrationHistory.value.push('Error choosing profession. Please try again.')
+  } finally {
+    selectingProfession.value = false
+  }
+}
+
+/**
+ * Close profession choice dialog
+ */
+const closeProfessionChoiceDialog = () => {
+  showProfessionChoiceDialog.value = false
+  professionChoices.value = []
 }
 
 /**
@@ -6175,5 +6316,138 @@ const startNewGame = () => {
   font-size: 0.8rem;
   color: #94a3b8;
   font-family: 'VT323', monospace;
+}
+
+/* ========================================
+   PROFESSION CHOICE DIALOG
+   ======================================== */
+.profession-dialog-content {
+  background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%) !important;
+  border: 2px solid #00ffcc !important;
+  box-shadow: 0 0 30px rgba(0, 255, 204, 0.3), inset 0 0 60px rgba(0, 0, 0, 0.5) !important;
+}
+
+.profession-dialog {
+  background: transparent !important;
+  overflow: hidden;
+}
+
+.profession-glow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(0, 255, 204, 0.15) 0%, transparent 50%);
+  animation: profession-glow-pulse 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes profession-glow-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.1); }
+}
+
+.profession-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.1) 2px,
+    rgba(0, 0, 0, 0.1) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.profession-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px 16px 12px !important;
+  background: linear-gradient(180deg, rgba(0, 255, 204, 0.1) 0%, transparent 100%);
+}
+
+.profession-title-icon {
+  color: #00ffcc !important;
+  text-shadow: 0 0 10px #00ffcc;
+}
+
+.profession-title-text {
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 1rem !important;
+  color: #00ffcc !important;
+  text-shadow: 0 0 10px #00ffcc, 2px 0 0 #000;
+  letter-spacing: 0.1em;
+}
+
+.profession-subtitle {
+  color: #94a3b8 !important;
+  font-family: 'VT323', monospace !important;
+  font-size: 1.1rem !important;
+  padding: 8px 16px 16px !important;
+}
+
+.profession-cards-container {
+  padding: 16px !important;
+}
+
+.profession-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  justify-items: center;
+}
+
+.profession-choice-card {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 2px solid #334155;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 180px;
+  max-width: 220px;
+}
+
+.profession-choice-card:hover:not([disabled]) {
+  transform: translateY(-4px);
+  border-color: #00ffcc;
+  box-shadow: 0 8px 20px rgba(0, 255, 204, 0.3), 0 0 30px rgba(0, 255, 204, 0.2);
+}
+
+.profession-choice-card.selected {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.profession-card-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+  color: #00ffcc;
+}
+
+.profession-card-name {
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 0.75rem !important;
+  color: #e2e8f0 !important;
+  margin-bottom: 8px;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.profession-card-desc {
+  font-family: 'VT323', monospace !important;
+  font-size: 0.95rem !important;
+  color: #94a3b8 !important;
+  line-height: 1.4;
+}
+
+.profession-actions {
+  padding: 16px !important;
 }
 </style>

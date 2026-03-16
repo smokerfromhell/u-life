@@ -131,6 +131,7 @@ class DecisionLogService
                 'user_name' => $authUser?->name ?? 'Guest',
                 'day' => $character->current_day ?? 0,
                 'age_group' => $character->age_group,
+                'profession' => $character->profession ?? null,
                 'event_type' => $event['type'] ?? 'unknown',
                 'event_id' => $event['id'] ?? null,
                 'event_title' => $event['title'] ?? null,
@@ -143,12 +144,14 @@ class DecisionLogService
                 'before_happiness' => $beforeLifeStats['happiness'] ?? 100,
                 'before_finance' => $beforeLifeStats['finance'] ?? 0,
                 'before_relationship_status' => $beforeLifeStats['relationship_status'] ?? 'single',
+                'before_profession' => $beforeLifeStats['profession'] ?? ($character->profession ?? null),
                 'before_career_level' => $beforeLifeStats['career_level'] ?? 'unemployed',
                 // After  
                 'after_health' => $afterLifeStats['health'] ?? 100,
                 'after_happiness' => $afterLifeStats['happiness'] ?? 100,
                 'after_finance' => $afterLifeStats['finance'] ?? 0,
                 'after_relationship_status' => $afterLifeStats['relationship_status'] ?? 'single',
+                'after_profession' => $afterLifeStats['profession'] ?? ($character->profession ?? null),
                 'after_career_level' => $afterLifeStats['career_level'] ?? 'unemployed',
                 // Changes
                 'health_change' => ($afterLifeStats['health'] ?? 100) - ($beforeLifeStats['health'] ?? 100),

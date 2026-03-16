@@ -26,6 +26,7 @@ class LifeStatsSnapshot extends Model
         'finance',
         'relationship_status',
         'career_level',
+        'profession',
         'mbti',
         'data',
     ];

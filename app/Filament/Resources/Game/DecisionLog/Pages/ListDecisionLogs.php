@@ -36,7 +36,7 @@ class ListDecisionLogs extends ListRecords
                 TextColumn::make('after_happiness')->label('Happiness After')->badge()->color(fn (int $state): string => $state >= 70 ? 'success' : ($state >= 40 ? 'warning' : 'danger')),
                 TextColumn::make('after_finance')->label('Finance After')->badge()->color(fn (int $state): string => $state >= 0 ? 'success' : 'danger'),
                 TextColumn::make('after_relationship_status')->label('Relationship')->badge(),
-                TextColumn::make('after_career_level')->label('Career')->badge(),
+                TextColumn::make('after_profession')->label('Profession')->badge(),
                 TextColumn::make('mbti')->label('MBTI')->badge(),
                 TextColumn::make('created_at')->dateTime()->sortable(),
             ])
@@ -67,17 +67,6 @@ class ListDecisionLogs extends ListRecords
                         'married' => 'Married',
                         'divorced' => 'Divorced',
                         'widowed' => 'Widowed',
-                    ]),
-                SelectFilter::make('after_career_level')
-                    ->label('Career')
-                    ->options([
-                        'unemployed' => 'Unemployed',
-                        'entry' => 'Entry Level',
-                        'junior' => 'Junior',
-                        'senior' => 'Senior',
-                        'manager' => 'Manager',
-                        'executive' => 'Executive',
-                        'retired' => 'Retired',
                     ]),
             ])
             ->defaultSort('created_at', 'desc');

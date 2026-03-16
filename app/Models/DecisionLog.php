@@ -17,6 +17,7 @@ class DecisionLog extends Model
         'user_name',
         'day',
         'age_group',
+        'profession',
         'event_type',
         'event_id',
         'event_title',
@@ -30,12 +31,14 @@ class DecisionLog extends Model
         'before_finance',
         'before_relationship_status',
         'before_career_level',
+        'before_profession',
         // After state
         'after_health',
         'after_happiness',
         'after_finance',
         'after_relationship_status',
         'after_career_level',
+        'after_profession',
         // Changes
         'health_change',
         'happiness_change',

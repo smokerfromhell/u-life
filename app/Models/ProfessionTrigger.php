@@ -14,6 +14,8 @@ class ProfessionTrigger extends Model
         'profession',
         'unlock_condition',
         'notes',
+        'stat_effects',
+        'description',
     ];
 
     /**
@@ -33,5 +35,29 @@ class ProfessionTrigger extends Model
         // Example: "Intelligence >= 60 AND Creativity >= 40"
         // This would need custom logic based on your condition format
         return true; // Placeholder
+    }
+
+    /**
+     * Get the stat effects as an array
+     */
+    public function getStatEffectsArray(): array
+    {
+        if (empty($this->stat_effects)) {
+            return [];
+        }
+
+        if (is_array($this->stat_effects)) {
+            return $this->stat_effects;
+        }
+        
+        $effects = [];
+        $parts = explode(',', $this->stat_effects);
+        foreach ($parts as $part) {
+            $part = trim($part);
+            if (preg_match('/([+-]?\d+)\s+(\w+)/', $part, $matches)) {
+                $effects[$matches[2]] = (int)$matches[1];
+            }
+        }
+        return $effects;
     }
 }

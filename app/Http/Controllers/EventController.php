@@ -49,8 +49,9 @@ class EventController extends Controller
             // Check and apply age progression
             $this->checkAndApplyAgeProgression($character);
 
-            // FSM action: unlock profession when adult requirements are met
-            $professionUnlocked = $this->maybeUnlockProfession($character);
+            // Check if profession choice is needed (but don't auto-assign)
+            $professionChoices = $this->getAvailableProfessions($character);
+            $needsProfessionChoice = !empty($professionChoices) && empty($character->profession);
             
             $ageGroup = $character->age_group ?? 'adult';
             $shownEventIds = $character->shown_event_ids ?? [];
@@ -86,14 +87,16 @@ Log::info('EventController::getAvailableEvents - Stateful events loaded', [
             }
             
             $milestone = $this->checkMilestone($character);
-            if ($professionUnlocked) {
-                $milestone = $this->mergeMilestones($milestone, $this->professionUnlockMilestone($professionUnlocked));
+            
+            // Add profession choice to milestone if character needs to choose a profession
+            if ($needsProfessionChoice) {
+                $milestone = $this->addProfessionChoiceToMilestone($milestone, $professionChoices);
             }
 
 $events = [
                 'daily' => $dailyEvents,
                 'cultural' => $culturalEvents,
-                'ageSpecific' => $statefulEvents['ageSpecific'] ?? [],
+                'ageSpecific' => $this->getAgeSpecificEvents($character, $ageGroup, $shownEventIds),
                 'profession' => $statefulEvents['profession'] ?? [],
                 'milestone' => $milestone,
                 'current_state' => $character->current_state,
@@ -328,10 +331,71 @@ $events = [
     }
 
     /**
+     * Get available professions for the character (for choice selection)
+     * Returns array of profession options instead of auto-assigning
+     */
+    private function getAvailableProfessions(Character $character): array
+    {
+        if (($character->age_group ?? null) !== 'adult') {
+            return [];
+        }
+
+        if (!empty($character->profession)) {
+            return [];
+        }
+
+        $unlockedProfessions = $this->eventService->checkProfessionUnlock($character);
+        
+        // Format profession choices for frontend
+        $choices = [];
+        foreach ($unlockedProfessions as $profession) {
+            $choices[] = [
+                'profession' => $profession->profession,
+                'description' => $profession->notes ?? "A career path in {$profession->profession}",
+                'long_description' => $profession->description ?? null,
+                'stat_effects' => $profession->getStatEffectsArray(),
+                'unlock_condition' => $profession->unlock_condition,
+            ];
+        }
+        
+        return $choices;
+    }
+
+    /**
+     * Add profession choice to milestone for user to select
+     */
+    private function addProfessionChoiceToMilestone(?array $milestone, array $professionChoices): array
+    {
+        if (empty($professionChoices)) {
+            return $milestone;
+        }
+
+        // If no existing milestone, create a new one
+        if (!$milestone) {
+            $milestone = [
+                'title' => 'Choose Your Career!',
+                'description' => 'You have reached adulthood and must choose a profession path.',
+                'is_milestone' => true,
+            ];
+        }
+
+        // Add profession choices to milestone
+        $milestone['profession_choices'] = $professionChoices;
+        $milestone['title'] = 'Career Choice!';
+        $milestone['description'] = 'Choose your professional path! Your decision will affect future career events.';
+        $milestone['is_profession_milestone'] = true;
+
+        return $milestone;
+    }
+
+    /**
      * FSM action: unlock a profession when character is adult and meets requirements.
+     * Now returns available professions instead of auto-assigning.
      */
     private function maybeUnlockProfession(Character $character): ?string
     {
+        // This method is now deprecated - profession is chosen by user
+        // Keeping for backward compatibility
         if (($character->age_group ?? null) !== 'adult') {
             return null;
         }
@@ -340,21 +404,7 @@ $events = [
             return null;
         }
 
-        $unlocked = $this->eventService->checkProfessionUnlock($character);
-        if (empty($unlocked)) {
-            return null;
-        }
-
-        $picked = $unlocked[array_rand($unlocked)];
-        $profession = $picked->profession ?? null;
-        if (!$profession) {
-            return null;
-        }
-
-        $character->profession = $profession;
-        $character->save();
-
-        return $profession;
+        return null; // Don't auto-assign anymore
     }
 
     private function professionUnlockMilestone(string $profession): array
@@ -752,6 +802,91 @@ $events = [
     }
 
     /**
+     * Set the character's profession based on user's choice from milestone
+     */
+    public function setProfession(Request $request, Character $character)
+    {
+        try {
+            if ($character->user_id !== Auth::id()) {
+                return response()->json([
+                    'message' => 'Unauthorized',
+                ], 403);
+            }
+
+            $validated = $request->validate([
+                'profession' => 'required|string',
+            ]);
+
+            $profession = $validated['profession'];
+
+            // Verify the profession is valid (exists in profession_triggers)
+            $availableProfessions = $this->getAvailableProfessions($character);
+            $validProfessions = array_column($availableProfessions, 'profession');
+            
+            if (!empty($availableProfessions) && !in_array($profession, $validProfessions)) {
+                return response()->json([
+                    'message' => 'Invalid profession choice',
+                ], 400);
+            }
+
+            // Get the profession trigger to apply stat effects
+            $professionTrigger = \App\Models\ProfessionTrigger::where('profession', $profession)->first();
+            
+            // Apply stat effects from profession choice
+            $statEffects = [];
+            if ($professionTrigger && !empty($professionTrigger->stat_effects)) {
+                $statEffects = $professionTrigger->getStatEffectsArray();
+                
+                // Apply stat effects to character base stats
+                $currentStats = $character->stats ?? [];
+                foreach ($statEffects as $stat => $value) {
+                    $currentStats[$stat] = ($currentStats[$stat] ?? 0) + $value;
+                }
+                $character->stats = $currentStats;
+                
+                // Update effective_stats by merging base + hidden stats
+                $hiddenStats = $character->hidden_stats ?? [];
+                $lifeStatsKeys = ['health', 'happiness', 'finance', 'relationship_status', 'career_level'];
+                $filteredHiddenStats = array_diff_key($hiddenStats, array_flip($lifeStatsKeys));
+                $effectiveStats = array_merge($filteredHiddenStats, $currentStats);
+                
+                // Clamp values between 0-100
+                foreach ($effectiveStats as $key => $value) {
+                    $effectiveStats[$key] = max(0, min(100, $value));
+                }
+                $character->effective_stats = $effectiveStats;
+            }
+
+            // Set the profession and career level
+            $character->profession = $profession;
+            $character->career_level = 'entry_level';
+            $character->save();
+
+            Log::info('Character profession set', [
+                'character_id' => $character->id,
+                'profession' => $profession,
+                'stat_effects_applied' => $statEffects,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'profession' => $profession,
+                'stat_effects_applied' => $statEffects,
+                'message' => "You have chosen {$profession} as your profession!",
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error setting profession: ' . $e->getMessage(), [
+                'character_id' => $character->id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'message' => 'Error setting profession: ' . $e->getMessage(),
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Apply stat effects from an event choice
      */
     public function applyEventOutcome(Request $request, Character $character)
@@ -801,6 +936,7 @@ $events = [
                 'happiness' => $character->happiness ?? 100,
                 'finance' => $character->finance ?? 0,
                 'relationship_status' => $character->relationship_status ?? 'single',
+                'profession' => $character->profession ?? null,
                 'career_level' => $character->career_level ?? 'unemployed',
             ];
 
@@ -941,6 +1077,7 @@ $events = [
                                 'happiness' => $character->happiness ?? 100,
                                 'finance' => $character->finance ?? 0,
                                 'relationship_status' => $character->relationship_status ?? 'single',
+                                'profession' => $character->profession ?? null,
                                 'career_level' => $character->career_level ?? 'unemployed',
                             ],
                         ]);
@@ -958,6 +1095,7 @@ $events = [
                             'choice_text' => $logData['choice_text'] ?? null,
                             'effects' => $logData['effects'] ?? null,
                             'mbti' => $logData['mbti'] ?? null,
+                            'profession' => $character->profession ?? null,
                             'data' => $logDataWithLifeStats,
                         ]);
                         
@@ -981,6 +1119,7 @@ $events = [
                             'happiness' => $character->happiness ?? 100,
                             'finance' => $character->finance ?? 0,
                             'relationship_status' => $character->relationship_status ?? 'single',
+                            'profession' => $character->profession ?? null,
                             'career_level' => $character->career_level ?? 'unemployed',
                             'mbti' => $logData['mbti'] ?? null,
                             'data' => $logData,
@@ -996,6 +1135,7 @@ $events = [
                             'user_name' => $userName,
                             'day' => $beforeSnapshot['day'],
                             'age_group' => $character->age_group,
+                            'profession' => $character->profession ?? null,
                             'event_type' => $validated['event_type'],
                             'event_id' => $validated['event_id'],
                             'event_title' => $logData['event_title'] ?? null,
@@ -1008,12 +1148,14 @@ $events = [
                             'before_happiness' => $beforeSnapshot['happiness'] ?? ($character->happiness ?? 100),
                             'before_finance' => $beforeSnapshot['finance'] ?? ($character->finance ?? 0),
                             'before_relationship_status' => $beforeSnapshot['relationship_status'] ?? ($character->relationship_status ?? 'single'),
+                            'before_profession' => $beforeSnapshot['profession'] ?? ($character->profession ?? null),
                             'before_career_level' => $beforeSnapshot['career_level'] ?? ($character->career_level ?? 'unemployed'),
                             // After state
                             'after_health' => $character->health ?? 100,
                             'after_happiness' => $character->happiness ?? 100,
                             'after_finance' => $character->finance ?? 0,
                             'after_relationship_status' => $character->relationship_status ?? 'single',
+                            'after_profession' => $character->profession ?? null,
                             'after_career_level' => $character->career_level ?? 'unemployed',
                             // Changes
                             'health_change' => ($character->health ?? 100) - ($beforeSnapshot['health'] ?? ($character->health ?? 100)),
@@ -1153,12 +1295,35 @@ $events = [
      */
     private function formatEvent($event, string $type): array
     {
+        // Determine the correct image path
+        $image = $event->image ?? null;
+        
+        // If no image is set, try to generate one based on event title/type
+        if (empty($image)) {
+            if ($type === 'ageSpecific') {
+                // Use age-group folder with slugified title
+                $titleSlug = strtolower(preg_replace('/[^a-zA-Z0-9]/', '-', $event->event_choice ?? $event->title ?? ''));
+                $image = "/css/images/age-group/{$titleSlug}.png";
+            } elseif ($type === 'cultural') {
+                $titleSlug = strtolower(preg_replace('/[^a-zA-Z0-9]/', '-', $event->event_choice ?? $event->title ?? ''));
+                $image = "/css/images/culturalevents/{$titleSlug}.jpg";
+            } elseif ($type === 'daily') {
+                $titleSlug = strtolower(preg_replace('/[^a-zA-Z0-9]/', '-', $event->event_choice ?? $event->title ?? ''));
+                $image = "/css/images/dailyevents/{$titleSlug}.jpg";
+            } elseif ($type === 'profession') {
+                $titleSlug = strtolower(preg_replace('/[^a-zA-Z0-9]/', '-', $event->event_choice ?? $event->title ?? ''));
+                $image = "/css/images/profession/{$titleSlug}.jpg";
+            } else {
+                $image = '/css/images/event-placeholder.jpg';
+            }
+        }
+        
         return [
             'id' => $event->id,
             'type' => $type,
             'title' => $event->event_choice ?? $event->title,
             'description' => $event->outcome ?? $event->description,
-            'image' => $event->image ?? '/css/images/event-placeholder.jpg',
+            'image' => $image,
             'outcome' => $event->outcome,
             'statEffects' => $event->stat_effects,
             'choices' => $this->formatChoices($event->choices ?? null),
