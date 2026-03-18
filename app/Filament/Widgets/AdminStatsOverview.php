@@ -3,7 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Character;
-use App\Models\SharedDecisionLog;
+use App\Models\DecisionLog;
 use App\Models\User;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -26,10 +26,10 @@ class AdminStatsOverview extends StatsOverviewWidget
                 Stat::make('Sharing Data', User::query()->where('share_consent', true)->count())
                     ->description('Players sharing analytics')
                     ->color('success'),
-                Stat::make('Shared Logs (24h)', SharedDecisionLog::query()->where('created_at', '>=', $since24h)->count())
+                Stat::make('Shared Logs (24h)', DecisionLog::query()->where('created_at', '>=', $since24h)->count())
                     ->description('Opt-in analytics')
                     ->color('warning'),
-                Stat::make('Shared Logs (7d)', SharedDecisionLog::query()->where('created_at', '>=', $since7d)->count())
+                Stat::make('Shared Logs (7d)', DecisionLog::query()->where('created_at', '>=', $since7d)->count())
                     ->description('Opt-in analytics')
                     ->color('warning'),
             ];
@@ -48,10 +48,10 @@ class AdminStatsOverview extends StatsOverviewWidget
             Stat::make('Characters', Character::query()->count())
                 ->description('Total created')
                 ->color('success'),
-            Stat::make('Shared Logs (24h)', SharedDecisionLog::query()->where('created_at', '>=', $since24h)->count())
+            Stat::make('Shared Logs (24h)', DecisionLog::query()->where('created_at', '>=', $since24h)->count())
                 ->description('Opt-in analytics')
                 ->color('warning'),
-            Stat::make('Shared Logs (7d)', SharedDecisionLog::query()->where('created_at', '>=', $since7d)->count())
+            Stat::make('Shared Logs (7d)', DecisionLog::query()->where('created_at', '>=', $since7d)->count())
                 ->description('Opt-in analytics')
                 ->color('warning'),
         ];

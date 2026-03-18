@@ -2,7 +2,7 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\SharedDecisionLog;
+use App\Models\DecisionLog;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +21,7 @@ class SharedDecisionTypesChart extends ChartWidget
         // No caching - always get fresh data for real-time updates
         $since = Carbon::now()->subDays(7);
 
-        $rows = SharedDecisionLog::query()
+        $rows = DecisionLog::query()
             ->select('event_type', DB::raw('count(*) as aggregate'))
             ->where('created_at', '>=', $since)
             ->groupBy('event_type')

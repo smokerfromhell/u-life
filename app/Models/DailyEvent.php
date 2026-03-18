@@ -23,6 +23,21 @@ class DailyEvent extends Model
         'chain_order',
         'parent_category',
         'required_choice_outcome',
+        // New fields from migration
+        'type',
+        'deck_label',
+        'repeatable',
+        'auto_resolve',
+        'days_to_advance',
+        'conditions',
+        'display_order',
+    ];
+
+    protected $casts = [
+        'repeatable' => 'boolean',
+        'auto_resolve' => 'boolean',
+        'conditions' => 'array',
+        'choices' => 'array',
     ];
 
     /**

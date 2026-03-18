@@ -15,6 +15,9 @@ class UserForm
     {
         return $schema
             ->components([
+                TextInput::make('id')
+                    ->hidden()
+                    ->dehydrated(),
                 TextInput::make('name')
                     ->required()
                     ->maxLength(255),
@@ -44,16 +47,15 @@ class UserForm
                 TextInput::make('password')
                     ->label('Password')
                     ->password()
-                    ->required(fn (callable $get): bool => !$get('is_guest'))
+                    ->required(fn (callable $get): bool => !$get('is_guest') && !$get('id'))
                     ->dehydrated(fn (?string $state): bool => filled($state))
                     ->dehydrateStateUsing(fn (string $state): string => Hash::make($state)),
                 TextInput::make('password_confirmation')
                     ->label('Confirm Password')
                     ->password()
-                    ->required(fn (callable $get): bool => !$get('is_guest'))
+                    ->required(fn (callable $get): bool => !$get('is_guest') && filled($get('password')) && !$get('id'))
                     ->dehydrated(false)
-                    ->same('password')
-                    ->rules(['confirmed']),
+                    ->visible(fn (callable $get): bool => !$get('is_guest')),
                 Select::make('roles.name')
                     ->label('Roles')
                     ->multiple()

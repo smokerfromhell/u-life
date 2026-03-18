@@ -3,6 +3,9 @@
 namespace App\Filament\Resources\Analytics;
 
 use App\Filament\Resources\Analytics\UserAnalytics\Pages\ListUserAnalytics;
+use App\Filament\Resources\Analytics\UserAnalytics\Pages\ViewUserAnalytics;
+use App\Filament\Resources\Analytics\UserAnalytics\Pages\UserAnalyticsRecord;
+
 use App\Models\SharedDecisionLog;
 use App\Models\LifeStatsSnapshot;
 use BackedEnum;
@@ -10,11 +13,10 @@ use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\UnionScope;
 
 class UserAnalyticsResource extends Resource
 {
-    protected static ?string $model = ListUserAnalytics::class;
+protected static ?string $model = UserAnalyticsRecord::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
 
@@ -57,7 +59,8 @@ class UserAnalyticsResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => \App\Filament\Resources\Analytics\UserAnalytics\Pages\ListUserAnalytics::route('/'),
+'index' => ListUserAnalytics::route('/'),
+            'view' => ViewUserAnalytics::route('/{record}'),
         ];
     }
 }

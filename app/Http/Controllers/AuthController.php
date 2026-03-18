@@ -52,9 +52,15 @@ public function login(Request $request)
         'password' => 'required|string|min:5',
     ]);
 
+    // Use separate session key for game/frontend
+    $gameSessionKey = 'game_user_id';
+
     if (Auth::attempt($request->only('email', 'password'))) {
         $user = Auth::user();
         $hasCharacter = $user->characters()->exists();
+        
+        // Store user ID in separate session key for game
+        $request->session()->put($gameSessionKey, $user->id);
         
         return response()->json([
             'message' => 'Login successful',
@@ -94,6 +100,9 @@ public function googleAuth(Request $request)
             
             Auth::login($user);
             $hasCharacter = $user->characters()->exists();
+            
+            // Store user ID in separate session key for game
+            $request->session()->put('game_user_id', $user->id);
             
             return response()->json([
                 'message' => 'Login successful',

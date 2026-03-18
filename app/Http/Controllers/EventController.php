@@ -5,21 +5,27 @@ use App\Models\Character;
 use App\Models\SharedDecisionLog;
 use App\Models\LifeStatsSnapshot;
 use App\Models\DecisionLog;
+use App\Models\DailyAction;
 use App\Models\DailyEvent;
 use App\Models\CulturalEvent;
 use App\Models\AgeSpecificEvent;
 use App\Models\ProfessionPathEvent;
+use App\Models\ProfessionTrigger;
 use App\Models\StatTriggerCondition;
+use App\Models\User;
 use App\Support\Privacy;
+use App\Services\AdaptiveNarrativeService;
 use App\Services\EventService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Collection;
 
 class EventController extends Controller
 {
     protected EventService $eventService;
+    protected AdaptiveNarrativeService $adaptiveNarrativeService;
 
     // Age progression thresholds (in days) - SHORTENED for faster gameplay
     const AGE_GROUPS = [
@@ -29,9 +35,217 @@ class EventController extends Controller
         'old' => ['min' => 36, 'max' => 50],      // Days 36-50 (game ends)
     ];
 
-    public function __construct(EventService $eventService)
+    // Days per year for age calculation
+    const DAYS_PER_YEAR = 1; // 1 day = 1 year for game simplicity
+
+    // Maximum days in game
+    const MAX_DAYS = 50;
+
+    public function __construct(EventService $eventService, AdaptiveNarrativeService $adaptiveNarrativeService)
     {
         $this->eventService = $eventService;
+        $this->adaptiveNarrativeService = $adaptiveNarrativeService;
+    }
+
+    /**
+     * Calculate age from current day
+     */
+    public function calculateAge(int $currentDay): int
+    {
+        return $this->eventService->calculateAge($currentDay);
+    }
+
+    /**
+     * Get age group from age
+     */
+    public function getAgeGroupFromAge(int $age): string
+    {
+        return $this->eventService->getAgeGroupFromAge($age);
+    }
+
+    /**
+     * End the current day - call this when user is done making choices
+     */
+    public function endDay(Character $character)
+    {
+        try {
+            if ($character->user_id !== Auth::id()) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+
+            if ($this->eventService->isDead($character)) {
+                return response()->json($this->buildTerminalStatePayload($character));
+            }
+
+            // Advance the day
+            $character->current_day = ($character->current_day ?? 1) + 1;
+            $character->save();
+
+            // Apply age progression
+            $this->checkAndApplyAgeProgression($character);
+
+            // Apply deterministic ongoing consequences as time passes
+            $this->eventService->applyTimePassage($character, 1);
+
+            // Update health condition based on new state
+            $this->eventService->updateHealthCondition($character);
+
+            // Evaluate major consequence thresholds (bankruptcy/cancer/disability/etc.)
+            $this->eventService->checkSevereConsequences($character, []);
+
+            // Check if game is over
+            $gameOver = false;
+            $endingType = null;
+
+            if ($character->current_day >= self::MAX_DAYS) {
+                $gameOver = true;
+                $endingType = $this->determineEndingType($character, 'old_age');
+            }
+
+            $effectiveStats = is_array($character->effective_stats) ? $character->effective_stats : [];
+            $health = isset($effectiveStats['Health']) ? (int)$effectiveStats['Health'] : 100;
+            if ($health <= 0) {
+                $this->eventService->markCharacterDeath($character, 'health_collapse');
+                $gameOver = true;
+                $endingType = $this->determineEndingType($character, 'death');
+            }
+
+            $response = [
+                'current_day' => $character->current_day,
+                'age' => $this->calculateAge($character->current_day),
+                'age_group' => $character->age_group,
+                'game_over' => $gameOver,
+            ];
+
+            if ($gameOver && $endingType) {
+                $endingDetails = $this->getEndingDetails($endingType, $character);
+                $response['ending_type'] = $endingType;
+                $response['ending_title'] = $endingDetails['title'];
+                $response['ending_description'] = $endingDetails['description'];
+            }
+
+            return response()->json($response);
+        } catch (\Exception $e) {
+            Log::error('Error in endDay: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Feature 7: Get life summary from birth to death
+     */
+    public function getLifeSummary(Character $character)
+    {
+        try {
+            if ($character->user_id !== Auth::id()) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+
+            // Get all snapshots (life stats history)
+            $snapshots = LifeStatsSnapshot::where('anon_character_id', $character->anon_character_id)
+                ->orderBy('day')
+                ->get();
+
+            // Get all decision logs
+            $decisions = DecisionLog::where('character_id', $character->id)
+                ->orderBy('day')
+                ->get();
+
+            // Build timeline
+            $timeline = [];
+            foreach ($decisions as $decision) {
+                $timeline[] = [
+                    'day' => $decision->day,
+                    'age' => $this->calculateAge($decision->day),
+                    'event_title' => $decision->event_title,
+                    'choice_text' => $decision->choice_text,
+                    'outcome' => $decision->outcome,
+                    'health_change' => $decision->health_change,
+                    'happiness_change' => $decision->happiness_change,
+                    'finance_change' => $decision->finance_change,
+                ];
+            }
+
+            // Extract milestones
+            $milestones = $this->extractMilestones($decisions);
+
+            // Determine ending
+            $endingType = $this->determineEndingType($character, 
+                ($character->current_day >= self::MAX_DAYS) ? 'old_age' : 'death');
+            $endingDetails = $this->getEndingDetails($endingType, $character);
+
+            return response()->json([
+                'character_name' => $character->name,
+                'birth_date' => $character->created_at,
+                'death_date' => now(),
+                'lifespan_days' => $character->current_day,
+                'lifespan_years' => $this->calculateAge($character->current_day),
+                'ending_type' => $endingType,
+                'ending_title' => $endingDetails['title'] ?? 'Unknown',
+                'ending_description' => $endingDetails['description'] ?? '',
+                'final_stats' => [
+                    'health' => $character->health ?? 100,
+                    'happiness' => $character->happiness ?? 100,
+                    'finance' => $character->finance ?? 0,
+                    'profession' => $character->profession ?? 'none',
+                    'relationship' => $character->relationship_status ?? 'single',
+                ],
+                'total_decisions' => $decisions->count(),
+                'milestones' => $milestones,
+                'timeline' => $timeline,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in getLifeSummary: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Extract milestones from decision logs
+     */
+    private function extractMilestones($decisions): array
+    {
+        $milestones = [];
+        
+        foreach ($decisions as $decision) {
+            $eventTitle = strtolower($decision->event_title ?? '');
+            $choiceText = strtolower($decision->choice_text ?? '');
+            
+            // Career milestones
+            if (str_contains($eventTitle, 'promotion') || str_contains($choiceText, 'promoted')) {
+                $milestones[] = [
+                    'day' => $decision->day,
+                    'age' => $this->calculateAge($decision->day),
+                    'type' => 'career',
+                    'title' => 'Promoted!',
+                    'description' => $decision->choice_text,
+                ];
+            }
+            
+            // Marriage milestones
+            if (str_contains($eventTitle, 'marriage') || str_contains($choiceText, 'married')) {
+                $milestones[] = [
+                    'day' => $decision->day,
+                    'age' => $this->calculateAge($decision->day),
+                    'type' => 'relationship',
+                    'title' => 'Got Married!',
+                    'description' => $decision->choice_text,
+                ];
+            }
+            
+            // Education milestones
+            if (str_contains($eventTitle, 'graduation') || str_contains($choiceText, 'graduated')) {
+                $milestones[] = [
+                    'day' => $decision->day,
+                    'age' => $this->calculateAge($decision->day),
+                    'type' => 'education',
+                    'title' => 'Graduated!',
+                    'description' => $decision->choice_text,
+                ];
+            }
+        }
+        
+        return $milestones;
     }
 
     /**
@@ -46,12 +260,15 @@ class EventController extends Controller
                 ], 403);
             }
 
+            if ($this->eventService->isDead($character) || ($character->current_day ?? 1) >= self::MAX_DAYS) {
+                return response()->json($this->buildTerminalStatePayload($character));
+            }
+
             // Check and apply age progression
             $this->checkAndApplyAgeProgression($character);
 
             // Check if profession choice is needed (but don't auto-assign)
             $professionChoices = $this->getAvailableProfessions($character);
-            $needsProfessionChoice = !empty($professionChoices) && empty($character->profession);
             
             $ageGroup = $character->age_group ?? 'adult';
             $shownEventIds = $character->shown_event_ids ?? [];
@@ -88,25 +305,35 @@ Log::info('EventController::getAvailableEvents - Stateful events loaded', [
             
             $milestone = $this->checkMilestone($character);
             
-            // Add profession choice to milestone if character needs to choose a profession
-            if ($needsProfessionChoice) {
-                $milestone = $this->addProfessionChoiceToMilestone($milestone, $professionChoices);
-            }
+            // Profession choices are returned as their own deck; milestones stay focused on age transitions.
 
 $events = [
-                'daily' => $dailyEvents,
-                'cultural' => $culturalEvents,
-                'ageSpecific' => $this->getAgeSpecificEvents($character, $ageGroup, $shownEventIds),
-                'profession' => $statefulEvents['profession'] ?? [],
+                // Separate decks (same interaction model as life actions)
+                'life_actions' => $this->dedupeFormattedEvents($this->getSystemActions($character)),
+                'triggers' => $this->dedupeFormattedEvents($triggerEvents),
+                'daily' => $this->dedupeFormattedEvents($dailyEvents),
+                'cultural' => $this->dedupeFormattedEvents($culturalEvents),
+                'ageSpecific' => $this->dedupeFormattedEvents($this->getAgeSpecificEvents($character, $ageGroup, $shownEventIds)),
+                'profession' => $this->dedupeFormattedEvents($this->ensureArray($statefulEvents['profession'] ?? [])),
+                'profession_choices' => $this->dedupeFormattedEvents($professionChoices),
                 'milestone' => $milestone,
                 'current_state' => $character->current_state,
                 'character_state' => $character->character_state,
+                // Feature 4: Age instead of day
+                'age' => $this->calculateAge($character->current_day),
+                'current_day' => $character->current_day,
+                // Feature 1: Health status instead of health %
+                'health_status' => $this->eventService->getHealthStatus($character->health ?? 100),
+                'health_percentage' => $character->health ?? 100,
             ];
 
             // Add profession events if character is adult with profession
             if ($ageGroup === 'adult' && $character->profession) {
-                $events['profession'] = $this->getProfessionEvents($character, $shownEventIds);
+                $events['profession'] = $this->dedupeFormattedEvents($this->getProfessionEvents($character, $shownEventIds));
             }
+
+            // Back-compat: keep `actions` as an alias of `life_actions` (frontend should use separated decks).
+            $events['actions'] = $events['life_actions'] ?? [];
 
             return response()->json($events);
         } catch (\Exception $e) {
@@ -133,9 +360,11 @@ $events = [
         // Get all age-specific events for this age group
         $events = AgeSpecificEvent::where('age_group', $normalizedAgeGroup)->get();
         
-        // Filter out already shown events
+        // Filter out already shown NON-repeatable events
         if (!empty($shownEventIds)) {
             $events = $events->filter(function($event) use ($shownEventIds) {
+                $isRepeatable = $this->isRepeatableEvent('ageSpecific', $event);
+                if ($isRepeatable) return true;
                 return !in_array('ageSpecific_' . $event->id, $shownEventIds);
             });
         }
@@ -148,6 +377,7 @@ $events = [
         $standaloneEvents = [];
         
         foreach ($events as $event) {
+            $event->dynamic_weight = $this->adaptiveNarrativeService->scoreEventWeight($character, $event, 'ageSpecific');
             // Check if event has branching prerequisites
             $hasPrerequisites = !empty($event->parent_category);
             
@@ -162,6 +392,7 @@ $events = [
         }
         
         $selectedEvents = [];
+        $maxTotal = 10;
 
         // If we have active paths, bias toward chain events but keep randomness via weights.
         if (!empty($activePaths) && !empty($chainEvents)) {
@@ -177,24 +408,24 @@ $events = [
                 return $event;
             });
 
-            $maxChain = min(3, $chainCollection->count());
+            $maxChain = min(4, $chainCollection->count());
             for ($i = 0; $i < $maxChain && !$chainCollection->isEmpty(); $i++) {
                 $picked = $this->eventService->getRandomEventByWeight($chainCollection);
                 if ($picked) {
-                    $selectedEvents[] = $this->formatEvent($picked, 'ageSpecific');
+                    $selectedEvents[] = $this->formatEvent($picked, 'ageSpecific', $character);
                     $chainCollection = $chainCollection->reject(fn($e) => $e->id === $picked->id);
                 }
             }
         }
 
         // Fill remaining slots with standalone events (weighted).
-        $remaining = 5 - count($selectedEvents);
+        $remaining = $maxTotal - count($selectedEvents);
         if ($remaining > 0 && !empty($standaloneEvents)) {
             $standaloneCollection = collect($standaloneEvents);
             for ($i = 0; $i < $remaining && !$standaloneCollection->isEmpty(); $i++) {
                 $picked = $this->eventService->getRandomEventByWeight($standaloneCollection);
                 if ($picked) {
-                    $selectedEvents[] = $this->formatEvent($picked, 'ageSpecific');
+                    $selectedEvents[] = $this->formatEvent($picked, 'ageSpecific', $character);
                     $standaloneCollection = $standaloneCollection->reject(fn($e) => $e->id === $picked->id);
                 }
             }
@@ -203,11 +434,11 @@ $events = [
         // If nothing selected yet, do a general weighted draw across all eligible events.
         if (empty($selectedEvents)) {
             $pool = collect(array_merge($chainEvents, $standaloneEvents));
-            $maxEvents = min(5, $pool->count());
+            $maxEvents = min($maxTotal, $pool->count());
             for ($i = 0; $i < $maxEvents && !$pool->isEmpty(); $i++) {
                 $picked = $this->eventService->getRandomEventByWeight($pool);
                 if ($picked) {
-                    $selectedEvents[] = $this->formatEvent($picked, 'ageSpecific');
+                    $selectedEvents[] = $this->formatEvent($picked, 'ageSpecific', $character);
                     $pool = $pool->reject(fn($e) => $e->id === $picked->id);
                 }
             }
@@ -231,9 +462,22 @@ $events = [
         ]);
         
         // Skip progression only for explicitly set non-child age groups in early game (respect character creation choice)
-        // Now uses new thresholds: child=0-9, teen=10-19, adult=20-35
+        // But also ensure the age group is still valid for the current day
+        $dayBasedAgeGroup = $this->getAgeGroupForDay($currentDay);
+        $normalizedStoredAgeGroup = $this->normalizeAgeGroupForCharacter($storedAgeGroup);
+        
+        // If the stored age group is valid for the current day, keep it
+        if ($normalizedStoredAgeGroup === $dayBasedAgeGroup) {
+            Log::info('Skipping age progression - stored age_group matches day-based age_group', [
+                'age_group' => $storedAgeGroup,
+                'day_based' => $dayBasedAgeGroup
+            ]);
+            return;
+        }
+        
+        // If user explicitly chose adult (or other) at character creation and is in early game, respect that choice
         if ($storedAgeGroup !== 'child' && $currentDay <= 10) {
-            Log::info('Skipping age progression - respecting stored age_group', ['age_group' => $storedAgeGroup]);
+            Log::info('Skipping age progression - respecting stored age_group in early game', ['age_group' => $storedAgeGroup]);
             return;
         }
         
@@ -346,19 +590,85 @@ $events = [
 
         $unlockedProfessions = $this->eventService->checkProfessionUnlock($character);
         
-        // Format profession choices for frontend
+        // Format profession choices as event cards (same interaction model as life actions)
         $choices = [];
         foreach ($unlockedProfessions as $profession) {
-            $choices[] = [
-                'profession' => $profession->profession,
-                'description' => $profession->notes ?? "A career path in {$profession->profession}",
-                'long_description' => $profession->description ?? null,
-                'stat_effects' => $profession->getStatEffectsArray(),
-                'unlock_condition' => $profession->unlock_condition,
-            ];
+            if (!$profession instanceof ProfessionTrigger) {
+                continue;
+            }
+            $choices[] = $this->formatProfessionChoiceEvent($profession);
         }
         
         return $choices;
+    }
+
+    private function formatProfessionChoiceEvent(ProfessionTrigger $profession): array
+    {
+        $effectsArray = $profession->getStatEffectsArray();
+        $effectsText = $this->formatStatEffectsArrayAsText($effectsArray);
+
+        $professionName = (string) ($profession->profession ?? 'Profession');
+        $titleSlug = strtolower(preg_replace('/[^a-zA-Z0-9]/', '-', $professionName));
+        $image = "/css/images/profession/{$titleSlug}.jpg";
+
+        $seededChoices = $this->adaptiveNarrativeService->buildChoicesForEvent(
+            $professionName,
+            $profession->notes ?? "A career path in {$professionName}.",
+            $effectsText,
+            'profession',
+            'adult',
+            is_array($profession->choices) ? $profession->choices : []
+        );
+        $choices = !empty($seededChoices) ? $seededChoices : [
+            [
+                'text' => 'Commit to this path',
+                'set_profession' => true,
+                'stat_effects' => $effectsText,
+                'days_to_advance' => 0,
+            ],
+            [
+                'text' => 'Not right now',
+                'set_profession' => false,
+                'stat_effects' => null,
+                'days_to_advance' => 0,
+            ],
+        ];
+
+        return [
+            'id' => (int) $profession->id,
+            'type' => 'profession_choice',
+            'deck_label' => 'Career',
+            'repeatable' => false,
+            'title' => $professionName,
+            'description' => $profession->notes ?? "A career path in {$professionName}.",
+            'image' => $image,
+            'outcome' => $profession->description ?? null,
+            'choices' => $choices,
+            'auto_resolve' => false,
+            'days_to_advance' => 0,
+            // Extra context (optional)
+            'profession' => $professionName,
+            'unlock_condition' => $profession->unlock_condition,
+        ];
+    }
+
+    private function formatStatEffectsArrayAsText(array $effects): ?string
+    {
+        if (empty($effects)) {
+            return null;
+        }
+
+        ksort($effects);
+        $parts = [];
+        foreach ($effects as $stat => $value) {
+            if (!is_numeric($value)) {
+                continue;
+            }
+            $intValue = (int) $value;
+            $parts[] = ($intValue >= 0 ? '+' : '') . $intValue . ' ' . (string) $stat;
+        }
+
+        return empty($parts) ? null : implode(', ', $parts);
     }
 
     /**
@@ -452,12 +762,12 @@ $events = [
         for ($i = 0; $i < $maxEvents && !$triggered->isEmpty(); $i++) {
             $event = $this->eventService->getRandomEventByWeight($triggered);
             if ($event) {
-                $selected[] = $this->formatEvent($event, 'trigger');
+                $selected[] = $this->formatEvent($event, 'trigger', $character);
                 $triggered = $triggered->reject(fn($e) => $e->id === $event->id);
             }
         }
 
-        return $selected;
+        return $this->dedupeFormattedEvents($selected);
     }
 
     /**
@@ -471,12 +781,7 @@ $events = [
         // Get events matching the age group or "all"
         $events = DailyEvent::whereIn('age_group', [$normalizedAge, 'all'])->get();
         
-        // Filter out already shown events
-        if (!empty($shownEventIds)) {
-            $events = $events->filter(function($event) use ($shownEventIds) {
-                return !in_array('daily_' . $event->id, $shownEventIds);
-            });
-        }
+        // Daily events are repeatable actions: do not exclude by shown_event_ids.
 
         // Apply branching/stat prerequisites
         $events = $events->filter(fn($event) => $this->eventService->checkEventPrerequisites($event, $character));
@@ -495,20 +800,25 @@ $events = [
                 return $event;
             });
         }
+
+        $events = $events->map(function ($event) use ($character) {
+            $event->dynamic_weight = $this->adaptiveNarrativeService->scoreEventWeight($character, $event, 'daily');
+            return $event;
+        });
         
         $selected = [];
         
-        // Get 5 random weighted events (or fewer if not enough available)
-        $maxEvents = min(5, $events->count());
+        // Deterministic top picks (more options since these are "actions")
+        $maxEvents = min(10, $events->count());
         for ($i = 0; $i < $maxEvents && !$events->isEmpty(); $i++) {
             $event = $this->eventService->getRandomEventByWeight($events);
             if ($event) {
-                $selected[] = $this->formatEvent($event, 'daily');
+                $selected[] = $this->formatEvent($event, 'daily', $character);
                 $events = $events->reject(fn($e) => $e->id === $event->id);
             }
         }
 
-        return $selected;
+        return $this->dedupeFormattedEvents($selected);
     }
 
     /**
@@ -553,11 +863,12 @@ $events = [
         }
 
         $total = array_sum($weights);
-        $roll = (mt_rand() / mt_getrandmax()) * $total;
+        $roll = random_int(1, max(1, (int) ceil($total * 100)));
+        $running = 0;
 
         foreach ($weights as $key => $weight) {
-            $roll -= $weight;
-            if ($roll <= 0) {
+            $running += (int) ceil($weight * 100);
+            if ($roll <= $running) {
                 return (string) $key;
             }
         }
@@ -572,12 +883,7 @@ $events = [
     {
         $events = CulturalEvent::all();
         
-        // Filter out already shown events
-        if (!empty($shownEventIds)) {
-            $events = $events->filter(function($event) use ($shownEventIds) {
-                return !in_array('cultural_' . $event->id, $shownEventIds);
-            });
-        }
+        // Cultural events are repeatable actions: do not exclude by shown_event_ids.
 
         // Apply branching/stat prerequisites
         $events = $events->filter(fn($event) => $this->eventService->checkEventPrerequisites($event, $character));
@@ -596,15 +902,20 @@ $events = [
                 return $event;
             });
         }
+
+        $events = $events->map(function ($event) use ($character) {
+            $event->dynamic_weight = $this->adaptiveNarrativeService->scoreEventWeight($character, $event, 'cultural');
+            return $event;
+        });
         
         $selected = [];
         
-        // Get 5 random weighted events
-        $maxEvents = min(5, $events->count());
+        // Deterministic top picks (more options since these are "actions")
+        $maxEvents = min(10, $events->count());
         for ($i = 0; $i < $maxEvents && !$events->isEmpty(); $i++) {
             $event = $this->eventService->getRandomEventByWeight($events);
             if ($event) {
-                $selected[] = $this->formatEvent($event, 'cultural');
+                $selected[] = $this->formatEvent($event, 'cultural', $character);
                 $events = $events->reject(fn($e) => $e->id === $event->id);
             }
         }
@@ -626,7 +937,7 @@ $events = [
             $events = array_merge($triggerEvents, $events);
         }
 
-        return $events;
+        return $this->dedupeFormattedEvents($events);
     }
 
     /**
@@ -639,9 +950,11 @@ $events = [
 
         $events = ProfessionPathEvent::where('profession', $profession)->get();
         
-        // Filter out already shown events
+        // Filter out already shown NON-repeatable events
         if (!empty($shownEventIds)) {
             $events = $events->filter(function($event) use ($shownEventIds) {
+                $isRepeatable = $this->isRepeatableEvent('profession', $event);
+                if ($isRepeatable) return true;
                 return !in_array('profession_' . $event->id, $shownEventIds);
             });
         }
@@ -649,19 +962,24 @@ $events = [
         // Gate by prerequisites (e.g., required_stat / threshold)
         $events = $events->filter(fn($event) => $this->eventService->checkEventPrerequisites($event, $character));
 
+        $events = $events->map(function ($event) use ($character) {
+            $event->dynamic_weight = $this->adaptiveNarrativeService->scoreEventWeight($character, $event, 'profession');
+            return $event;
+        });
+
         $selected = [];
         
-        // Get 5 random weighted events
-        $maxEvents = min(5, $events->count());
+        // Deterministic top picks
+        $maxEvents = min(10, $events->count());
         for ($i = 0; $i < $maxEvents && !$events->isEmpty(); $i++) {
             $event = $this->eventService->getRandomEventByWeight($events);
             if ($event) {
-                $selected[] = $this->formatEvent($event, 'profession');
+                $selected[] = $this->formatEvent($event, 'profession', $character);
                 $events = $events->reject(fn($e) => $e->id === $event->id);
             }
         }
 
-        return $selected;
+        return $this->dedupeFormattedEvents($selected);
     }
 
     /**
@@ -685,17 +1003,29 @@ $events = [
         $dailyPool = DailyEvent::whereIn('age_group', [$normalizedAge, 'all'])->get();
         $dailyPool = $dailyPool
             ->filter(fn($event) => !in_array('daily_' . $event->id, $shownEventIds))
-            ->filter(fn($event) => $this->eventService->checkEventPrerequisites($event, $character));
+            ->filter(fn($event) => $this->eventService->checkEventPrerequisites($event, $character))
+            ->map(function ($event) use ($character) {
+                $event->dynamic_weight = $this->adaptiveNarrativeService->scoreEventWeight($character, $event, 'daily');
+                return $event;
+            });
 
         $culturalPool = CulturalEvent::all();
         $culturalPool = $culturalPool
             ->filter(fn($event) => !in_array('cultural_' . $event->id, $shownEventIds))
-            ->filter(fn($event) => $this->eventService->checkEventPrerequisites($event, $character));
+            ->filter(fn($event) => $this->eventService->checkEventPrerequisites($event, $character))
+            ->map(function ($event) use ($character) {
+                $event->dynamic_weight = $this->adaptiveNarrativeService->scoreEventWeight($character, $event, 'cultural');
+                return $event;
+            });
 
         $ageSpecificPool = AgeSpecificEvent::where('age_group', $this->normalizeAgeGroup($ageGroup))->get();
         $ageSpecificPool = $ageSpecificPool
             ->filter(fn($event) => !in_array('ageSpecific_' . $event->id, $shownEventIds))
-            ->filter(fn($event) => $this->eventService->checkEventPrerequisites($event, $character));
+            ->filter(fn($event) => $this->eventService->checkEventPrerequisites($event, $character))
+            ->map(function ($event) use ($character) {
+                $event->dynamic_weight = $this->adaptiveNarrativeService->scoreEventWeight($character, $event, 'ageSpecific');
+                return $event;
+            });
 
         $triggerPool = collect($this->eventService->checkStatTriggers($character));
         $triggerPool = $triggerPool->filter(fn($event) => !in_array('trigger_' . $event->id, $shownEventIds));
@@ -705,7 +1035,11 @@ $events = [
             $professionPool = ProfessionPathEvent::where('profession', $character->profession)->get();
             $professionPool = $professionPool
                 ->filter(fn($event) => !in_array('profession_' . $event->id, $shownEventIds))
-                ->filter(fn($event) => $this->eventService->checkEventPrerequisites($event, $character));
+                ->filter(fn($event) => $this->eventService->checkEventPrerequisites($event, $character))
+                ->map(function ($event) use ($character) {
+                    $event->dynamic_weight = $this->adaptiveNarrativeService->scoreEventWeight($character, $event, 'profession');
+                    return $event;
+                });
         }
 
         $typeWeights = [
@@ -728,7 +1062,7 @@ $events = [
         };
 
         return response()->json([
-            'event' => $event ? $this->formatEvent($event, $type) : null,
+            'event' => $event ? $this->formatEvent($event, $type, $character) : null,
             'type' => $type
         ]);
     }
@@ -904,19 +1238,61 @@ $events = [
                 'choice_index' => 'required|integer|min:0'
             ]);
 
+            $isSystemEvent = ($validated['event_type'] === 'system');
+            $isProfessionChoice = ($validated['event_type'] === 'profession_choice');
+
             // Get the event FIRST (for logging)
-            $event = $this->getEventById($validated['event_type'], $validated['event_id']);
-            
-            if (!$event) {
-                return response()->json(['error' => 'Event not found'], 404);
+            $event = null;
+            $eventData = null;
+
+            if ($isSystemEvent) {
+                $eventData = $this->getSystemEventById($character, (int) $validated['event_id']);
+                if (!$eventData) {
+                    return response()->json(['error' => 'Event not found'], 404);
+                }
+                $event = (object) $eventData;
+            } elseif ($isProfessionChoice) {
+                if (($character->age_group ?? null) !== 'adult') {
+                    return response()->json(['error' => 'Profession paths unlock in adulthood'], 400);
+                }
+                if (!empty($character->profession)) {
+                    return response()->json(['error' => 'Profession already chosen'], 400);
+                }
+
+                $trigger = collect($this->eventService->checkProfessionUnlock($character))
+                    ->first(fn($p) => $p instanceof ProfessionTrigger && (int) $p->id === (int) $validated['event_id']);
+
+                if (!$trigger) {
+                    return response()->json(['error' => 'Profession path not available'], 404);
+                }
+
+                $eventData = $this->formatProfessionChoiceEvent($trigger);
+                $event = (object) $eventData;
+            } else {
+                $event = $this->getEventById($validated['event_type'], $validated['event_id']);
+                if (!$event) {
+                    return response()->json(['error' => 'Event not found'], 404);
+                }
+                // Format for API response + logging
+                $eventData = $this->formatEvent($event, $validated['event_type'], $character);
             }
 
-            // Format for API response + logging
-            $eventData = $this->formatEvent($event, $validated['event_type']);
+            // Get the choice list
+            $choices = $this->resolveEventChoices($event, $validated['event_type'], $character, $character->age_group ?? 'adult');
             
-            // Get the choice
-            $choices = $this->formatChoices($event->choices ?? null);
-            $choice = $choices[$validated['choice_index']] ?? null;
+            // Feature 5: Game-decided outcomes - if event has auto_resolve flag, determine outcome automatically
+            $autoResolve = $event->auto_resolve ?? false;
+            $choiceIndex = $validated['choice_index'];
+            
+            if ($autoResolve) {
+                // Game decides the outcome based on stats
+                $outcome = $this->eventService->determineGameOutcome($character, $event);
+                // Map outcome to choice index (0 = bad outcome, 1 = good outcome)
+                $choiceIndex = ($outcome === 'success') ? 1 : 0;
+                Log::info('Game-decided outcome', ['outcome' => $outcome, 'choiceIndex' => $choiceIndex]);
+            }
+            
+            $choice = $choices[$choiceIndex] ?? null;
 
             if (!$choice) {
                 return response()->json(['error' => 'Choice not found'], 404);
@@ -940,47 +1316,70 @@ $events = [
                 'career_level' => $character->career_level ?? 'unemployed',
             ];
 
+            // Per-choice outcome variants (game decides success/failure deterministically based on stats)
+            $resolvedChoiceOutcome = $this->adaptiveNarrativeService->resolveOutcome(
+                $character,
+                [
+                    'title' => $eventData['title'] ?? ($event->event_choice ?? $event->title ?? 'Event'),
+                    'description' => $eventData['description'] ?? ($event->outcome ?? $event->description ?? null),
+                    'type' => $validated['event_type'],
+                    'archetype' => $eventData['archetype'] ?? null,
+                ],
+                is_array($choice) ? $choice : []
+            );
+            $choiceOutcomeText = is_array($resolvedChoiceOutcome) ? ($resolvedChoiceOutcome['text'] ?? null) : null;
+            $choiceOutcomeEffects = is_array($resolvedChoiceOutcome) ? ($resolvedChoiceOutcome['stat_effects'] ?? null) : null;
+
             // Apply stat effects with FULL LOGGING (now passes event/choice data)
-            $statEffects = $choice['stat_effects'] ?? $event->stat_effects;
+            $baseStatEffects = $choice['stat_effects'] ?? ($event->stat_effects ?? ($eventData['statEffects'] ?? null));
+            $statEffects = $this->mergeStatEffectsText($baseStatEffects, $choiceOutcomeEffects);
             $effects = $this->eventService->applyStatEffects(
                 $character, 
                 $statEffects,
                 $eventData,  // ← NEW: passes formatted event data for logging
-                $validated['choice_index'],
+                $choiceIndex,
                 $choiceText
             );
 
             // FSM State advance
             $outcomeType = $this->eventService->determineOutcomeType($statEffects);
-            $this->eventService->advanceState($character, $validated['event_type'], $outcomeType);
+            if (!$isSystemEvent && !$isProfessionChoice) {
+                $this->eventService->advanceState($character, $validated['event_type'], $outcomeType);
+            }
 
-            // Track the event as shown
-            $shownEventIds = $character->shown_event_ids ?? [];
-            $eventKey = $validated['event_type'] . '_' . $validated['event_id'];
-            
-            if (!in_array($eventKey, $shownEventIds)) {
-                $shownEventIds[] = $eventKey;
-                if (count($shownEventIds) > 50) {
-                    $shownEventIds = array_slice($shownEventIds, -50);
+            // Track the event as shown (repeatable cards stay available)
+            $isRepeatable = $this->isRepeatableEvent($validated['event_type'], $event);
+            if (!$isSystemEvent && !$isProfessionChoice && !$isRepeatable) {
+                $shownEventIds = $character->shown_event_ids ?? [];
+                $eventKey = $validated['event_type'] . '_' . $validated['event_id'];
+                
+                if (!in_array($eventKey, $shownEventIds)) {
+                    $shownEventIds[] = $eventKey;
+                    if (count($shownEventIds) > 50) {
+                        $shownEventIds = array_slice($shownEventIds, -50);
+                    }
+                    $character->shown_event_ids = $shownEventIds;
+                    $character->save();
                 }
-                $character->shown_event_ids = $shownEventIds;
-                $character->save();
             }
 
-            // Check for game over condition
-            // Either explicit "End of game" in effects OR reached max days (day 50 = old age)
-            $gameOver = false;
-            $currentDay = $character->current_day ?? 1;
+            // Game-over evaluation happens after time advancement + consequences.
+
+            // Feature 3: Support days_to_advance - determine how many days to skip
+            $daysToAdvance = (int) ($choice['days_to_advance'] ?? ($event->days_to_advance ?? 0));
             
-            if ($statEffects && strpos($statEffects, 'End of game') !== false) {
-                $gameOver = true;
-            } elseif ($currentDay >= 50) {
-                // Game ends naturally at day 50 (old age)
-                $gameOver = true;
+            // Feature 2: Only advance day if daysToAdvance > 0, otherwise stay on same day for multiple choices
+            if ($daysToAdvance > 0) {
+                $character->current_day = ($character->current_day ?? 1) + $daysToAdvance;
             }
-
-            // Advance the simulation by one day (server-authoritative)
-            $character->current_day = ($character->current_day ?? 1) + 1;
+            // If daysToAdvance is 0, don't advance - user can make more choices this day
+            if ($isProfessionChoice) {
+                $shouldSetProfession = (bool) ($choice['set_profession'] ?? ($choiceIndex === 0));
+                if ($shouldSetProfession) {
+                    $character->profession = (string) ($eventData['profession'] ?? $character->profession);
+                    $character->career_level = $character->career_level ?: 'entry_level';
+                }
+            }
             $character->save();
 
             // Apply any age progression based on the new day
@@ -991,6 +1390,73 @@ $events = [
 
             // Refresh the character to get updated data
             $character->refresh();
+
+            // Apply deterministic ongoing consequences when time advances
+            $timePassageConsequences = $this->eventService->applyTimePassage($character, $daysToAdvance);
+
+            // Feature 1: Update health condition based on health percentage
+            $healthStatus = $this->eventService->updateHealthCondition($character);
+            
+            // Feature 8: Check for severe consequences
+            $rawEffects = $this->eventService->parseStatEffects($statEffects);
+            $consequences = $this->eventService->checkSevereConsequences($character, $rawEffects);
+            $consequences = array_merge($timePassageConsequences ?? [], $consequences ?? []);
+
+            $this->adaptiveNarrativeService->applyDecisionMemory(
+                $character,
+                [
+                    'title' => $eventData['title'] ?? ($event->event_choice ?? $event->title ?? 'Event'),
+                    'description' => $eventData['description'] ?? ($event->outcome ?? $event->description ?? null),
+                    'type' => $validated['event_type'],
+                    'archetype' => $eventData['archetype'] ?? null,
+                ],
+                is_array($choice) ? $choice : [],
+                is_array($resolvedChoiceOutcome) ? $resolvedChoiceOutcome : null
+            );
+            
+            // Refresh again after consequences
+            $character->refresh();
+
+            // Check for game over condition AFTER time advancement + consequences
+            // Either explicit "End of game" in effects OR reached max days (old age) OR health <= 0
+            $gameOver = false;
+            $currentDay = $character->current_day ?? 1;
+            $endingType = null;
+            $endingTitle = null;
+            $endingDescription = null;
+
+            $deathCause = null;
+
+            if ($statEffects && strpos($statEffects, 'End of game') !== false) {
+                $deathCause = 'event_death';
+                $this->eventService->markCharacterDeath($character, $deathCause, [
+                    'event_title' => $eventData['title'] ?? ($event->event_choice ?? $event->title ?? 'Event'),
+                    'choice' => $choiceText,
+                ]);
+                $gameOver = true;
+                $endingType = $this->determineEndingType($character, $deathCause);
+            } elseif ($currentDay >= self::MAX_DAYS) {
+                $gameOver = true;
+                $endingType = $this->determineEndingType($character, 'old_age');
+            } else {
+                $effectiveStats = is_array($character->effective_stats) ? $character->effective_stats : [];
+                $health = isset($effectiveStats['Health']) ? (int)$effectiveStats['Health'] : 100;
+                if ($health <= 0) {
+                    $deathCause = 'health_collapse';
+                    $this->eventService->markCharacterDeath($character, $deathCause, [
+                        'event_title' => $eventData['title'] ?? ($event->event_choice ?? $event->title ?? 'Event'),
+                        'choice' => $choiceText,
+                    ]);
+                    $gameOver = true;
+                    $endingType = $this->determineEndingType($character, $deathCause);
+                }
+            }
+
+            if ($gameOver && $endingType) {
+                $endingDetails = $this->getEndingDetails($endingType, $character);
+                $endingTitle = $endingDetails['title'];
+                $endingDescription = $endingDetails['description'];
+            }
 
             $afterSnapshot = [
                 'day' => $character->current_day,
@@ -1009,7 +1475,13 @@ $events = [
             }
 
             try {
-                $authUser = Auth::user();
+                // Check game session first, then fall back to auth
+                $gameUserId = session()->get('game_user_id');
+                if ($gameUserId) {
+                    $authUser = User::find($gameUserId);
+                } else {
+                    $authUser = Auth::user();
+                }
                 
                 Log::info('SharedDecisionLog check', [
                     'user_id' => $authUser ? $authUser->id : 'none',
@@ -1046,7 +1518,7 @@ $events = [
                         'mbti' => $this->eventService->calculateMBTI(
                             $afterSnapshot['effective_stats'] ?? $beforeSnapshot['effective_stats'] ?? [], 
                             $validated['event_type'], 
-                            $validated['choice_index'], 
+                            $choiceIndex, 
                             $outcomeType
                         ),
                         'narrative_before' => $beforeSnapshot['narrative'],
@@ -1090,7 +1562,7 @@ $events = [
                             'day' => $beforeSnapshot['day'],
                             'event_type' => $validated['event_type'],
                             'event_id' => $validated['event_id'],
-                            'choice_index' => $validated['choice_index'],
+                            'choice_index' => $choiceIndex,
                             'event_title' => $logData['event_title'] ?? null,
                             'choice_text' => $logData['choice_text'] ?? null,
                             'effects' => $logData['effects'] ?? null,
@@ -1112,7 +1584,7 @@ $events = [
                             'day' => $beforeSnapshot['day'],
                             'event_type' => $validated['event_type'],
                             'event_id' => $validated['event_id'],
-                            'choice_index' => $validated['choice_index'],
+                            'choice_index' => $choiceIndex,
                             'event_title' => $logData['event_title'] ?? null,
                             'choice_text' => $logData['choice_text'] ?? null,
                             'health' => $character->health ?? 100,
@@ -1139,7 +1611,7 @@ $events = [
                             'event_type' => $validated['event_type'],
                             'event_id' => $validated['event_id'],
                             'event_title' => $logData['event_title'] ?? null,
-                            'choice_index' => $validated['choice_index'],
+                            'choice_index' => $choiceIndex,
                             'choice_text' => $logData['choice_text'] ?? null,
                             'outcome' => $logData['event_description'] ?? null,
                             'effects' => json_encode($effects),
@@ -1184,10 +1656,21 @@ $events = [
             return response()->json([
                 'message' => 'Event outcome applied',
                 'character' => $character,
-'effects' => $effects,
+                'effects' => $effects,
+                'choice_outcome' => $choiceOutcomeText,
                 'game_over' => $gameOver,
+                'ending_type' => $endingType,
+                'ending_title' => $endingTitle,
+                'ending_description' => $endingDescription,
                 'character_state' => $character->character_state,
+                // Feature 4: Age instead of day
+                'age' => $this->calculateAge($character->current_day),
                 'age_group' => $character->age_group,
+                // Feature 1: Health status instead of health %
+                'health_status' => $healthStatus ?? $this->eventService->getHealthStatus($character->health ?? 100),
+                'health_percentage' => $character->health ?? 100,
+                // Feature 8: Severe consequences
+                'consequences' => $consequences ?? [],
                 'current_day' => $character->current_day,
                 'narrative_path' => $character->current_narrative,
                 'active_paths' => $character->active_event_paths,
@@ -1203,6 +1686,56 @@ $events = [
                 'error' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine()
+            ], 500);
+        }
+    }
+
+    public function suicide(Request $request, Character $character)
+    {
+        try {
+            if ($character->user_id !== Auth::id()) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+
+            $validated = $request->validate([
+                'method' => 'nullable|string|max:255',
+            ]);
+
+            $method = trim((string) ($validated['method'] ?? ''));
+
+            if (!$this->eventService->isDead($character)) {
+                $this->eventService->markCharacterDeath($character, 'suicide', [
+                    'method' => $method !== '' ? $method : 'unknown',
+                ]);
+            }
+
+            $character->refresh();
+            $endingType = $this->determineEndingType($character, 'suicide');
+            $endingDetails = $this->getEndingDetails($endingType, $character);
+
+            return response()->json([
+                'message' => 'Your journey has ended.',
+                'character' => $character,
+                'game_over' => true,
+                'ending_type' => $endingType,
+                'ending_title' => $endingDetails['title'],
+                'ending_description' => $endingDetails['description'],
+                'character_state' => $character->character_state,
+                'age' => $this->calculateAge((int) ($character->current_day ?? 1)),
+                'age_group' => $character->age_group,
+                'current_day' => $character->current_day,
+                'health_status' => 'dead',
+                'health_percentage' => 0,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in suicide: ' . $e->getMessage(), [
+                'character_id' => $character->id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'message' => 'Error ending journey: ' . $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -1290,10 +1823,245 @@ $events = [
         };
     }
 
+    private function buildTerminalStatePayload(Character $character): array
+    {
+        $isDead = $this->eventService->isDead($character);
+        $cause = $isDead
+            ? (string) ((is_array($character->character_state) ? ($character->character_state['death_cause'] ?? null) : null) ?? 'death')
+            : 'old_age';
+        $endingType = $this->determineEndingType($character, $cause === 'old_age' ? 'old_age' : $cause);
+        $endingDetails = $this->getEndingDetails($endingType, $character);
+
+        return [
+            'life_actions' => [],
+            'triggers' => [],
+            'daily' => [],
+            'cultural' => [],
+            'ageSpecific' => [],
+            'profession' => [],
+            'profession_choices' => [],
+            'milestone' => null,
+            'current_state' => $character->current_state,
+            'character_state' => $character->character_state,
+            'character' => $character,
+            'game_over' => true,
+            'ending_type' => $endingType,
+            'ending_title' => $endingDetails['title'],
+            'ending_description' => $endingDetails['description'],
+            'age' => $this->calculateAge((int) ($character->current_day ?? 1)),
+            'current_day' => (int) ($character->current_day ?? 1),
+            'age_group' => $character->age_group,
+            'health_status' => $isDead ? 'dead' : $this->eventService->getHealthStatus($character->health ?? 100),
+            'health_percentage' => $isDead ? 0 : ($character->health ?? 100),
+            'actions' => [],
+        ];
+    }
+
+    private function dedupeFormattedEvents(array $events): array
+    {
+        $seen = [];
+        $unique = [];
+
+        foreach ($events as $event) {
+            if (!is_array($event)) {
+                continue;
+            }
+
+            $title = strtolower(trim((string) ($event['title'] ?? '')));
+            $signature = preg_replace('/[^a-z0-9]+/i', ' ', $title) ?: '';
+            $signature = trim((string) $signature);
+
+            if ($signature === '') {
+                $signature = (string) ($event['type'] ?? 'event') . ':' . (string) ($event['id'] ?? uniqid('event_', true));
+            }
+
+            if (isset($seen[$signature])) {
+                continue;
+            }
+
+            $seen[$signature] = true;
+            $unique[] = $event;
+        }
+
+        return array_values($unique);
+    }
+
+    /**
+     * Get daily actions from database based on character conditions.
+     */
+    private function getSystemActions(Character $character): array
+    {
+        $state = is_array($character->character_state) ? $character->character_state : [];
+
+        // If already dead/over, hide actions.
+        if (($state['health_condition'] ?? null) === 'dead') {
+            return [];
+        }
+
+        // Fetch all daily actions from database
+        $dailyActions = DailyAction::orderBy('display_order')->get();
+
+        // Filter actions based on character conditions
+        $actions = [];
+        foreach ($dailyActions as $action) {
+            if ($action->isAvailable($character)) {
+                $actionData = $action->toActionArray();
+                $actionData['choices'] = $this->resolveEventChoices($action, 'system', $character, $character->age_group ?? 'adult');
+                $actions[] = $actionData;
+            }
+        }
+
+        $profile = $this->adaptiveNarrativeService->getDecisionProfile($character);
+        $flags = is_array($profile['flags'] ?? null) ? $profile['flags'] : [];
+
+        if (($flags['burnout_cycle'] ?? false) === true) {
+            $actions[] = $this->buildSystemAction(
+                91001,
+                'Recovery Plan',
+                'Your recent pace is catching up to you. What kind of recovery do you choose?',
+                '/css/images/event-placeholder.jpg',
+                [
+                    ['text' => 'Take a full recovery day', 'stat_effects' => '-8 Burnout, +4 Health, +3 Happiness', 'days_to_advance' => 1],
+                    ['text' => 'Scale back and recover slowly', 'stat_effects' => '-4 Burnout, +2 Health, +1 Discipline', 'days_to_advance' => 0],
+                    ['text' => 'Ignore the warning signs', 'stat_effects' => '+6 Burnout, -3 Health, -2 Happiness', 'days_to_advance' => 0],
+                ]
+            );
+        }
+
+        if (($flags['relationship_strain'] ?? false) === true) {
+            $actions[] = $this->buildSystemAction(
+                91002,
+                'Repair a Relationship',
+                'Distance has built up. Do you try to fix it or keep avoiding it?',
+                '/css/images/event-placeholder.jpg',
+                [
+                    ['text' => 'Have the difficult conversation', 'stat_effects' => '+5 Happiness, -5 Isolation, +3 Morality', 'days_to_advance' => 0],
+                    ['text' => 'Send a small peace offering', 'stat_effects' => '+2 Happiness, -2 Isolation, +1 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Stay distant', 'stat_effects' => '+4 Isolation, -4 Happiness, +2 Burnout', 'days_to_advance' => 0],
+                ]
+            );
+        }
+
+        if (($flags['scandal_marked'] ?? false) === true) {
+            $actions[] = $this->buildSystemAction(
+                91003,
+                'Rebuild Reputation',
+                'People are talking. You need to decide how to respond.',
+                '/css/images/event-placeholder.jpg',
+                [
+                    ['text' => 'Own the mistake publicly', 'stat_effects' => '+5 Morality, +4 Reputation, -2 Ego', 'days_to_advance' => 0],
+                    ['text' => 'Quietly repair the damage', 'stat_effects' => '+2 Reputation, +1 Discipline, +1 Burnout', 'days_to_advance' => 0],
+                    ['text' => 'Double down and fight back', 'stat_effects' => '+4 Ego, -5 Reputation, +3 Burnout', 'days_to_advance' => 0],
+                ]
+            );
+        }
+
+        if (($flags['dependency_flag'] ?? false) === true) {
+            $actions[] = $this->buildSystemAction(
+                91004,
+                'Break the Habit',
+                'A coping habit is starting to take over your routine.',
+                '/css/images/event-placeholder.jpg',
+                [
+                    ['text' => 'Ask for structured help', 'stat_effects' => '-6 Addiction, -3 Burnout, +2 Health', 'days_to_advance' => 1],
+                    ['text' => 'Manage it alone', 'stat_effects' => '-2 Addiction, -1 Burnout, -1 Happiness', 'days_to_advance' => 0],
+                    ['text' => 'Give in again', 'stat_effects' => '+5 Addiction, +2 Happiness, -3 Health', 'days_to_advance' => 0],
+                ]
+            );
+        }
+
+        if (($flags['financial_trap'] ?? false) === true) {
+            $actions[] = $this->buildSystemAction(
+                91005,
+                'Financial Recovery',
+                'Money pressure is shaping your life. How do you respond?',
+                '/css/images/event-placeholder.jpg',
+                [
+                    ['text' => 'Commit to a recovery budget', 'stat_effects' => '-5 Debt, +3 Discipline, -2 Happiness', 'days_to_advance' => 0],
+                    ['text' => 'Take an extra shift', 'stat_effects' => '+5 Wealth, +4 Burnout, -2 Happiness', 'days_to_advance' => 0],
+                    ['text' => 'Take the easy money', 'stat_effects' => '+8 Wealth, +5 Debt, -3 Reputation', 'days_to_advance' => 0],
+                ]
+            );
+        }
+
+        return $this->dedupeFormattedEvents($actions);
+    }
+
+    private function buildSystemAction(int $id, string $title, string $description, string $image, array $choices, array $extra = []): array
+    {
+        return array_merge([
+            'id' => $id,
+            'type' => 'system',
+            'deck_label' => 'Action',
+            'repeatable' => true,
+            'title' => $title,
+            'description' => $description,
+            'image' => $image,
+            'outcome' => $description,
+            'statEffects' => null,
+            'choices' => $choices,
+            'weight' => 0,
+            'auto_resolve' => false,
+            'days_to_advance' => 0,
+        ], $extra);
+    }
+
+    private function getSystemEventById(Character $character, int $id): ?array
+    {
+        $actions = $this->getSystemActions($character);
+        foreach ($actions as $action) {
+            if ((int) ($action['id'] ?? 0) === $id) {
+                return $action;
+            }
+        }
+        return null;
+    }
+
+    private function ensureArray(mixed $value): array
+    {
+        if ($value instanceof Collection) {
+            return $value->values()->toArray();
+        }
+
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if ($value === null) {
+            return [];
+        }
+
+        return [$value];
+    }
+
+    private function isRepeatableEvent(string $type, object $event): bool
+    {
+        // System actions are always repeatable.
+        if ($type === 'system') {
+            return true;
+        }
+
+        // Daily + cultural are meant to be repeatable actions.
+        if (in_array($type, ['daily', 'cultural'], true)) {
+            return true;
+        }
+
+        // Stat triggers should generally be one-time.
+        if ($type === 'trigger') {
+            return false;
+        }
+
+        // Milestones / chain events should be one-time; standalone events can repeat.
+        $isMilestone = (bool) ($event->is_milestone ?? false);
+        $hasChain = !empty($event->parent_category ?? null) || !empty($event->chain_order ?? null);
+
+        return !$isMilestone && !$hasChain;
+    }
+
     /**
      * Format event for API response
      */
-    private function formatEvent($event, string $type): array
+    private function formatEvent($event, string $type, ?Character $character = null): array
     {
         // Determine the correct image path
         $image = $event->image ?? null;
@@ -1318,17 +2086,78 @@ $events = [
             }
         }
         
+        $title = $event->event_choice ?? $event->title;
+        $description = $event->outcome ?? $event->description;
+        $archetype = $this->adaptiveNarrativeService->detectArchetype((string) $title, $description, $type);
+
         return [
             'id' => $event->id,
             'type' => $type,
-            'title' => $event->event_choice ?? $event->title,
-            'description' => $event->outcome ?? $event->description,
+            'deck_label' => match($type) {
+                'daily' => 'Daily',
+                'cultural' => 'Culture',
+                'ageSpecific' => 'Story',
+                'profession' => 'Career',
+                'trigger' => 'Trigger',
+                default => 'Event',
+            },
+            'repeatable' => $this->isRepeatableEvent($type, $event),
+            'title' => $title,
+            'description' => $description,
             'image' => $image,
             'outcome' => $event->outcome,
             'statEffects' => $event->stat_effects,
-            'choices' => $this->formatChoices($event->choices ?? null),
-            'weight' => $event->weight,
+            'choices' => $this->resolveEventChoices($event, $type, $character, $character?->age_group),
+            'weight' => $event->dynamic_weight ?? $event->calculated_weight ?? $event->weight,
+            'archetype' => $archetype,
+            // Feature 5: Game-decided outcomes
+            'auto_resolve' => $event->auto_resolve ?? false,
+            // Feature 3: Days to advance
+            'days_to_advance' => $event->days_to_advance ?? 0,
         ];
+    }
+
+    private function resolveEventChoices($event, string $type, ?Character $character = null, ?string $ageGroup = null): array
+    {
+        $rawChoices = $event->choices ?? null;
+
+        if (is_string($rawChoices)) {
+            $decoded = json_decode($rawChoices, true);
+            $rawChoices = is_array($decoded) ? $decoded : [];
+        }
+
+        if (!is_array($rawChoices)) {
+            $rawChoices = [];
+        }
+
+        $choices = $this->adaptiveNarrativeService->buildChoicesForEvent(
+            (string) ($event->event_choice ?? $event->title ?? 'Event'),
+            $event->outcome ?? $event->description ?? null,
+            $event->stat_effects ?? null,
+            $type,
+            (string) ($ageGroup ?? $event->age_group ?? 'adult'),
+            $rawChoices
+        );
+
+        if ($character) {
+            $choices = $this->adaptiveNarrativeService->adaptChoicesForCharacter(
+                $character,
+                [
+                    'title' => (string) ($event->event_choice ?? $event->title ?? 'Event'),
+                    'description' => $event->outcome ?? $event->description ?? null,
+                    'type' => $type,
+                    'age_group' => (string) ($ageGroup ?? $event->age_group ?? 'adult'),
+                    'archetype' => $this->adaptiveNarrativeService->detectArchetype(
+                        (string) ($event->event_choice ?? $event->title ?? 'Event'),
+                        $event->outcome ?? $event->description ?? null,
+                        $type
+                    ),
+                ],
+                $choices
+            );
+        }
+
+        return $this->formatChoices($choices);
     }
 
     /**
@@ -1340,20 +2169,14 @@ $events = [
         if ($choices === null || $choices === '' || $choices === 'null' || empty($choices)) {
             return [
                 [
-                    'text' => 'Embrace Fully (Good)',
-                    'stat_effects' => '+10 Happiness, +5 all stats'
+                    'text' => 'Do it carefully',
+                    'stat_effects' => '+2 Happiness, +1 Discipline, -1 Burnout',
+                    'days_to_advance' => 0
                 ],
                 [
-                    'text' => 'Proceed Normally',
-                    'stat_effects' => null
-                ],
-                [
-                    'text' => 'Reject/Avoid (Bad)',
-                    'stat_effects' => '-5 Happiness, +5 Burnout'
-                ],
-                [
-                    'text' => 'Skip Event',
-                    'stat_effects' => '+10 Burnout'
+                    'text' => 'Take a shortcut',
+                    'stat_effects' => '+1 Happiness, +1 Burnout, -1 Discipline',
+                    'days_to_advance' => 0
                 ]
             ];
         }
@@ -1362,12 +2185,26 @@ $events = [
         if (is_string($choices)) {
             $decoded = json_decode($choices, true);
             if (is_array($decoded) && count($decoded) > 0) {
+                // Ensure each choice has days_to_advance
+                foreach ($decoded as &$choice) {
+                    if (!isset($choice['days_to_advance'])) {
+                        $choice['days_to_advance'] = 0;
+                    }
+                    $choice['text'] = $this->normalizeChoiceText($choice['text'] ?? null);
+                }
                 return $decoded;
             }
         }
 
         // If already an array, return it (ensure at least 1)
         if (is_array($choices) && count($choices) > 0) {
+            // Ensure each choice has days_to_advance
+            foreach ($choices as &$choice) {
+                if (!isset($choice['days_to_advance'])) {
+                    $choice['days_to_advance'] = 0;
+                }
+                $choice['text'] = $this->normalizeChoiceText($choice['text'] ?? null);
+            }
             return $choices;
         }
 
@@ -1375,21 +2212,150 @@ $events = [
         return [
             [
                 'text' => 'Take the Opportunity',
-                'stat_effects' => '+10 Happiness, +5 Health'
+                'stat_effects' => '+10 Happiness, +5 Health',
+                'days_to_advance' => 0
             ],
             [
                 'text' => 'Go with the Flow',
-                'stat_effects' => null
+                'stat_effects' => null,
+                'days_to_advance' => 0
             ],
             [
                 'text' => 'Avoid the Situation',
-                'stat_effects' => '-5 Happiness, +5 Burnout'
+                'stat_effects' => '-5 Happiness, +5 Burnout',
+                'days_to_advance' => 0
             ],
             [
                 'text' => 'Do Nothing (Skip)',
-                'stat_effects' => '+10 Burnout'
+                'stat_effects' => '+10 Burnout',
+                'days_to_advance' => 0
             ]
         ];
+    }
+
+    private function normalizeChoiceText(?string $text): string
+    {
+        $text = trim((string) $text);
+        if ($text === '') {
+            return 'Choose';
+        }
+
+        // Remove explicit outcome labels like "(Good)", "(Neutral)", "(Bad)"
+        $text = preg_replace('/\\((good|neutral|bad|skip)\\)/i', '', $text) ?? $text;
+        $text = preg_replace('/\\b(good|neutral|bad)\\b\\s*[:\\-]\\s*/i', '', $text) ?? $text;
+
+        $text = trim(preg_replace('/\\s+/', ' ', $text) ?? $text);
+        return $text === '' ? 'Choose' : $text;
+    }
+
+    private function mergeStatEffectsText(?string ...$effectsTexts): ?string
+    {
+        $parts = [];
+        foreach ($effectsTexts as $text) {
+            $text = trim((string) $text);
+            if ($text === '' || strtolower($text) === 'null') {
+                continue;
+            }
+            $parts[] = $text;
+        }
+
+        return empty($parts) ? null : implode(', ', $parts);
+    }
+
+    /**
+     * Resolve a choice's outcome variant in a deterministic, game-decided way.
+     *
+     * Supported structure:
+     *  - choice['outcomes'] = [
+     *      ['key' => 'success'|'failure', 'text' => '...', 'stat_effects' => '+5 Charisma'],
+     *      ['key' => 'failure', ...],
+     *    ]
+     *  - Optional requirements per outcome: required_stat/stat_threshold, min_age/max_age, requires_state (map)
+     */
+    private function resolveChoiceOutcomeVariant(Character $character, object $event, array $choice): ?array
+    {
+        $outcomesRaw = $choice['outcomes'] ?? null;
+        if (!is_array($outcomesRaw) || empty($outcomesRaw)) {
+            return null;
+        }
+
+        $outcomes = array_values(array_filter($outcomesRaw, fn($o) => is_array($o)));
+        if (empty($outcomes)) {
+            return null;
+        }
+
+        $effectiveStats = is_array($character->effective_stats) ? $character->effective_stats : [];
+        $state = is_array($character->character_state) ? $character->character_state : [];
+        $age = $this->calculateAge((int) ($character->current_day ?? 1));
+
+        $hasKeys = false;
+        foreach ($outcomes as $o) {
+            if (!empty($o['key'])) {
+                $hasKeys = true;
+                break;
+            }
+        }
+
+        // If outcomes are keyed, pick success/failure by deterministic stat-based resolution.
+        if ($hasKeys) {
+            $key = $this->eventService->determineGameOutcome($character, $event) === 'success' ? 'success' : 'failure';
+
+            foreach ($outcomes as $o) {
+                if (strtolower((string) ($o['key'] ?? '')) !== $key) {
+                    continue;
+                }
+                if ($this->choiceOutcomeMatches($o, $effectiveStats, $state, $age)) {
+                    return $o;
+                }
+            }
+
+            // Fallback: first matching keyed outcome, else first outcome.
+            foreach ($outcomes as $o) {
+                if ($this->choiceOutcomeMatches($o, $effectiveStats, $state, $age)) {
+                    return $o;
+                }
+            }
+            return $outcomes[0];
+        }
+
+        // Otherwise: pick first matching requirement-based outcome.
+        foreach ($outcomes as $o) {
+            if ($this->choiceOutcomeMatches($o, $effectiveStats, $state, $age)) {
+                return $o;
+            }
+        }
+
+        return $outcomes[0];
+    }
+
+    private function choiceOutcomeMatches(array $outcome, array $effectiveStats, array $state, int $age): bool
+    {
+        if (isset($outcome['min_age']) && $age < (int) $outcome['min_age']) {
+            return false;
+        }
+        if (isset($outcome['max_age']) && $age > (int) $outcome['max_age']) {
+            return false;
+        }
+
+        if (!empty($outcome['required_stat'])) {
+            $requiredStat = (string) $outcome['required_stat'];
+            $threshold = isset($outcome['stat_threshold']) ? (int) $outcome['stat_threshold'] : 50;
+            $statValue = (int) ($effectiveStats[$requiredStat] ?? 0);
+            if ($statValue < $threshold) {
+                return false;
+            }
+        }
+
+        if (!empty($outcome['requires_state']) && is_array($outcome['requires_state'])) {
+            foreach ($outcome['requires_state'] as $k => $expected) {
+                $actual = $state[$k] ?? null;
+                if ((bool) $actual !== (bool) $expected) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -1404,6 +2370,123 @@ $events = [
             'old', 'elder', 'elderly' => 'old',
             default => 'adult'
         };
+    }
+    
+    /**
+     * Determine the ending type based on character stats
+     */
+    private function determineEndingType($character, string $cause): string
+    {
+        $effectiveStats = is_array($character->effective_stats) ? $character->effective_stats : [];
+        $stats = is_array($character->stats) ? $character->stats : [];
+        
+        // Merge stats for evaluation
+        $allStats = array_merge($stats, $effectiveStats);
+        
+        // Get key stats (default to 0 if not set)
+        $health = (int)($allStats['Health'] ?? 50);
+        $happiness = (int)($allStats['Happiness'] ?? 50);
+        $wealth = (int)($allStats['Wealth'] ?? 0);
+        $reputation = (int)($allStats['Reputation'] ?? 50);
+        $morality = (int)($allStats['Morality'] ?? 50);
+        $intelligence = (int)($allStats['Intelligence'] ?? 50);
+        $discipline = (int)($allStats['Discipline'] ?? 50);
+        $burnout = (int)($allStats['Burnout'] ?? 0);
+        $isolation = (int)($allStats['Isolation'] ?? 0);
+        
+        // If died early (not old age), check what kind of death
+        if ($cause === 'death') {
+            if ($burnout >= 20 || $isolation >= 20) {
+                return 'tragic_end';
+            }
+            return 'premature_death';
+        }
+        
+        // Old age endings - evaluate based on stats
+        $score = 0;
+        
+        // Wealth score (0-25 points)
+        if ($wealth >= 80) $score += 25;
+        elseif ($wealth >= 50) $score += 15;
+        elseif ($wealth >= 20) $score += 5;
+        
+        // Happiness score (0-25 points)
+        if ($happiness >= 70) $score += 25;
+        elseif ($happiness >= 50) $score += 15;
+        elseif ($happiness >= 30) $score += 5;
+        
+        // Reputation score (0-20 points)
+        if ($reputation >= 70) $score += 20;
+        elseif ($reputation >= 50) $score += 10;
+        elseif ($reputation >= 30) $score += 5;
+        
+        // Health score (0-15 points)
+        if ($health >= 60) $score += 15;
+        elseif ($health >= 40) $score += 10;
+        elseif ($health >= 20) $score += 5;
+        
+        // Morality score (0-15 points)
+        if ($morality >= 70) $score += 15;
+        elseif ($morality >= 50) $score += 10;
+        elseif ($morality >= 30) $score += 5;
+        
+        // Determine ending based on score
+        if ($score >= 80) {
+            return 'legendary_end';
+        } elseif ($score >= 60) {
+            return 'successful_end';
+        } elseif ($score >= 40) {
+            return 'peaceful_end';
+        } elseif ($score >= 20) {
+            return 'modest_end';
+        } else {
+            return 'humble_end';
+        }
+    }
+    
+    /**
+     * Get ending details based on ending type
+     */
+    private function getEndingDetails(string $endingType, $character): array
+    {
+        $endings = [
+            // Good endings (old age)
+            'legendary_end' => [
+                'title' => '🏆 LEGENDARY LIFE',
+                'description' => 'You lived an extraordinary life! Your achievements, wealth, and legacy will be remembered for generations. You departed this world as a legend!'
+            ],
+            'successful_end' => [
+                'title' => '⭐ SUCCESSFUL LIFE',
+                'description' => 'You achieved great success in your career and built a comfortable life. Your accomplishments brought you fulfillment and respect from others.'
+            ],
+            'peaceful_end' => [
+                'title' => '🕊️ PEACEFUL REST',
+                'description' => 'You lived a balanced life with good health, loving relationships, and inner peace. You passed away serenely, surrounded by cherished memories.'
+            ],
+            'modest_end' => [
+                'title' => '🏠 HUMBLE YET FULFILLING',
+                'description' => 'Your life was modest but meaningful. You had your ups and downs, but you found contentment in the simple things.'
+            ],
+            'humble_end' => [
+                'title' => '🌱 SIMPLE BEGINNINGS',
+                'description' => 'Your journey was challenging, but you persisted. Life dealt you difficult cards, but you played them with determination.'
+            ],
+            
+            // Bad endings (premature death)
+            'tragic_end' => [
+                'title' => '💀 TRAGIC END',
+                'description' => 'Life became overwhelming, and tragedy struck too soon. Your struggle was real, and your pain is now at peace.'
+            ],
+            'premature_death' => [
+                'title' => '⚡ PREMATURE FATE',
+                'description' => 'Your journey ended sooner than expected. Whatever path you chose, it led to an untimely end.'
+            ],
+        ];
+        
+        return $endings[$endingType] ?? [
+            'title' => 'GAME OVER',
+            'description' => 'Your journey has ended.'
+        ];
     }
 
     /**

@@ -3,10 +3,13 @@
 namespace Database\Seeders;
 
 use App\Models\ProfessionTrigger;
+use Database\Seeders\Concerns\GeneratesOutcomeChoices;
 use Illuminate\Database\Seeder;
 
 class ProfessionTriggerSeeder extends Seeder
 {
+    use GeneratesOutcomeChoices;
+
     /**
      * Run the database seeds.
      * 
@@ -226,8 +229,70 @@ class ProfessionTriggerSeeder extends Seeder
                     'notes' => $profession['notes'],
                     'stat_effects' => $profession['stat_effects'],
                     'description' => $profession['description'],
+                    // Career choice uses the same structure as other decks (choices + outcome variants)
+                    'choices' => $this->makeProfessionChoices($profession['profession'], $profession['stat_effects']),
                 ]
             );
         }
+    }
+
+    private function makeProfessionChoices(string $professionName, ?string $professionEffects): array
+    {
+        $professionName = trim((string) $professionName);
+        $professionEffects = $professionEffects ? trim((string) $professionEffects) : null;
+
+        return [
+            [
+                'text' => "Commit to {$professionName}",
+                'set_profession' => true,
+                'stat_effects' => $professionEffects,
+                'outcomes' => [
+                    [
+                        'key' => 'success',
+                        'text' => "You find your footing in the {$professionName} path.",
+                        'stat_effects' => '+2 Reputation, +1 Discipline',
+                    ],
+                    [
+                        'key' => 'failure',
+                        'text' => "The {$professionName} path overwhelms you at first.",
+                        'stat_effects' => '+4 Burnout, -1 Happiness',
+                    ],
+                ],
+            ],
+            [
+                'text' => "Start {$professionName} carefully",
+                'set_profession' => true,
+                'stat_effects' => $professionEffects ? $this->neutralizeEffects($professionEffects) : null,
+                'outcomes' => [
+                    [
+                        'key' => 'success',
+                        'text' => 'Small wins build momentum.',
+                        'stat_effects' => '+1 Reputation, +1 Happiness',
+                    ],
+                    [
+                        'key' => 'failure',
+                        'text' => 'Progress is slow and frustrating.',
+                        'stat_effects' => '+2 Burnout',
+                    ],
+                ],
+            ],
+            [
+                'text' => 'Not right now',
+                'set_profession' => false,
+                'stat_effects' => null,
+                'outcomes' => [
+                    [
+                        'key' => 'success',
+                        'text' => 'You keep your options open.',
+                        'stat_effects' => '+1 Discipline',
+                    ],
+                    [
+                        'key' => 'failure',
+                        'text' => 'Opportunity passes and doubt creeps in.',
+                        'stat_effects' => '+2 Burnout, +2 Isolation',
+                    ],
+                ],
+            ],
+        ];
     }
 }

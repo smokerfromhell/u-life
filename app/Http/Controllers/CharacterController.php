@@ -11,6 +11,44 @@ use Illuminate\Support\Facades\Log;
 
 class CharacterController extends Controller
 {
+    private const VISIBLE_STAT_DEFAULTS = [
+        'Intelligence' => 25,
+        'Strength' => 25,
+        'Charisma' => 25,
+        'Creativity' => 25,
+        'Wealth' => 20,
+        'Luck' => 20,
+        'Social' => 50,
+        'Empathy' => 50,
+    ];
+
+    private const HIDDEN_STAT_DEFAULTS = [
+        'Debt' => 0,
+        'Health' => 78,
+        'Addiction' => 0,
+        'Burnout' => 5,
+        'Morality' => 45,
+        'Happiness' => 72,
+        'Reputation' => 35,
+        'Discipline' => 40,
+        'Isolation' => 6,
+        'Ego' => 10,
+    ];
+
+    private const AGE_BONUSES = [
+        'child' => ['Luck' => 2, 'Creativity' => 2, 'Happiness' => 4],
+        'teenager' => ['Strength' => 2, 'Intelligence' => 1, 'Charisma' => 1],
+        'adult' => ['Strength' => 3, 'Intelligence' => 2, 'Wealth' => 2, 'Discipline' => 2],
+        'old' => ['Strength' => -2, 'Intelligence' => 4, 'Morality' => 3, 'Reputation' => 2],
+    ];
+
+    private const GENDER_BONUSES = [
+        'male' => ['Strength' => 2],
+        'female' => ['Intelligence' => 2],
+        'non-binary' => ['Creativity' => 1, 'Luck' => 1],
+        'transgender' => ['Charisma' => 1, 'Luck' => 1],
+    ];
+
     /**
      * Get all characters for the authenticated user
      */
@@ -99,15 +137,27 @@ class CharacterController extends Controller
             
             $defaultImage = "/css/images/profilepicnormal/{$ageGroupPrefix}-{$genderSuffix}.png";
             
+            $skillSelection = $this->resolveSelectedModels($validated['skills'] ?? [], Skill::class);
+            $talentSelection = $this->resolveSelectedModels($validated['talents'] ?? [], Talent::class);
+            $statState = $this->buildCharacterStatState(
+                $validated,
+                $skillSelection['models'],
+                $talentSelection['models']
+            );
+
             $character = Character::create([
                 'user_id' => $userId,
                 'name' => $validated['name'],
                 'age_group' => $validated['age_group'],
                 'gender' => $validated['gender'],
                 'current_day' => $request->input('start_day', 1),
-                'stats' => $validated['stats'],
-                'hidden_stats' => $validated['hidden_stats'],
-                'effective_stats' => $validated['effective_stats'],
+                'stats' => $statState['stats'],
+                'hidden_stats' => $statState['hidden_stats'],
+                'effective_stats' => $statState['effective_stats'],
+                'character_state' => $statState['character_state'],
+                'health' => $statState['health'],
+                'happiness' => $statState['happiness'],
+                'finance' => $statState['finance'],
                 'image' => $defaultImage,
             ]);
 
@@ -125,61 +175,13 @@ class CharacterController extends Controller
             ]);
 
             // Handle skills - look up by name if strings are provided
-            $skillIds = [];
-            $skillsInput = $validated['skills'] ?? [];
-            if (is_array($skillsInput) && !empty($skillsInput)) {
-                foreach ($skillsInput as $skill) {
-                    // If it's already an ID (number), use it directly
-                    if (is_numeric($skill)) {
-                        $skillIds[] = (int) $skill;
-                    } elseif (is_string($skill)) {
-                        // Look up by name
-                        $skillModel = Skill::where('name', $skill)->first();
-                        if ($skillModel) {
-                            $skillIds[] = $skillModel->id;
-                        }
-                    } elseif (is_array($skill)) {
-                        // Handle array format with 'name' key
-                        $skillName = $skill['name'] ?? ($skill['id'] ?? null);
-                        if ($skillName) {
-                            $skillModel = Skill::where('name', $skillName)->first();
-                            if ($skillModel) {
-                                $skillIds[] = $skillModel->id;
-                            }
-                        }
-                    }
-                }
-            }
+            $skillIds = $skillSelection['ids'];
             if (!empty($skillIds)) {
                 $character->skills()->attach(array_unique($skillIds));
             }
 
             // Handle talents - look up by name if strings are provided
-            $talentIds = [];
-            $talentsInput = $validated['talents'] ?? [];
-            if (is_array($talentsInput) && !empty($talentsInput)) {
-                foreach ($talentsInput as $talent) {
-                    // If it's already an ID (number), use it directly
-                    if (is_numeric($talent)) {
-                        $talentIds[] = (int) $talent;
-                    } elseif (is_string($talent)) {
-                        // Look up by name
-                        $talentModel = Talent::where('name', $talent)->first();
-                        if ($talentModel) {
-                            $talentIds[] = $talentModel->id;
-                        }
-                    } elseif (is_array($talent)) {
-                        // Handle array format with 'name' key
-                        $talentName = $talent['name'] ?? ($talent['id'] ?? null);
-                        if ($talentName) {
-                            $talentModel = Talent::where('name', $talentName)->first();
-                            if ($talentModel) {
-                                $talentIds[] = $talentModel->id;
-                            }
-                        }
-                    }
-                }
-            }
+            $talentIds = $talentSelection['ids'];
             if (!empty($talentIds)) {
                 $character->talents()->attach(array_unique($talentIds));
             }
@@ -197,6 +199,115 @@ class CharacterController extends Controller
                 'message' => 'Error creating character: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    private function buildCharacterStatState(array $validated, array $skillModels = [], array $talentModels = []): array
+    {
+        $stats = self::VISIBLE_STAT_DEFAULTS;
+        $hiddenStats = self::HIDDEN_STAT_DEFAULTS;
+
+        $rawStats = is_array($validated['stats'] ?? null) ? $validated['stats'] : [];
+        foreach (['Intelligence', 'Strength', 'Charisma', 'Creativity', 'Wealth', 'Luck'] as $stat) {
+            $stats[$stat] = $this->clampStat(($stats[$stat] ?? 0) + (int) ($rawStats[$stat] ?? 0));
+        }
+
+        $this->applyNamedEffects($stats, $hiddenStats, self::AGE_BONUSES[$validated['age_group']] ?? []);
+        $this->applyNamedEffects($stats, $hiddenStats, self::GENDER_BONUSES[$validated['gender']] ?? []);
+
+        foreach (array_merge($skillModels, $talentModels) as $model) {
+            $this->applyEffectString($stats, $hiddenStats, $model->effect ?? null);
+            $this->applyEffectString($stats, $hiddenStats, $model->hidden ?? null);
+        }
+
+        $stats['Social'] = $this->clampStat((int) round(
+            45
+            + (($stats['Charisma'] ?? 25) - 25) * 0.6
+            + (($hiddenStats['Reputation'] ?? 35) - 35) * 0.15
+        ));
+
+        $stats['Empathy'] = $this->clampStat((int) round(
+            40
+            + (($hiddenStats['Morality'] ?? 45) - 45) * 0.4
+            + (($stats['Intelligence'] ?? 25) - 25) * 0.2
+        ));
+
+        $effectiveStats = array_merge($hiddenStats, $stats);
+
+        return [
+            'stats' => $stats,
+            'hidden_stats' => $hiddenStats,
+            'effective_stats' => $effectiveStats,
+            'health' => (int) ($effectiveStats['Health'] ?? 78),
+            'happiness' => (int) ($effectiveStats['Happiness'] ?? 72),
+            'finance' => (int) ($effectiveStats['Wealth'] ?? 20),
+            'character_state' => [
+                'life_stage' => $validated['age_group'],
+                'profession_state' => 'unemployed',
+                'relationship_status' => 'single',
+                'health_condition' => app(\App\Services\EventService::class)->getHealthStatus((int) ($effectiveStats['Health'] ?? 78)),
+                'is_dead' => false,
+            ],
+        ];
+    }
+
+    private function resolveSelectedModels(array $items, string $modelClass): array
+    {
+        $ids = [];
+        $models = [];
+
+        foreach ($items as $item) {
+            $model = null;
+
+            if (is_numeric($item)) {
+                $model = $modelClass::find((int) $item);
+            } elseif (is_string($item)) {
+                $model = $modelClass::where('name', $item)->first();
+            } elseif (is_array($item)) {
+                $identifier = $item['name'] ?? ($item['id'] ?? null);
+                if (is_numeric($identifier)) {
+                    $model = $modelClass::find((int) $identifier);
+                } elseif (is_string($identifier)) {
+                    $model = $modelClass::where('name', $identifier)->first();
+                }
+            }
+
+            if (!$model) {
+                continue;
+            }
+
+            $ids[] = (int) $model->id;
+            $models[(int) $model->id] = $model;
+        }
+
+        return [
+            'ids' => array_values(array_unique($ids)),
+            'models' => array_values($models),
+        ];
+    }
+
+    private function applyEffectString(array &$stats, array &$hiddenStats, ?string $effectsText): void
+    {
+        $effects = app(\App\Services\EventService::class)->parseStatEffects($effectsText);
+        $this->applyNamedEffects($stats, $hiddenStats, $effects);
+    }
+
+    private function applyNamedEffects(array &$stats, array &$hiddenStats, array $effects): void
+    {
+        foreach ($effects as $stat => $value) {
+            $value = (int) $value;
+
+            if (array_key_exists($stat, $hiddenStats)) {
+                $hiddenStats[$stat] = $this->clampStat(($hiddenStats[$stat] ?? 0) + $value);
+                continue;
+            }
+
+            $stats[$stat] = $this->clampStat(($stats[$stat] ?? 0) + $value);
+        }
+    }
+
+    private function clampStat(int $value): int
+    {
+        return max(0, min(100, $value));
     }
 
     /**

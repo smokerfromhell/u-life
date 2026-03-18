@@ -15,6 +15,14 @@ use Filament\Widgets\FilamentInfoWidget;
 use App\Filament\Widgets\AdminStatsOverview;
 use App\Filament\Widgets\SharedDecisionTypesChart;
 use App\Filament\Widgets\LifeStatsOverview;
+use App\Filament\Widgets\Analytics\MbtiDistributionChart;
+use App\Filament\Widgets\Analytics\AgeGroupDistributionChart;
+use App\Filament\Widgets\Analytics\EventTypeDistributionChart;
+use App\Filament\Widgets\Analytics\ChoicesPopularityChart;
+use App\Filament\Widgets\Analytics\HealthTrendChart;
+use App\Filament\Widgets\Analytics\ProfessionDistributionChart;
+use App\Filament\Widgets\Analytics\RelationshipDistributionChart;
+use App\Filament\Widgets\Analytics\DailyActivityChart;
 use App\Filament\Resources\Analytics\UserAnalyticsResource;
 use App\Filament\Resources\Analytics\LifeStatsSnapshotResource;
 use App\Filament\Resources\Analytics\SharedDecisionLogResource;
@@ -41,6 +49,8 @@ class AdminPanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->resources([
                 UserAnalyticsResource::class,
+                LifeStatsSnapshotResource::class,
+                SharedDecisionLogResource::class,
             ])
             ->pages([
                 Dashboard::class,
@@ -50,6 +60,14 @@ class AdminPanelProvider extends PanelProvider
                 AdminStatsOverview::class,
                 SharedDecisionTypesChart::class,
                 LifeStatsOverview::class,
+                MbtiDistributionChart::class,
+                AgeGroupDistributionChart::class,
+                EventTypeDistributionChart::class,
+                ChoicesPopularityChart::class,
+                HealthTrendChart::class,
+                ProfessionDistributionChart::class,
+                RelationshipDistributionChart::class,
+                DailyActivityChart::class,
                 AccountWidget::class,
                 FilamentInfoWidget::class,
             ])

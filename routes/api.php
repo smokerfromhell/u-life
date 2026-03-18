@@ -39,6 +39,8 @@ Route::middleware(['web'])->group(function () {
         Route::get('/characters/{character}/events', [EventController::class, 'getAvailableEvents']);
         Route::get('/characters/{character}/random-event', [EventController::class, 'getRandomEvent']);
         Route::post('/characters/{character}/apply-event', [EventController::class, 'applyEventOutcome']);
+        Route::post('/characters/{character}/end-day', [EventController::class, 'endDay']);
+        Route::get('/characters/{character}/life-summary', [EventController::class, 'getLifeSummary']);
         Route::post('/characters/{character}/set-profession', [EventController::class, 'setProfession']);
         Route::post('/characters/{character}/redraw-events', [EventController::class, 'redrawEvents']);
         Route::post('/characters/{character}/redraw-event-type', [EventController::class, 'redrawEventType']);

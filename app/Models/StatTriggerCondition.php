@@ -17,6 +17,23 @@ class StatTriggerCondition extends Model
         'outcome',
         'stat_effects',
         'weight',
+        // New fields from migration
+        'title',
+        'description',
+        'image',
+        'type',
+        'deck_label',
+        'repeatable',
+        'auto_resolve',
+        'days_to_advance',
+        'choices',
+        'display_order',
+    ];
+
+    protected $casts = [
+        'repeatable' => 'boolean',
+        'auto_resolve' => 'boolean',
+        'choices' => 'array',
     ];
 
     /**

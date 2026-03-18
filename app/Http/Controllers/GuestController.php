@@ -17,23 +17,34 @@ class GuestController extends Controller
             'share_consent' => 'nullable|boolean',
         ]);
 
-        if (Auth::check()) {
-            $user = Auth::user();
-
-            if (($user->is_guest ?? false) && array_key_exists('share_consent', $validated)) {
-                $user->share_consent = $validated['share_consent'];
-                $user->save();
+        // Use separate session key for game/frontend
+        $gameSessionKey = 'game_user_id';
+        
+        // Check if there's already a game session
+        if ($request->session()->has($gameSessionKey)) {
+            $userId = $request->session()->get($gameSessionKey);
+            $user = User::find($userId);
+            
+            if ($user) {
+                // Update consent if provided
+                if (array_key_exists('share_consent', $validated)) {
+                    $user->share_consent = $validated['share_consent'];
+                    $user->save();
+                }
+                
+                return response()->json([
+                    'message' => 'Game session restored',
+                    'user' => $user,
+                    'has_character' => $user->characters()->exists(),
+                ]);
             }
-
-            return response()->json([
-                'message' => 'Already authenticated',
-                'user' => $user,
-                'has_character' => $user->characters()->exists(),
-            ]);
         }
 
         $uuid = (string) Str::uuid();
 
+        // Use separate session key for game/frontend
+        $gameSessionKey = 'game_user_id';
+        
         $createData = [
             'name' => 'Guest',
             'email' => "guest_{$uuid}@ulife.local",
@@ -52,8 +63,8 @@ class GuestController extends Controller
 
         $user = User::create($createData);
 
-        Auth::login($user);
-        $request->session()->regenerate();
+        // Store user ID in separate session key for game
+        $request->session()->put($gameSessionKey, $user->id);
 
         return response()->json([
             'message' => 'Guest session started',
@@ -64,8 +75,20 @@ class GuestController extends Controller
 
     public function me()
     {
+        // Use separate session key for game/frontend
+        $gameSessionKey = 'game_user_id';
+        
+        if (!session()->has($gameSessionKey)) {
+            return response()->json([
+                'user' => null,
+            ]);
+        }
+        
+        $userId = session()->get($gameSessionKey);
+        $user = User::find($userId);
+        
         return response()->json([
-            'user' => Auth::user(),
+            'user' => $user,
         ]);
     }
 
@@ -75,7 +98,18 @@ class GuestController extends Controller
             'share_consent' => 'required|boolean',
         ]);
 
-        $user = Auth::user();
+        // Use separate session key for game/frontend
+        $gameSessionKey = 'game_user_id';
+        
+        $userId = $request->session()->get($gameSessionKey);
+        $user = User::find($userId);
+        
+        if (!$user) {
+            return response()->json([
+                'message' => 'No active game session',
+            ], 401);
+        }
+        
         if (!Schema::hasColumn('users', 'share_consent')) {
             return response()->json([
                 'message' => 'Consent feature not available (missing migration)',
@@ -94,11 +128,13 @@ class GuestController extends Controller
 
     public function exit(Request $request)
     {
-        $user = Auth::user();
+        // Use separate session key for game/frontend
+        $gameSessionKey = 'game_user_id';
+        
+        $userId = $request->session()->get($gameSessionKey);
+        $user = User::find($userId);
 
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        $request->session()->forget($gameSessionKey);
 
         if ($user && ($user->is_guest ?? false) && $user->share_consent !== true) {
             $user->delete();

@@ -302,8 +302,15 @@
               variant="underlined"
               density="compact"
               hide-details
-              class="pixel-input"
-            ></v-select>
+              class="pixel-input custom-dropdown"
+              color="#00ffcc"
+              bg-color="transparent"
+              :menu-props="{ contentClass: 'custom-dropdown-menu' }"
+            >
+              <template v-slot:selection="{ item }">
+                <span class="dropdown-item-text">{{ item.title }}</span>
+              </template>
+            </v-select>
           </div>
           
           <div class="form-field-card full-width" style="--field-delay: 0.3s">
@@ -479,6 +486,20 @@
         <p class="text-white/60 text-sm" style="font-family: 'VT323', monospace; font-size: 16px;">
           Share your gameplay data (choices + stat changes) to help improve the game?
         </p>
+        <!-- Enhanced Tips Section -->
+        <div class="tips-container mt-4 p-4 rounded-xl" style="background: linear-gradient(135deg, rgba(0, 255, 204, 0.1) 0%, rgba(0, 0, 0, 0.4) 100%); border: 1px solid rgba(0, 255, 204, 0.3);">
+          <p class="text-cyan-400 text-xs mb-3 flex items-center justify-center gap-2" style="font-family: 'Press Start 2P', monospace;">
+            <v-icon size="16" color="#00ffcc">mdi-lightbulb-on-outline</v-icon> UNDERSTAND YOUR CHOICE
+          </p>
+          <div class="tip-item mb-3 p-3 rounded-lg" style="background: rgba(0, 0, 0, 0.4); border-left: 3px solid #4ade80;">
+            <p class="text-green-400 font-bold mb-1" style="font-family: 'VT323', monospace; font-size: 18px;">🔒 Play Private</p>
+            <p class="text-white/70" style="font-family: 'VT323', monospace; font-size: 14px;">Your data stays completely anonymous. Admins and professionals CANNOT see your choices or personal information.</p>
+          </div>
+          <div class="tip-item p-3 rounded-lg" style="background: rgba(0, 0, 0, 0.4); border-left: 3px solid #facc15;">
+            <p class="text-yellow-400 font-bold mb-1" style="font-family: 'VT323', monospace; font-size: 18px;">🌐 Play & Share</p>
+            <p class="text-white/70" style="font-family: 'VT323', monospace; font-size: 14px;">Your gameplay data will be visible to admins and professionals for research and game improvement purposes.</p>
+          </div>
+        </div>
       </v-card-text>
       <v-card-actions class="justify-center gap-3 pb-6 px-6">
         <v-btn
@@ -514,6 +535,20 @@
         <p class="text-white/60 text-sm" style="font-family: 'VT323', monospace; font-size: 16px;">
           Share your gameplay data (choices + stat changes) to help improve the game?
         </p>
+        <!-- Enhanced Tips Section -->
+        <div class="tips-container mt-4 p-4 rounded-xl" style="background: linear-gradient(135deg, rgba(0, 255, 204, 0.1) 0%, rgba(0, 0, 0, 0.4) 100%); border: 1px solid rgba(0, 255, 204, 0.3);">
+          <p class="text-cyan-400 text-xs mb-3 flex items-center justify-center gap-2" style="font-family: 'Press Start 2P', monospace;">
+            <v-icon size="16" color="#00ffcc">mdi-lightbulb-on-outline</v-icon> UNDERSTAND YOUR CHOICE
+          </p>
+          <div class="tip-item mb-3 p-3 rounded-lg" style="background: rgba(0, 0, 0, 0.4); border-left: 3px solid #4ade80;">
+            <p class="text-green-400 font-bold mb-1" style="font-family: 'VT323', monospace; font-size: 18px;">🔒 Play Private</p>
+            <p class="text-white/70" style="font-family: 'VT323', monospace; font-size: 14px;">Your data stays completely anonymous. Admins and professionals CANNOT see your choices or personal information.</p>
+          </div>
+          <div class="tip-item p-3 rounded-lg" style="background: rgba(0, 0, 0, 0.4); border-left: 3px solid #facc15;">
+            <p class="text-yellow-400 font-bold mb-1" style="font-family: 'VT323', monospace; font-size: 18px;">🌐 Play & Share</p>
+            <p class="text-white/70" style="font-family: 'VT323', monospace; font-size: 14px;">Your gameplay data will be visible to admins and professionals for research and game improvement purposes.</p>
+          </div>
+        </div>
       </v-card-text>
       <v-card-actions class="justify-center gap-3 pb-6 px-6">
         <v-btn
@@ -2392,6 +2427,124 @@ const goToForgotPassword = () => {
 .guest-share-btn {
   color: #00110d !important;
   box-shadow: 0 10px 28px rgba(0, 255, 204, 0.18);
+}
+
+/* Tips Container Glow Animation */
+.tips-container {
+  animation: tips-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes tips-glow {
+  0% {
+    box-shadow: 0 0 20px rgba(0, 255, 204, 0.15);
+  }
+  100% {
+    box-shadow: 0 0 35px rgba(0, 255, 204, 0.3);
+  }
+}
+
+/* Tip Item Hover Effects */
+.tip-item {
+  transition: all 0.3s ease;
+  border-left-width: 3px;
+}
+
+.tip-item:hover {
+  transform: translateX(5px);
+  background: rgba(0, 0, 0, 0.6) !important;
+}
+
+.tip-item:first-child:hover {
+  box-shadow: 0 0 20px rgba(74, 222, 128, 0.3);
+}
+
+.tip-item:last-child:hover {
+  box-shadow: 0 0 20px rgba(250, 204, 21, 0.3);
+}
+
+/* Custom Dropdown Styling */
+.custom-dropdown .v-field {
+  background: transparent !important;
+  border-bottom: 2px solid rgba(0, 255, 204, 0.4) !important;
+  transition: all 0.3s ease;
+}
+
+.custom-dropdown .v-field:hover {
+  border-bottom-color: #00ffcc !important;
+}
+
+.custom-dropdown .v-field__outline {
+  display: none !important;
+}
+
+.custom-dropdown .v-select__selection {
+  color: #00ffcc !important;
+  font-family: 'VT323', monospace !important;
+  font-size: 18px !important;
+}
+
+.custom-dropdown .v-icon {
+  color: #00ffcc !important;
+}
+
+.dropdown-item-text {
+  color: #00ffcc !important;
+  font-family: 'VT323', monospace !important;
+  font-size: 18px !important;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #00ffcc 0%, rgba(0, 255, 204, 0.5) 100%);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00ffcc;
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #00ffcc rgba(0, 0, 0, 0.3);
+}
+
+/* Custom Dropdown Menu */
+.custom-dropdown-menu {
+  background: rgba(10, 10, 30, 0.95) !important;
+  border: 1px solid rgba(0, 255, 204, 0.4) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 255, 204, 0.2) !important;
+  backdrop-filter: blur(10px);
+}
+
+.custom-dropdown-menu .v-list-item {
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-family: 'VT323', monospace !important;
+  font-size: 16px !important;
+  transition: all 0.2s ease;
+  border-radius: 8px;
+  margin: 4px 8px;
+}
+
+.custom-dropdown-menu .v-list-item:hover {
+  background: rgba(0, 255, 204, 0.15) !important;
+  color: #00ffcc !important;
+}
+
+.custom-dropdown-menu .v-list-item--active {
+  background: rgba(0, 255, 204, 0.2) !important;
+  color: #00ffcc !important;
 }
 
 .professional-link {

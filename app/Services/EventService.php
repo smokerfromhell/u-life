@@ -13,6 +13,360 @@ use Illuminate\Support\Facades\Log;
 
 class EventService
 {
+    private const EFFECT_STAT_ALIASES = [
+        'Stress' => ['stat' => 'Burnout', 'multiplier' => 1],
+        'Fatigue' => ['stat' => 'Burnout', 'multiplier' => 1],
+        'Peace' => ['stat' => 'Happiness', 'multiplier' => 1],
+        'Ethics' => ['stat' => 'Morality', 'multiplier' => 1],
+        'Finance' => ['stat' => 'Wealth', 'multiplier' => 1],
+        // Lower corruption should improve morality, and higher corruption should hurt it.
+        'Corruption' => ['stat' => 'Morality', 'multiplier' => -1],
+    ];
+
+    /**
+     * Health condition thresholds based on health percentage
+     */
+    const HEALTH_CONDITIONS = [
+        ['min' => 0, 'max' => 10, 'status' => 'dead'],
+        ['min' => 11, 'max' => 25, 'status' => 'critical'],
+        ['min' => 26, 'max' => 50, 'status' => 'unhealthy'],
+        ['min' => 51, 'max' => 75, 'status' => 'sick'],
+        ['min' => 76, 'max' => 90, 'status' => 'fever'],
+        ['min' => 91, 'max' => 100, 'status' => 'healthy'],
+    ];
+
+    /**
+     * Get health status text based on health percentage
+     */
+    public function getHealthStatus(int $healthPercentage): string
+    {
+        foreach (self::HEALTH_CONDITIONS as $condition) {
+            if ($healthPercentage >= $condition['min'] && $healthPercentage <= $condition['max']) {
+                return $condition['status'];
+            }
+        }
+        return 'healthy';
+    }
+
+    /**
+     * Calculate and update health condition in character state
+     */
+    public function updateHealthCondition(Character $character): string
+    {
+        $effectiveStats = is_array($character->effective_stats) ? $character->effective_stats : [];
+        $health = isset($effectiveStats['Health']) ? (int)$effectiveStats['Health'] : 100;
+        
+        $healthStatus = $this->getHealthStatus($health);
+        
+        $state = $character->character_state ?? [];
+        $state['health_condition'] = $healthStatus;
+        $character->character_state = $state;
+        $character->save();
+        
+        return $healthStatus;
+    }
+
+    /**
+     * Calculate age from day (1 day = 1 year for simplicity, or use 365 days per year)
+     */
+    public function calculateAge(int $currentDay): int
+    {
+        // Using 1 day = 1 year for game simplicity
+        return $currentDay;
+    }
+
+    /**
+     * Get age group from age
+     */
+    public function getAgeGroupFromAge(int $age): string
+    {
+        if ($age < 10) return 'child';
+        if ($age < 18) return 'teenager';
+        if ($age < 60) return 'adult';
+        return 'old';
+    }
+
+    /**
+     * Calculate success chance based on character stats
+     */
+    public function calculateSuccessChance(Character $character, object $event): int
+    {
+        $effectiveStats = is_array($character->effective_stats) ? $character->effective_stats : [];
+        $baseChance = 50; // Base 50% chance
+        
+        // Adjust based on relevant stats
+        if (isset($event->required_stat)) {
+            $statValue = $effectiveStats[$event->required_stat] ?? 50;
+            $baseChance = $statValue; // Direct correlation
+        }
+        
+        // Apply hidden stats modifiers
+        $hiddenStats = is_array($character->hidden_stats) ? $character->hidden_stats : [];
+        
+        // Addiction reduces success chance
+        if (isset($hiddenStats['Addiction'])) {
+            $baseChance -= ($hiddenStats['Addiction'] * 0.5);
+        }
+        
+        // Burnout reduces success chance
+        if (isset($hiddenStats['Burnout'])) {
+            $baseChance -= ($hiddenStats['Burnout'] * 0.3);
+        }
+        
+        return max(5, min(95, $baseChance));
+    }
+
+    /**
+     * Determine outcome based on stats (game-decided)
+     */
+    public function determineGameOutcome(Character $character, object $event): string
+    {
+        $effectiveStats = is_array($character->effective_stats) ? $character->effective_stats : [];
+
+        if (isset($event->required_stat)) {
+            $requiredStat = (string) $event->required_stat;
+            $threshold = isset($event->stat_threshold) ? (int) $event->stat_threshold : 50;
+            $statValue = (int) ($effectiveStats[$requiredStat] ?? 0);
+
+            return $statValue >= $threshold ? 'success' : 'failure';
+        }
+
+        // Deterministic fallback: base success on computed chance (no randomness).
+        $successChance = $this->calculateSuccessChance($character, $event);
+        return $successChance >= 55 ? 'success' : 'failure';
+    }
+
+    /**
+     * Check for severe consequences from choices
+     */
+    public function checkSevereConsequences(Character $character, array $rawEffects): array
+    {
+        $consequences = [];
+
+        $effectiveStats = is_array($character->effective_stats) ? $character->effective_stats : [];
+        $state = is_array($character->character_state) ? $character->character_state : [];
+
+        $age = $this->calculateAge((int) ($character->current_day ?? 1));
+        $health = (int) ($effectiveStats['Health'] ?? 50);
+        $wealth = (int) ($effectiveStats['Wealth'] ?? 50);
+        $burnout = (int) ($effectiveStats['Burnout'] ?? 0);
+        $debt = (int) ($effectiveStats['Debt'] ?? 0);
+
+        $stateChanged = false;
+        $statsChanged = false;
+
+        // Bankruptcy: high debt + low wealth locks expensive actions.
+        if (($state['is_bankrupt'] ?? false) !== true && ($debt >= 90 || ($debt >= 70 && $wealth <= 5))) {
+            $state['is_bankrupt'] = true;
+            $stateChanged = true;
+            $consequences[] = [
+                'type' => 'bankruptcy',
+                'message' => 'You declared bankruptcy. Expensive choices will be restricted until you recover.',
+            ];
+        }
+
+        // Cancer: persistent condition once very unhealthy at older ages.
+        if (($state['has_cancer'] ?? false) !== true && $age >= 35 && $health <= 20) {
+            $state['has_cancer'] = true;
+            $stateChanged = true;
+            $consequences[] = [
+                'type' => 'cancer',
+                'message' => 'You were diagnosed with cancer. Health will decline faster over time.',
+            ];
+        }
+
+        // Disability: extreme burnout can lead to a disabling breakdown/accident.
+        if (($state['has_disability'] ?? false) !== true && $burnout >= 95) {
+            $state['has_disability'] = true;
+            $stateChanged = true;
+
+            $effectiveStats['Strength'] = max(5, (int) ($effectiveStats['Strength'] ?? 50) - 30);
+            $effectiveStats['Health'] = max(0, (int) ($effectiveStats['Health'] ?? 50) - 10);
+            $statsChanged = true;
+
+            $consequences[] = [
+                'type' => 'disability',
+                'message' => 'A serious breakdown left you disabled. Some career and physical actions become harder.',
+            ];
+        }
+
+        // Severe addiction (supports numeric addiction stat effects).
+        $addictionDelta = (int) ($rawEffects['Addiction'] ?? 0);
+        $addictionNow = (int) ($effectiveStats['Addiction'] ?? 0);
+        if (($state['has_severe_addiction'] ?? false) !== true && ($addictionNow + max(0, $addictionDelta)) >= 85) {
+            $state['has_severe_addiction'] = true;
+            $stateChanged = true;
+            $consequences[] = [
+                'type' => 'severe_addiction',
+                'message' => 'Your addiction spirals out of control. Recovery options will start appearing.',
+            ];
+        }
+
+        if ($stateChanged) {
+            $character->character_state = $state;
+        }
+        if ($statsChanged) {
+            $character->effective_stats = $effectiveStats;
+            $this->syncLifeStatsFromEffectiveStats($character, $effectiveStats);
+        }
+        if ($stateChanged || $statsChanged) {
+            $character->save();
+        }
+
+        return $consequences;
+    }
+
+    /**
+     * Apply ongoing effects when time advances (deterministic, no randomness).
+     * Returns consequences to surface in the life log.
+     */
+    public function applyTimePassage(Character $character, int $daysAdvanced): array
+    {
+        $daysAdvanced = max(0, $daysAdvanced);
+        if ($daysAdvanced === 0) {
+            return [];
+        }
+
+        $consequences = [];
+        $effectiveStats = is_array($character->effective_stats) ? $character->effective_stats : [];
+        $state = is_array($character->character_state) ? $character->character_state : [];
+
+        $changed = false;
+
+        if (($state['has_cancer'] ?? false) === true) {
+            $delta = 3 * $daysAdvanced;
+            $effectiveStats['Health'] = max(0, (int) ($effectiveStats['Health'] ?? 50) - $delta);
+            $consequences[] = [
+                'type' => 'cancer_progression',
+                'message' => "Cancer progresses (-{$delta} Health).",
+            ];
+            $changed = true;
+        }
+
+        if (($state['has_severe_addiction'] ?? false) === true) {
+            $deltaHealth = 1 * $daysAdvanced;
+            $deltaHappiness = 1 * $daysAdvanced;
+            $effectiveStats['Health'] = max(0, (int) ($effectiveStats['Health'] ?? 50) - $deltaHealth);
+            $effectiveStats['Happiness'] = max(0, (int) ($effectiveStats['Happiness'] ?? 50) - $deltaHappiness);
+            $changed = true;
+        }
+
+        if (($state['has_disability'] ?? false) === true) {
+            // Disability increases burnout accumulation over time.
+            $delta = 1 * $daysAdvanced;
+            $effectiveStats['Burnout'] = min(100, (int) ($effectiveStats['Burnout'] ?? 0) + $delta);
+            $changed = true;
+        }
+
+        if (($state['is_bankrupt'] ?? false) === true) {
+            // Bankruptcy slowly reduces happiness until stabilized.
+            $delta = 1 * $daysAdvanced;
+            $effectiveStats['Happiness'] = max(0, (int) ($effectiveStats['Happiness'] ?? 50) - $delta);
+            $changed = true;
+        }
+
+        $profile = app(AdaptiveNarrativeService::class)->getDecisionProfile($character);
+        $flags = is_array($profile['flags'] ?? null) ? $profile['flags'] : [];
+
+        if (($flags['study_habit'] ?? false) === true && ($flags['burnout_cycle'] ?? false) !== true) {
+            $effectiveStats['Intelligence'] = min(100, (int) ($effectiveStats['Intelligence'] ?? 50) + $daysAdvanced);
+            $effectiveStats['Discipline'] = min(100, (int) ($effectiveStats['Discipline'] ?? 50) + $daysAdvanced);
+            $consequences[] = [
+                'type' => 'study_habit',
+                'message' => "Your study routine compounds over time (+{$daysAdvanced} Intelligence, +{$daysAdvanced} Discipline).",
+            ];
+            $changed = true;
+        }
+
+        if (($flags['burnout_cycle'] ?? false) === true) {
+            $burnoutDelta = 2 * $daysAdvanced;
+            $healthDelta = 1 * $daysAdvanced;
+            $effectiveStats['Burnout'] = min(100, (int) ($effectiveStats['Burnout'] ?? 0) + $burnoutDelta);
+            $effectiveStats['Health'] = max(0, (int) ($effectiveStats['Health'] ?? 50) - $healthDelta);
+            $consequences[] = [
+                'type' => 'burnout_cycle',
+                'message' => "Your burnout pattern keeps draining you (+{$burnoutDelta} Burnout, -{$healthDelta} Health).",
+            ];
+            $changed = true;
+        }
+
+        if (($flags['relationship_strain'] ?? false) === true) {
+            $isolationDelta = 1 * $daysAdvanced;
+            $happinessDelta = 1 * $daysAdvanced;
+            $effectiveStats['Isolation'] = min(100, (int) ($effectiveStats['Isolation'] ?? 0) + $isolationDelta);
+            $effectiveStats['Happiness'] = max(0, (int) ($effectiveStats['Happiness'] ?? 50) - $happinessDelta);
+            $consequences[] = [
+                'type' => 'relationship_strain',
+                'message' => "Unresolved distance keeps weighing on you (+{$isolationDelta} Isolation, -{$happinessDelta} Happiness).",
+            ];
+            $changed = true;
+        }
+
+        if (($flags['scandal_marked'] ?? false) === true) {
+            $repDelta = 1 * $daysAdvanced;
+            $effectiveStats['Reputation'] = max(0, (int) ($effectiveStats['Reputation'] ?? 50) - $repDelta);
+            $consequences[] = [
+                'type' => 'scandal_marked',
+                'message' => "Your reputation keeps taking hits while the scandal lingers (-{$repDelta} Reputation).",
+            ];
+            $changed = true;
+        }
+
+        if (($flags['dependency_flag'] ?? false) === true) {
+            $addictionDelta = 1 * $daysAdvanced;
+            $healthDelta = 1 * $daysAdvanced;
+            $effectiveStats['Addiction'] = min(100, (int) ($effectiveStats['Addiction'] ?? 0) + $addictionDelta);
+            $effectiveStats['Health'] = max(0, (int) ($effectiveStats['Health'] ?? 50) - $healthDelta);
+            $consequences[] = [
+                'type' => 'dependency_flag',
+                'message' => "The habit tightens its grip over time (+{$addictionDelta} Addiction, -{$healthDelta} Health).",
+            ];
+            $changed = true;
+        }
+
+        if (($flags['financial_trap'] ?? false) === true) {
+            $debtDelta = 1 * $daysAdvanced;
+            $effectiveStats['Debt'] = min(100, (int) ($effectiveStats['Debt'] ?? 0) + $debtDelta);
+            $effectiveStats['Happiness'] = max(0, (int) ($effectiveStats['Happiness'] ?? 50) - $daysAdvanced);
+            $consequences[] = [
+                'type' => 'financial_trap',
+                'message' => "Financial pressure keeps compounding (+{$debtDelta} Debt, -{$daysAdvanced} Happiness).",
+            ];
+            $changed = true;
+        }
+
+        if (($flags['recovery_arc'] ?? false) === true && ($flags['burnout_cycle'] ?? false) !== true) {
+            $effectiveStats['Burnout'] = max(0, (int) ($effectiveStats['Burnout'] ?? 0) - $daysAdvanced);
+            $effectiveStats['Health'] = min(100, (int) ($effectiveStats['Health'] ?? 50) + $daysAdvanced);
+            $consequences[] = [
+                'type' => 'recovery_arc',
+                'message' => "Your healthier habits keep paying off (-{$daysAdvanced} Burnout, +{$daysAdvanced} Health).",
+            ];
+            $changed = true;
+        }
+
+        if ($changed) {
+            $character->effective_stats = $effectiveStats;
+            $this->syncLifeStatsFromEffectiveStats($character, $effectiveStats);
+            $character->save();
+        }
+
+        return $consequences;
+    }
+
+    private function syncLifeStatsFromEffectiveStats(Character $character, array $effectiveStats): void
+    {
+        if (isset($effectiveStats['Health'])) {
+            $character->health = (int) $effectiveStats['Health'];
+        }
+        if (isset($effectiveStats['Happiness'])) {
+            $character->happiness = (int) $effectiveStats['Happiness'];
+        }
+        if (isset($effectiveStats['Wealth']) || isset($effectiveStats['Finance'])) {
+            $character->finance = (int) ($effectiveStats['Wealth'] ?? $effectiveStats['Finance']);
+        }
+    }
+
     /**
      * Event categories for branching
      */
@@ -240,21 +594,20 @@ Log::error('Error in getStatefulEvents', [
         foreach (self::STATE_TRANSITIONS as $stateType => $transitions) {
             if (isset($state[$stateType]) && isset($transitions[$state[$stateType]])) {
                 $possibleTransitions = $transitions[$state[$stateType]];
-                
-                $totalWeight = array_sum($possibleTransitions);
-                $rand = mt_rand() / mt_getrandmax() * $totalWeight;
-                $current = 0;
-                
-                foreach ($possibleTransitions as $newState => $weight) {
-                    $current += $weight;
-                    if ($rand <= $current) {
-                        if ($outcomeType === 'positive') {
-                            $state[$stateType] = $newState;
-                        } elseif ($outcomeType === 'negative' && rand(0, 100) > 70) {
-                            $downgrade = array_keys($transitions);
-                            $state[$stateType] = $downgrade[array_rand($downgrade)];
+
+                // Deterministic transition: move to the highest-weight next state on positive outcomes.
+                // Negative/neutral outcomes keep the current state (no randomness).
+                if ($outcomeType === 'positive') {
+                    $bestState = null;
+                    $bestWeight = null;
+                    foreach ($possibleTransitions as $newState => $weight) {
+                        if ($bestState === null || $weight > $bestWeight) {
+                            $bestState = $newState;
+                            $bestWeight = $weight;
                         }
-                        break;
+                    }
+                    if ($bestState !== null) {
+                        $state[$stateType] = $bestState;
                     }
                 }
             }
@@ -273,34 +626,31 @@ Log::error('Error in getStatefulEvents', [
             return null;
         }
 
-        $totalWeight = 0.0;
-        foreach ($events as $event) {
-            $weight = (float) ($event->weight ?? 1);
-            if ($weight > 0) {
-                $totalWeight += $weight;
+        $weightedEvents = $events->map(function ($event) {
+            $weight = (float) ($event->dynamic_weight ?? $event->calculated_weight ?? $event->weight ?? 1);
+
+            return [
+                'event' => $event,
+                'weight' => max(0.1, $weight),
+            ];
+        })->values();
+
+        $total = $weightedEvents->sum('weight');
+        if ($total <= 0) {
+            return $weightedEvents->first()['event'] ?? null;
+        }
+
+        $roll = random_int(1, max(1, (int) ceil($total * 100)));
+        $running = 0;
+
+        foreach ($weightedEvents as $entry) {
+            $running += (int) ceil($entry['weight'] * 100);
+            if ($roll <= $running) {
+                return $entry['event'];
             }
         }
 
-        if ($totalWeight <= 0) {
-            return $events->first();
-        }
-
-        $random = (mt_rand() / mt_getrandmax()) * $totalWeight;
-        $current = 0.0;
-
-        foreach ($events as $event) {
-            $weight = (float) ($event->weight ?? 1);
-            if ($weight <= 0) {
-                continue;
-            }
-
-            $current += $weight;
-            if ($random <= $current) {
-                return $event;
-            }
-        }
-
-        return $events->last();
+        return $weightedEvents->last()['event'] ?? null;
     }
 
     /**
@@ -356,11 +706,59 @@ Log::error('Error in getStatefulEvents', [
             if (preg_match('/([+-]\d+)\s+(\w+)/', $part, $matches)) {
                 $stat = $matches[2];
                 $value = (int)$matches[1];
+                [$stat, $value] = $this->normalizeEffectStat($stat, $value);
                 $effects[$stat] = ($effects[$stat] ?? 0) + $value;
             }
         }
 
         return $effects;
+    }
+
+    public function normalizeEffectStat(string $stat, int $value): array
+    {
+        $normalized = trim($stat);
+        $alias = self::EFFECT_STAT_ALIASES[$normalized] ?? null;
+
+        if ($alias === null) {
+            return [$normalized, $value];
+        }
+
+        return [
+            (string) ($alias['stat'] ?? $normalized),
+            (int) round($value * (int) ($alias['multiplier'] ?? 1)),
+        ];
+    }
+
+    public function isDead(Character $character): bool
+    {
+        $state = is_array($character->character_state) ? $character->character_state : [];
+        $effectiveStats = is_array($character->effective_stats) ? $character->effective_stats : [];
+        $health = (int) ($effectiveStats['Health'] ?? $character->health ?? 100);
+
+        return ($state['is_dead'] ?? false) === true
+            || ($state['health_condition'] ?? null) === 'dead'
+            || $health <= 0;
+    }
+
+    public function markCharacterDeath(Character $character, string $cause = 'death', array $context = []): void
+    {
+        $state = is_array($character->character_state) ? $character->character_state : [];
+        $effectiveStats = is_array($character->effective_stats) ? $character->effective_stats : [];
+
+        $effectiveStats['Health'] = 0;
+        $state['is_dead'] = true;
+        $state['health_condition'] = 'dead';
+        $state['death_cause'] = $cause;
+        $state['death_day'] = (int) ($character->current_day ?? 1);
+
+        if (!empty($context)) {
+            $state['death_context'] = $context;
+        }
+
+        $character->effective_stats = $effectiveStats;
+        $character->health = 0;
+        $character->character_state = $state;
+        $character->save();
     }
 
     /**
@@ -412,15 +810,7 @@ Log::error('Error in getStatefulEvents', [
             
             // CRITICAL: Sync life stats fields so they can be read by getLifeStats()
             // This ensures the analytics correctly capture before/after stats
-            if (isset($effectiveStats['Health'])) {
-                $character->health = $effectiveStats['Health'];
-            }
-            if (isset($effectiveStats['Happiness'])) {
-                $character->happiness = $effectiveStats['Happiness'];
-            }
-            if (isset($effectiveStats['Wealth']) || isset($effectiveStats['Finance'])) {
-                $character->finance = $effectiveStats['Wealth'] ?? $effectiveStats['Finance'];
-            }
+            $this->syncLifeStatsFromEffectiveStats($character, $effectiveStats);
         }
         
         $character->save();

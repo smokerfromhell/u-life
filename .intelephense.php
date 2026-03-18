@@ -21,7 +21,7 @@ return [
     
     /**
      * Stub files for Laravel framework
-     * This helps Intelephense recognize Laravel facades
+     * This helps Intelephense recognize Laravel facades and Filament
      */
     'stubs' => [
         'laravel',
@@ -32,6 +32,11 @@ return [
         'Illuminate\Support\Facades\DB',
         'Illuminate\Support\Facades\Storage',
         'Illuminate\Support\Facades\Cache',
+        'filament',
+        'filament\actions',
+        'filament\forms',
+        'filament\tables',
+        'filament\widgets',
     ],
     
     /**

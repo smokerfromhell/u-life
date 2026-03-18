@@ -35,14 +35,14 @@
                 <span class="meta-badge">{{ character.ageGroup }}</span>
                 <span class="meta-badge gender-badge">{{ character.gender }}</span>
                    <span class="meta-divider">|</span>
-                   <span class="day-counter">Day {{ character.currentDay }}</span>
+                   <span class="day-counter">Age {{ character.age || character.currentDay }}</span>
                   <span class="meta-divider">|</span>
                   <span class="profession-badge">{{ character.profession || 'No Profession' }}</span>
                 </div>
               </div>
               
               <div class="header-stats">
-                <div v-for="(value, stat) in effectiveStats.visible" :key="stat" class="header-stat-bar">
+                <div v-for="(value, stat) in headerStats" :key="stat" class="header-stat-bar">
                   <div class="header-stat-header">
                     <span class="header-stat-icon">{{ getStatIcon(stat) }}</span>
                     <span class="header-stat-name">{{ stat }}</span>
@@ -54,6 +54,27 @@
                       :style="{ width: value + '%', background: getStatGradient(value) }"
                     ></div>
                   </div>
+                </div>
+              </div>
+              
+              <!-- Health Status Display -->
+              <div v-if="character.healthStatus" class="health-status-badge" :class="getHealthStatusClass(character.healthStatus)">
+                <v-icon size="16">{{ getHealthStatusIcon(character.healthStatus) }}</v-icon>
+                <span>{{ healthStatusLabel }}</span>
+              </div>
+
+              <div v-if="currentNarrativeLabel || activePathBadges.length || activeConsequenceBadges.length" class="state-strip">
+                <div v-if="currentNarrativeLabel" class="state-pill narrative-pill">
+                  <v-icon size="14">mdi-source-branch</v-icon>
+                  <span>{{ currentNarrativeLabel }}</span>
+                </div>
+                <div v-for="path in activePathBadges" :key="`path-${path}`" class="state-pill path-pill">
+                  <v-icon size="14">mdi-map-marker-path</v-icon>
+                  <span>{{ path }}</span>
+                </div>
+                <div v-for="flag in activeConsequenceBadges" :key="`flag-${flag.key}`" class="state-pill consequence-pill">
+                  <v-icon size="14">{{ flag.icon }}</v-icon>
+                  <span>{{ flag.label }}</span>
                 </div>
               </div>
             </div>
@@ -165,16 +186,36 @@
           </div>
         </div>
 
+        <div v-if="activeConsequenceBadges.length > 0" class="memory-panel-enhanced life-pressure-panel">
+          <div class="memory-header">
+            <div class="d-flex align-center ga-2">
+              <v-icon class="memory-title">mdi-pulse</v-icon>
+              <h4 class="memory-title">ACTIVE LIFE PRESSURES</h4>
+            </div>
+            <span class="pressure-arc" v-if="currentNarrativeLabel">{{ currentNarrativeLabel }}</span>
+          </div>
+          <div class="pressure-grid">
+            <div v-for="flag in activeConsequenceBadges" :key="`pressure-${flag.key}`" class="pressure-card">
+              <div class="pressure-card-header">
+                <v-icon size="16">{{ flag.icon }}</v-icon>
+                <span>{{ flag.label }}</span>
+              </div>
+              <p class="pressure-card-copy">{{ flag.description }}</p>
+            </div>
+          </div>
+        </div>
+
         <div class="action-section">
           <div class="action-buttons">
             <v-btn
               size="large"
-              class="random-event-btn action-btn"
-              prepend-icon="mdi-dice-multiple"
-              @click="randomEvent"
-              :disabled="selectedEvent || loading || showCardAnimation || animationPhase === 'choose'"
+              class="end-day-btn action-btn"
+              color="primary"
+              prepend-icon="mdi-weather-night"
+              @click="endDay"
+              :disabled="loading || selectedEvent"
             >
-              {{ showCardAnimation ? 'Animating...' : 'Random Event' }}
+              Advance Age
             </v-btn>
             <v-spacer />
             <v-btn
@@ -190,13 +231,89 @@
         </div>
 
         <div class="events-area">
+          <div v-if="availableEvents.life_actions && availableEvents.life_actions.length > 0" class="event-section">
+            <h3 class="section-header actions">
+              <v-icon class="header-icon">mdi-lightning-bolt</v-icon>
+              <span class="section-header-text glitch" data-text="DAILY ACTIONS">DAILY ACTIONS</span>
+            </h3>
+            <div class="events-grid">
+              <div
+                v-for="(event, index) in availableEvents.life_actions"
+                :key="`actions-${index}`"
+                class="event-card-item"
+                @click="!selectedEvent && !event.disabled && selectEvent(event)"
+                :class="{ 'disabled': selectedEvent || event.disabled }"
+              >
+                <div class="card-visual">
+                  <v-img :src="event.image" cover class="card-img" />
+                  <div class="card-type-badge" :class="getCardBadgeClass(event)">{{ getCardBadgeLabel(event) }}</div>
+                </div>
+                <div class="card-content">
+                  <h4 class="card-title">{{ event.title }}</h4>
+                  <p class="card-desc">{{ event.description }}</p>
+                  <p v-if="event.disabled && event.disabled_reason" class="card-disabled-reason">{{ event.disabled_reason }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="availableEvents.triggers && availableEvents.triggers.length > 0" class="event-section">
+            <h3 class="section-header milestone">
+              <v-icon class="header-icon">mdi-alert-circle</v-icon>
+              <span class="section-header-text glitch" data-text="TRIGGERS">TRIGGERS</span>
+            </h3>
+            <div class="events-grid">
+              <div
+                v-for="(event, index) in availableEvents.triggers"
+                :key="`trigger-${index}`"
+                class="event-card-item"
+                @click="!selectedEvent && selectEvent(event)"
+                :class="{ 'disabled': selectedEvent }"
+              >
+                <div class="card-visual">
+                  <v-img :src="event.image" cover class="card-img" />
+                  <div class="card-type-badge" :class="getCardBadgeClass(event)">{{ getCardBadgeLabel(event) }}</div>
+                </div>
+                <div class="card-content">
+                  <h4 class="card-title">{{ event.title }}</h4>
+                  <p class="card-desc">{{ event.description }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="availableEvents.profession_choices && availableEvents.profession_choices.length > 0 && !character.profession" class="event-section">
+            <h3 class="section-header career">
+              <v-icon class="header-icon">mdi-briefcase</v-icon>
+              <span class="section-header-text glitch" data-text="PROFESSION PATHS">PROFESSION PATHS</span>
+            </h3>
+            <div class="events-grid">
+              <div
+                v-for="(event, index) in availableEvents.profession_choices"
+                :key="`prof-choice-${event.id || index}`"
+                class="event-card-item"
+                @click="!selectedEvent && selectEvent(event)"
+                :class="{ 'disabled': selectedEvent }"
+              >
+                <div class="card-visual">
+                  <v-img :src="event.image || '/css/images/milestone.jpg'" cover class="card-img" />
+                  <div class="card-type-badge" :class="getCardBadgeClass(event)">{{ getCardBadgeLabel(event) }}</div>
+                </div>
+                <div class="card-content">
+                  <h4 class="card-title">{{ event.title }}</h4>
+                  <p class="card-desc">{{ event.description }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div v-if="availableEvents.daily && availableEvents.daily.length > 0" class="event-section">
             <div class="section-header-wrapper">
               <h3 class="section-header daily">
                 <v-icon class="header-icon">mdi-calendar-today</v-icon>
                 <span class="section-header-text glitch" data-text="DAILY OCCURRENCES">DAILY OCCURRENCES</span>
               </h3>
-              <v-btn
+              <v-btn v-if="false"
                 size="x-small"
                 variant="tonal"
                 color="info"
@@ -218,7 +335,7 @@
               >
                 <div class="card-visual">
                   <v-img :src="event.image" cover class="card-img" />
-                  <div class="card-type-badge daily">Daily</div>
+                  <div class="card-type-badge" :class="getCardBadgeClass(event)">{{ getCardBadgeLabel(event) }}</div>
                 </div>
                 <div class="card-content">
                   <h4 class="card-title">{{ event.title }}</h4>
@@ -234,7 +351,7 @@
                 <v-icon class="header-icon">mdi-theater</v-icon>
                 <span class="section-header-text glitch" data-text="CULTURAL EVENTS">CULTURAL EVENTS</span>
               </h3>
-              <v-btn
+              <v-btn v-if="false"
                 size="x-small"
                 variant="tonal"
                 color="info"
@@ -256,7 +373,7 @@
               >
                 <div class="card-visual">
                   <v-img :src="event.image" cover class="card-img" />
-                  <div class="card-type-badge cultural">Cultural</div>
+                  <div class="card-type-badge" :class="getCardBadgeClass(event)">{{ getCardBadgeLabel(event) }}</div>
                 </div>
                 <div class="card-content">
                   <h4 class="card-title">{{ event.title }}</h4>
@@ -272,7 +389,7 @@
                 <v-icon class="header-icon">mdi-account-heart</v-icon>
                 <span class="section-header-text glitch" data-text="YOUR STORY">YOUR STORY</span>
               </h3>
-              <v-btn
+              <v-btn v-if="false"
                 size="x-small"
                 variant="tonal"
                 color="info"
@@ -294,7 +411,7 @@
               >
                 <div class="card-visual">
                   <v-img :src="event.image" cover class="card-img" />
-                  <div class="card-type-badge story">Story</div>
+                  <div class="card-type-badge" :class="getCardBadgeClass(event)">{{ getCardBadgeLabel(event) }}</div>
                 </div>
                 <div class="card-content">
                   <h4 class="card-title">{{ event.title }}</h4>
@@ -310,7 +427,7 @@
                 <v-icon class="header-icon">mdi-briefcase</v-icon>
                 <span class="section-header-text glitch" data-text="PROFESSIONAL PATH">PROFESSIONAL PATH</span>
               </h3>
-              <v-btn
+              <v-btn v-if="false"
                 size="x-small"
                 variant="tonal"
                 color="info"
@@ -332,7 +449,7 @@
               >
                 <div class="card-visual">
                   <v-img :src="event.image" cover class="card-img" />
-                  <div class="card-type-badge career">Career</div>
+                  <div class="card-type-badge" :class="getCardBadgeClass(event)">{{ getCardBadgeLabel(event) }}</div>
                 </div>
                 <div class="card-content">
                   <h4 class="card-title">{{ event.title }}</h4>
@@ -371,8 +488,11 @@
             </h3>
             <div class="game-over-panel">
               <div class="game-over-content">
-                <h3 class="game-over-title">Your journey has ended.</h3>
-                <p class="game-over-text">You lived until Day {{ character.currentDay }} as a {{ character.ageGroup }}.</p>
+                <h3 class="game-over-title">{{ endingTitle || 'Your journey has ended.' }}</h3>
+                <p class="game-over-text">{{ endingDescription || `You lived until Age ${character.age || character.currentDay} as a ${character.ageGroup}.` }}</p>
+                <v-btn color="info" size="large" class="new-game-btn" variant="tonal" @click="openLifeSummary">
+                  Life Summary
+                </v-btn>
                 <v-btn color="primary" size="large" class="new-game-btn" @click="startNewGame">
                   Start New Life
                 </v-btn>
@@ -405,6 +525,10 @@
         </div>
         <v-card-text class="dialog-text px-6 py-4">
           <p class="text-body1 mb-6 text-center">{{ selectedEvent.description }}</p>
+
+          <div v-if="selectedEventMeta.length > 0" class="selected-event-meta">
+            <span v-for="meta in selectedEventMeta" :key="meta" class="selected-event-meta-pill">{{ meta }}</span>
+          </div>
           
           <div v-if="selectedEvent.choices && selectedEvent.choices.length > 0" class="choices-container">
             <p class="text-subtitle2 mb-4 text-center choices-title">How will you respond?</p>
@@ -418,7 +542,9 @@
                 @click="applyChoice(idx)"
                 :disabled="applyingOutcome"
               >
-                {{ choice.text || 'Accept' }}
+                <div class="choice-btn-content">
+                  <span class="choice-btn-label">{{ formatChoiceLabel(choice) }}</span>
+                </div>
               </v-btn>
             </div>
           </div>
@@ -433,6 +559,58 @@
             class="cancel-btn"
           >
             Cancel
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="showLifeSummaryDialog" max-width="900" scrollable rounded="xl">
+      <v-card class="event-dialog">
+        <v-card-title class="dialog-title">
+          <span class="dialog-title-text glitch" data-text="LIFE SUMMARY">LIFE SUMMARY</span>
+        </v-card-title>
+        <v-card-text class="dialog-text px-6 py-4">
+          <div v-if="lifeSummaryLoading" class="text-center py-6">
+            <v-progress-circular indeterminate size="48" color="#00ffcc"></v-progress-circular>
+          </div>
+          <div v-else-if="lifeSummaryError" class="text-center py-6">
+            {{ lifeSummaryError }}
+          </div>
+          <div v-else-if="lifeSummary">
+            <p class="text-body1 mb-4 text-center">
+              {{ lifeSummary.ending_title }} — {{ lifeSummary.ending_description }}
+            </p>
+            <p class="text-body2 mb-6 text-center">
+              Lived {{ lifeSummary.lifespan_years }} years • Total decisions: {{ lifeSummary.total_decisions }}
+            </p>
+
+            <div v-if="lifeSummary.milestones && lifeSummary.milestones.length > 0" class="mb-6">
+              <h4 class="section-title mb-2">MILESTONES</h4>
+              <div class="d-flex flex-column gap-2">
+                <div v-for="(m, idx) in lifeSummary.milestones" :key="`ms-${idx}`" class="memory-entry">
+                  <div class="memory-date">Age {{ m.age }}</div>
+                  <div class="memory-event">{{ m.title }}</div>
+                  <div class="memory-effects">{{ m.description }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="lifeSummary.timeline && lifeSummary.timeline.length > 0">
+              <h4 class="section-title mb-2">TIMELINE</h4>
+              <div class="memory-entries">
+                <div v-for="(t, idx) in lifeSummary.timeline" :key="`tl-${idx}`" class="memory-entry">
+                  <div class="memory-date">Age {{ t.age }}</div>
+                  <div class="memory-event">{{ t.event_title }}</div>
+                  <div class="memory-choice">{{ t.choice_text }}</div>
+                  <div class="memory-effects">{{ t.outcome }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </v-card-text>
+        <v-card-actions class="justify-center gap-3 pb-6">
+          <v-btn variant="elevated" color="primary" size="large" @click="showLifeSummaryDialog = false">
+            Close
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -781,7 +959,7 @@
         <!-- Bloody Subtitle -->
         <div class="hell-subtitle">
           {{ selectedSuicideMethod?.name?.toUpperCase() || 'FATE UNKNOWN' }}<br>
-          <span>FINAL DAY: {{ character.currentDay }}</span>
+          <span>FINAL AGE: {{ character.age || character.currentDay }}</span>
         </div>
         
         <!-- Blood Splatter Effects -->
@@ -912,7 +1090,7 @@
 
 
 <script setup>
-import { ref, onMounted, nextTick, watch } from 'vue'
+import { ref, onMounted, nextTick, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
@@ -962,6 +1140,168 @@ const getStatGradient = (value) => {
   return 'linear-gradient(90deg, #f59e0b, #fbbf24)'
 }
 
+// Get health status CSS class
+const getHealthStatusClass = (status) => {
+  const classes = {
+    'healthy': 'status-healthy',
+    'fever': 'status-fever',
+    'sick': 'status-sick',
+    'unhealthy': 'status-unhealthy',
+    'critical': 'status-critical',
+    'dead': 'status-dead'
+  }
+  return classes[status] || 'status-healthy'
+}
+
+// Get health status icon
+const getHealthStatusIcon = (status) => {
+  const icons = {
+    'healthy': 'mdi-heart-check',
+    'fever': 'mdi-thermometer',
+    'sick': 'mdi-hospital',
+    'unhealthy': 'mdi-heart-pulse',
+    'critical': 'mdi-alert',
+    'dead': 'mdi-skull-crossbones'
+  }
+  return icons[status] || 'mdi-heart'
+}
+
+const formatChoiceLabel = (choice) => {
+  const baseText = choice?.text || 'Accept'
+  const years = Number(choice?.days_to_advance ?? 0)
+  if (Number.isFinite(years) && years > 0) {
+    return `${baseText} (+${years}y)`
+  }
+  return baseText
+}
+
+const getCardBadgeLabel = (event) => {
+  if (event?.deck_label) return event.deck_label
+  const type = String(event?.type || '')
+  const labels = {
+    system: 'Action',
+    daily: 'Daily',
+    cultural: 'Culture',
+    ageSpecific: 'Story',
+    profession: 'Career',
+    profession_choice: 'Career',
+    trigger: 'Trigger',
+    milestone: 'Milestone',
+  }
+  return labels[type] || 'Event'
+}
+
+const getCardBadgeClass = (event) => {
+  const type = String(event?.type || '')
+  const classes = {
+    system: 'actions',
+    daily: 'daily',
+    cultural: 'cultural',
+    ageSpecific: 'story',
+    profession: 'career',
+    profession_choice: 'career',
+    trigger: 'milestone',
+    milestone: 'milestone',
+  }
+  return classes[type] || 'actions'
+}
+
+const formatBadgeLabel = (value) => {
+  const text = String(value || '')
+  if (!text) return ''
+
+  return text
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+const formatNarrativeLabel = (value) => {
+  if (!value) return ''
+  return `Arc: ${formatBadgeLabel(value)}`
+}
+
+const normalizeEventsPayload = (data = {}) => ({
+  life_actions: Array.isArray(data.life_actions) ? data.life_actions : [],
+  triggers: Array.isArray(data.triggers) ? data.triggers : [],
+  profession_choices: Array.isArray(data.profession_choices) ? data.profession_choices : [],
+  daily: Array.isArray(data.daily) ? data.daily : [],
+  cultural: Array.isArray(data.cultural) ? data.cultural : [],
+  ageSpecific: Array.isArray(data.ageSpecific) ? data.ageSpecific : [],
+  profession: Array.isArray(data.profession) ? data.profession : [],
+  milestone: data.milestone || null
+})
+
+const syncCharacterRuntime = (source = {}, { announceState = false } = {}) => {
+  const previousFlags = { ...(character.value?.characterState?.decision_profile?.flags || {}) }
+  const nextCharacterState = source.character_state || source.characterState || character.value.characterState || {}
+  const nextFlags = { ...(nextCharacterState?.decision_profile?.flags || {}) }
+
+  character.value = {
+    ...character.value,
+    stats: source.stats || character.value.stats || {},
+    hiddenStats: source.hidden_stats || source.hiddenStats || character.value.hiddenStats || {},
+    effectiveStats: source.effective_stats || source.effectiveStats || character.value.effectiveStats || {},
+    profession: source.profession ?? character.value.profession,
+    ageGroup: source.age_group || source.ageGroup || character.value.ageGroup,
+    currentDay: source.current_day || source.currentDay || character.value.currentDay,
+    age: source.age || character.value.age || source.current_day || character.value.currentDay,
+    healthStatus: source.health_status || source.healthStatus || character.value.healthStatus || 'healthy',
+    healthPercentage: source.health_percentage || source.healthPercentage || character.value.healthPercentage || 100,
+    currentNarrative: source.narrative_path || source.current_narrative || source.currentNarrative || character.value.currentNarrative || null,
+    activePaths: source.active_paths || source.active_event_paths || source.activePaths || character.value.activePaths || [],
+    characterState: nextCharacterState,
+  }
+
+  if (announceState) {
+    Object.entries(consequenceCatalog).forEach(([key, meta]) => {
+      if (!previousFlags[key] && nextFlags[key]) {
+        narrationHistory.value.push(`✦ ${meta.label}: ${meta.description}`)
+      }
+    })
+  }
+}
+
+// End Day function - advance to next day
+const endDay = async () => {
+  if (!character.value.id) return
+  
+  loading.value = true
+  try {
+    const response = await fetch(`/api/characters/${character.value.id}/end-day`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include'
+    })
+    
+    if (!response.ok) throw new Error('Failed to end day')
+    
+    const data = await response.json()
+    
+    syncCharacterRuntime(data, { announceState: true })
+    
+    // Check for game over
+    if (data.game_over) {
+      gameOver.value = true
+      endingTitle.value = data.ending_title
+      endingDescription.value = data.ending_description
+      endingType.value = data.ending_type
+      return
+    }
+    
+    // Reload events for new age
+    await fetchEvents()
+    
+    narrationHistory.value.push(`Age ${character.value.age} begins...`)
+  } catch (error) {
+    console.error('Error ending day:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
 const getRouteCharacterId = () => {
   const id = route.params.characterId
   if (Array.isArray(id)) return id[0] || null
@@ -984,6 +1324,11 @@ const suicideDialog = ref(false)
 const selectedSuicideMethod = ref(null)
 const showSurvivalPopup = ref(false)
 const showGameOverOverlay = ref(false)
+
+// Ending details
+const endingTitle = ref(null)
+const endingDescription = ref(null)
+const endingType = ref(null)
 
 const suicideMethods = ref([
   { name: 'JUMP OFF BRIDGE' },
@@ -1009,6 +1354,13 @@ const character = ref({
   gender: "Male",
   ageGroup: "Adult",
   currentDay: 1,
+  age: 1,
+  healthStatus: "healthy",
+  healthPercentage: 100,
+  profession: null,
+  currentNarrative: null,
+  activePaths: [],
+  characterState: {},
   skills: [],
   talents: []
 })
@@ -1023,12 +1375,92 @@ const effectiveStats = ref({
   }
 })
 
+const headerStats = computed(() => {
+  const stats = effectiveStats.value?.visible || {}
+  // Requirement: do not show Health % in the UI
+  const { Health: _health, ...rest } = stats
+  return rest
+})
+
+const healthStatusLabel = computed(() => {
+  const status = String(character.value?.healthStatus || 'healthy')
+  return status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Healthy'
+})
+
 const availableEvents = ref({
+  life_actions: [],
+  triggers: [],
+  profession_choices: [],
   daily: [],
   cultural: [],
   ageSpecific: [],
   profession: [],
   milestone: null
+})
+
+const consequenceCatalog = {
+  study_habit: {
+    label: 'Study Habit',
+    icon: 'mdi-book-open-page-variant',
+    description: 'Your learning routine is opening more study-focused paths and disciplined options.'
+  },
+  burnout_cycle: {
+    label: 'Burnout Cycle',
+    icon: 'mdi-fire-alert',
+    description: 'Overwork is starting to reshape your choices. Recovery options appear, but collapse risks do too.'
+  },
+  relationship_strain: {
+    label: 'Relationship Strain',
+    icon: 'mdi-heart-broken',
+    description: 'Distance is building up, so future social and family choices now revolve around repair or withdrawal.'
+  },
+  scandal_marked: {
+    label: 'Scandal Pressure',
+    icon: 'mdi-bullhorn',
+    description: 'Your reputation is unstable, so more image-control and reputation-recovery choices will show up.'
+  },
+  dependency_flag: {
+    label: 'Dependency Risk',
+    icon: 'mdi-pill',
+    description: 'A coping habit is taking hold. Help, relapse, and self-control choices now affect your future heavily.'
+  },
+  financial_trap: {
+    label: 'Financial Trap',
+    icon: 'mdi-cash-alert',
+    description: 'Money pressure is steering the story, unlocking harsher survival and recovery decisions.'
+  },
+  recovery_arc: {
+    label: 'Recovery Arc',
+    icon: 'mdi-heart-plus',
+    description: 'Healthy habits are beginning to pay off, making restorative paths more available.'
+  },
+}
+
+const decisionProfile = computed(() => character.value?.characterState?.decision_profile || {})
+
+const currentNarrativeLabel = computed(() => formatNarrativeLabel(character.value?.currentNarrative))
+
+const activePathBadges = computed(() => {
+  const paths = Array.isArray(character.value?.activePaths) ? character.value.activePaths : []
+  return paths.map(formatBadgeLabel)
+})
+
+const activeConsequenceBadges = computed(() => {
+  const flags = decisionProfile.value?.flags || {}
+  return Object.entries(consequenceCatalog)
+    .filter(([key]) => flags[key] === true)
+    .map(([key, meta]) => ({ key, ...meta }))
+})
+
+const selectedEventMeta = computed(() => {
+  if (!selectedEvent.value) return []
+
+  const meta = []
+  if (selectedEvent.value.deck_label) meta.push(selectedEvent.value.deck_label)
+  if (selectedEvent.value.archetype) meta.push(formatBadgeLabel(selectedEvent.value.archetype))
+  if (currentNarrativeLabel.value) meta.push(currentNarrativeLabel.value)
+
+  return meta
 })
 
 // Edit profile dialog state
@@ -1040,6 +1472,13 @@ const editedCharacter = ref({
 const isSavingProfile = ref(false)
 const isSavingGame = ref(false)
 const gameOver = ref(false)
+
+// Life summary (shown on death)
+const showLifeSummaryDialog = ref(false)
+const lifeSummary = ref(null)
+const lifeSummaryLoading = ref(false)
+const lifeSummaryError = ref(null)
+
 const canRedrawDaily = ref(true)
 const canRedrawCultural = ref(true)
 const canRedrawAgeSpecific = ref(true)
@@ -1103,7 +1542,8 @@ const refreshSessionUser = async () => {
     const response = await fetch('/api/me', {
       headers: {
         'Accept': 'application/json'
-      }
+      },
+      credentials: 'include'
     })
     if (!response.ok) return
 
@@ -1121,15 +1561,18 @@ const updateShareConsent = async (value) => {
 
   try {
     savingConsent.value = true
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
     const response = await fetch('/api/consent', {
       method: 'POST',
       headers: {
+        'X-CSRF-TOKEN': csrfToken || '',
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
       body: JSON.stringify({
         share_consent: !!value
-      })
+      }),
+      credentials: 'include'
     })
     if (!response.ok) throw new Error('Failed to update consent')
   } catch (error) {
@@ -1153,7 +1596,8 @@ const fetchCharacter = async () => {
       const listResponse = await fetch('/api/characters', {
         headers: {
           'Accept': 'application/json'
-        }
+        },
+        credentials: 'include'
       })
 
       if (listResponse.status === 401 || listResponse.status === 403 || listResponse.status === 419) {
@@ -1174,7 +1618,8 @@ const fetchCharacter = async () => {
     const response = await fetch(`/api/characters/${id}`, {
       headers: {
         'Accept': 'application/json'
-      }
+      },
+      credentials: 'include'
     })
 
     if (response.status === 401 || response.status === 403 || response.status === 419) {
@@ -1193,6 +1638,13 @@ const fetchCharacter = async () => {
       gender: data.gender,
       ageGroup: data.age_group,
       currentDay: data.current_day || 1,
+      age: data.age || data.current_day || 1,
+      healthStatus: data.health_status || 'healthy',
+      healthPercentage: data.health_percentage || 100,
+      profession: data.profession || null,
+      currentNarrative: data.current_narrative || null,
+      activePaths: data.active_event_paths || [],
+      characterState: data.character_state || {},
       skills: data.skills || [],
       talents: data.talents || [],
       stats: data.stats || {},
@@ -1236,16 +1688,40 @@ const fetchEvents = async () => {
     const response = await fetch(`/api/characters/${id}/events`, {
       headers: {
         'Accept': 'application/json'
-      }
+      },
+      credentials: 'include'
     })
-    
-    if (!response.ok) throw new Error('Failed to fetch events')
+
+    if (response.status === 401 || response.status === 403 || response.status === 419) {
+      throw new Error('Unauthenticated')
+    }
+
+    if (!response.ok) {
+      let details = ''
+      try {
+        const errorData = await response.json()
+        details = errorData?.message || errorData?.error || JSON.stringify(errorData)
+      } catch (e) {
+        try {
+          details = await response.text()
+        } catch (e2) {
+          details = ''
+        }
+      }
+      throw new Error(`Failed to fetch events (${response.status})${details ? `: ${details}` : ''}`)
+    }
     
     const data = await response.json()
-    availableEvents.value = data
+    availableEvents.value = normalizeEventsPayload(data)
+    syncCharacterRuntime(data, { announceState: false })
   } catch (error) {
     console.error('Error fetching events:', error)
     narrationHistory.value.push('Error loading events.')
+
+    if (String(error?.message || '').includes('Unauthenticated')) {
+      router.push('/home')
+      return
+    }
   } finally {
     loading.value = false
   }
@@ -1324,20 +1800,35 @@ const applyChoice = async (choiceIndex) => {
     console.log('Character stats from response:', data.character?.stats)
     
     // Update character stats - create new object to trigger Vue reactivity
-    if (data.character) {
-      character.value.stats = { ...(data.character.stats || {}) }
-      character.value.hiddenStats = { ...(data.character.hidden_stats || {}) }
-      character.value.effectiveStats = { ...(data.character.effective_stats || {}) }
-      character.value.profession = data.character.profession || character.value.profession
-      character.value.ageGroup = data.character.age_group || character.value.ageGroup
-      character.value.currentDay = data.character.current_day || data.current_day || character.value.currentDay
+    if (data.character || data.character_state || data.active_paths || data.narrative_path) {
+      syncCharacterRuntime({
+        ...(data.character || {}),
+        age: data.age || data.character?.age,
+        health_status: data.health_status || data.character?.health_status,
+        health_percentage: data.health_percentage || data.character?.health_percentage,
+        character_state: data.character_state || data.character?.character_state,
+        active_paths: data.active_paths,
+        narrative_path: data.narrative_path,
+      }, { announceState: true })
       console.log('Updated character effectiveStats:', character.value.effectiveStats)
-      
-      // Update effective stats from backend response
       updateEffectiveStats()
     }
-
+    
+    // Feature 8: Handle severe consequences
+    if (data.consequences && data.consequences.length > 0) {
+      for (const consequence of data.consequences) {
+        narrationHistory.value.push(`⚠️ ${consequence.message}`)
+      }
+    }
+    
     gameOver.value = data.game_over === true
+    
+    // Update ending details if game over
+    if (data.game_over) {
+      endingTitle.value = data.ending_title || null
+      endingDescription.value = data.ending_description || null
+      endingType.value = data.ending_type || null
+    }
     
     // Handle milestone from age transition
     if (data.milestone) {
@@ -1347,6 +1838,9 @@ const applyChoice = async (choiceIndex) => {
     
     // Log the choice and effects
     narrationHistory.value.push(`You chose: "${choiceText}"`)
+    if (data.choice_outcome) {
+      narrationHistory.value.push(String(data.choice_outcome))
+    }
     if (data.effects) {
       const effectsText = Object.entries(data.effects)
         .map(([stat, value]) => `${value > 0 ? '+' : ''}${value} ${stat}`)
@@ -1370,13 +1864,44 @@ const applyChoice = async (choiceIndex) => {
  * Continue to next round - refresh events and increment day
  */
 const continueGame = async () => {
-  narrationHistory.value.push(`Day ${character.value.currentDay} begins...`)
-  
   // Clear selectedEvent to re-enable card clicking
   selectedEvent.value = null
-  
+
   await fetchEvents()
+  narrationHistory.value.push(`Age ${character.value.age || character.value.currentDay} continues...`)
 }
+
+const loadLifeSummary = async () => {
+  if (!character.value?.id) return
+
+  try {
+    lifeSummaryLoading.value = true
+    lifeSummaryError.value = null
+
+    const response = await fetch(`/api/characters/${character.value.id}/life-summary`, {
+      headers: { 'Accept': 'application/json' },
+      credentials: 'include'
+    })
+    if (!response.ok) throw new Error('Failed to load life summary')
+    lifeSummary.value = await response.json()
+  } catch (error) {
+    console.error('Error loading life summary:', error)
+    lifeSummaryError.value = error?.message || 'Error loading life summary.'
+  } finally {
+    lifeSummaryLoading.value = false
+  }
+}
+
+const openLifeSummary = async () => {
+  showLifeSummaryDialog.value = true
+  if (!lifeSummary.value && !lifeSummaryLoading.value) {
+    await loadLifeSummary()
+  }
+}
+
+watch(gameOver, (isOver) => {
+  if (isOver) loadLifeSummary()
+})
 
 /**
  * Get 5 random events and start card animation
@@ -1388,7 +1913,8 @@ const randomEvent = async () => {
     // Fetch 5 random events
     const promises = Array(5).fill().map(() => 
       fetch(`/api/characters/${character.value.id}/random-event`, {
-        headers: { 'Accept': 'application/json' }
+        headers: { 'Accept': 'application/json' },
+        credentials: 'include'
       }).then(r => r.json())
     )
     
@@ -1497,13 +2023,16 @@ const selectAnimationCard = async (index) => {
 const redrawEvents = async () => {
   try {
     loading.value = true
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
     
     const response = await fetch(`/api/characters/${character.value.id}/redraw-events`, {
       method: 'POST',
       headers: {
+        'X-CSRF-TOKEN': csrfToken || '',
         'Content-Type': 'application/json',
         'Accept': 'application/json'
-      }
+      },
+      credentials: 'include'
     })
     
     const data = await response.json()
@@ -1521,11 +2050,8 @@ const redrawEvents = async () => {
     // Update available events with new ones
     if (data.events) {
       availableEvents.value = {
-        daily: data.events.daily || [],
-        cultural: data.events.cultural || [],
-        ageSpecific: data.events.ageSpecific || [],
-        profession: data.events.profession || [],
-        milestone: data.events.milestone || null
+        ...availableEvents.value,
+        ...normalizeEventsPayload(data.events)
       }
     }
     
@@ -1548,16 +2074,19 @@ const redrawEvents = async () => {
 const redrawEventType = async (eventType) => {
   try {
     loading.value = true
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
     
     const response = await fetch(`/api/characters/${character.value.id}/redraw-event-type`, {
       method: 'POST',
       headers: {
+        'X-CSRF-TOKEN': csrfToken || '',
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
       body: JSON.stringify({
         event_type: eventType
-      })
+      }),
+      credentials: 'include'
     })
     
     const data = await response.json()
@@ -1578,7 +2107,7 @@ const redrawEventType = async (eventType) => {
     // Update available events with new ones for the specific type
     if (data.events) {
       const typeKey = eventType === 'ageSpecific' ? 'ageSpecific' : eventType
-      availableEvents.value[typeKey] = data.events
+      availableEvents.value[typeKey] = Array.isArray(data.events) ? data.events : []
     }
     
     // Set the specific flag to false based on event type
@@ -1977,7 +2506,7 @@ const closeSurvivalPopup = async () => {
 
 const confirmSuicide = () => {
   // TRULY RANDOM SUCCESS - REGENERATED EVERY ATTEMPT (0-50%)
-  const successRate = Math.random() * 0.5
+  const successRate = 0.90  // 90% success rate - high chance of death, minimal survival
   const success = Math.random() < successRate
   
   console.log(`[DEBUG] ${selectedSuicideMethod.value.name}: rate=${successRate.toFixed(3)} → ${success ? 'HELL' : 'SURVIVE'}`)
@@ -2004,6 +2533,9 @@ const confirmSuicide = () => {
  */
 const startNewGame = () => {
   gameOver.value = false
+  endingTitle.value = null
+  endingDescription.value = null
+  endingType.value = null
   router.push('/character-creation')
 }
 </script>
@@ -2360,6 +2892,62 @@ const startNewGame = () => {
     0 8px 25px rgba(0,0,0,0.5);
   font-family: 'Press Start 2P', monospace;
   image-rendering: pixelated;
+}
+
+/* Health Status Badge */
+.health-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 8px;
+}
+
+.status-healthy {
+  background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 212, 170, 0.3));
+  border: 1px solid #00ffcc;
+  color: #00ffcc;
+}
+
+.status-fever {
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.2), rgba(255, 87, 34, 0.3));
+  border: 1px solid #ff9800;
+  color: #ff9800;
+}
+
+.status-sick {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(255, 152, 0, 0.3));
+  border: 1px solid #ffc107;
+  color: #ffc107;
+}
+
+.status-unhealthy {
+  background: linear-gradient(135deg, rgba(255, 87, 34, 0.2), rgba(244, 67, 54, 0.3));
+  border: 1px solid #ff5722;
+  color: #ff5722;
+}
+
+.status-critical {
+  background: linear-gradient(135deg, rgba(244, 67, 54, 0.2), rgba(183, 28, 28, 0.3));
+  border: 1px solid #f44336;
+  color: #f44336;
+  animation: pulse-critical 1s infinite;
+}
+
+.status-dead {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.6));
+  border: 1px solid #666;
+  color: #999;
+}
+
+@keyframes pulse-critical {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
 .header-stat-bar {
@@ -2969,6 +3557,11 @@ const startNewGame = () => {
 }
 
 /* Card suit in header */
+.section-header.actions::before {
+  content: '⚡';
+  color: #22c55e;
+}
+
 .section-header::before {
   content: '♠';
   font-size: 1.2rem;
@@ -3144,6 +3737,11 @@ const startNewGame = () => {
   color: #fff;
 }
 
+.card-type-badge.actions {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #001b10;
+}
+
 .card-type-badge.cultural {
   background: linear-gradient(135deg, #a855f7, #7c3aed);
   color: #fff;
@@ -3183,6 +3781,13 @@ const startNewGame = () => {
   letter-spacing: 0.08em !important;
   text-shadow: 2px 2px 0 #000, 0 0 10px rgba(255,255,255,0.5);
   text-transform: uppercase;
+}
+
+.card-disabled-reason {
+  margin-top: 8px;
+  color: #ef4444;
+  font-family: 'VT323', monospace;
+  font-size: 1rem;
 }
 
 .card-desc {
@@ -6234,6 +6839,132 @@ const startNewGame = () => {
   max-height: 300px;
   overflow-y: auto;
 }
+
+.life-pressure-panel {
+  margin-bottom: 20px;
+}
+
+.pressure-arc {
+  color: #94a3b8;
+  font-family: 'VT323', monospace;
+  font-size: 1rem;
+}
+
+.pressure-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.pressure-card {
+  padding: 12px;
+  background: rgba(7, 12, 28, 0.72);
+  border: 1px solid rgba(59,130,246,0.25);
+  border-radius: 10px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.pressure-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: #67e8f9;
+  font-family: 'Press Start 2P', 'VT323', monospace;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.pressure-card-copy {
+  color: #cbd5e1;
+  font-family: 'VT323', monospace;
+  font-size: 1rem;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.state-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.state-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-family: 'VT323', monospace;
+  font-size: 0.92rem;
+  line-height: 1;
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.narrative-pill {
+  color: #fcd34d;
+  background: rgba(120, 53, 15, 0.34);
+  border-color: rgba(252, 211, 77, 0.25);
+}
+
+.path-pill {
+  color: #93c5fd;
+  background: rgba(30, 64, 175, 0.26);
+  border-color: rgba(147, 197, 253, 0.24);
+}
+
+.consequence-pill {
+  color: #fca5a5;
+  background: rgba(127, 29, 29, 0.28);
+  border-color: rgba(252, 165, 165, 0.22);
+}
+
+.selected-event-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: -6px 0 20px;
+}
+
+.selected-event-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,255,204,0.18);
+  background: rgba(7, 20, 34, 0.72);
+  color: #9ae6ff;
+  font-family: 'VT323', monospace;
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+}
+
+.choice-btn-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  gap: 4px;
+  text-align: left;
+  white-space: normal;
+}
+
+.choice-btn-label {
+  font-family: 'Press Start 2P', 'VT323', monospace;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.choice-btn-tags {
+  font-family: 'VT323', monospace;
+  font-size: 0.95rem;
+  opacity: 0.88;
+  line-height: 1.2;
+}
+
 
 .memory-panel-enhanced::before {
   content: '';

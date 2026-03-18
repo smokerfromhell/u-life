@@ -110,6 +110,6 @@ class FeedbackResource extends Resource
             return false;
         }
         
-        return $user->hasRole('Super Admin');
+        return $user->hasRole('Super Admin') || $user->hasRole('Admin');
     }
 }

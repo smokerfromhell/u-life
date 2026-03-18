@@ -45,17 +45,17 @@ class ProfessionalAccountRequestResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        return (bool) Auth::user()?->hasRole('Super Admin');
+        return (bool) Auth::user()?->hasRole('Super Admin') || (bool) Auth::user()?->hasRole('Admin');
     }
 
     public static function canViewAny(): bool
     {
-        return (bool) Auth::user()?->hasRole('Super Admin');
+        return (bool) Auth::user()?->hasRole('Super Admin') || (bool) Auth::user()?->hasRole('Admin');
     }
 
     public static function canView(Model $record): bool
     {
-        return (bool) Auth::user()?->hasRole('Super Admin');
+        return (bool) Auth::user()?->hasRole('Super Admin') || (bool) Auth::user()?->hasRole('Admin');
     }
 }
 

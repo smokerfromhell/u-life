@@ -21,6 +21,21 @@ class ProfessionPathEvent extends Model
         'weight',
         'required_stat',
         'stat_threshold',
+        // New fields from migration
+        'type',
+        'deck_label',
+        'repeatable',
+        'auto_resolve',
+        'days_to_advance',
+        'conditions',
+        'display_order',
+    ];
+
+    protected $casts = [
+        'repeatable' => 'boolean',
+        'auto_resolve' => 'boolean',
+        'choices' => 'array',
+        'conditions' => 'array',
     ];
 
     /**

@@ -26,16 +26,19 @@ class DatabaseSeeder extends Seeder
         $this->call(AgeSpecificEventSeeder::class);
         $this->call(DailyEventSeeder::class);
         $this->call(CulturalEventSeeder::class);
+        $this->call(DailyActionSeeder::class);
         
         // 4. Seed profession-related data
         $this->call(ProfessionTriggerSeeder::class);
         $this->call(ProfessionPathEventSeeder::class);
         
         // 5. Seed stat trigger conditions
-        $this->call(StatTriggerConditionSeeder::class);
+        // $this->call(StatTriggerConditionSeeder::class);
         
-        // 6. Add choices to events (must run after events are created)
-        $this->call(EventChoicesSeeder::class);
+        // 6. Rebuild event choices from the seeded titles with adaptive outcomes
+        $this->call(AdaptiveEventChoiceSeeder::class);
+        
+        // 7. Seed sample decision logs (examples for users to view)
+        $this->call(SampleDecisionLogSeeder::class);
     }
 }
-

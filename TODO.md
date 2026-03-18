@@ -1,12 +1,9 @@
-# U:LIFE Project TODO
+# Fix User Analytics 500 Error (defaultSort TypeError)
 
-## Current Task: Update Home.vue Feedback Popup Design
-- [x] Step 1: Create TODO.md with plan breakdown ✅
-- [x] Step 2: Replace feedback dialog template structure
-- [x] Step 3: Update feedback-related script (if needed)
-- [x] Step 4: Remove old retro CSS and add modern glassmorphism styles
-- [x] Step 5: Test form submission and responsiveness
-- [x] Step 6: Mark complete and attempt_completion
-
-## Other TODOs
-*(Existing TODOs from project can be added here if needed)*
+## Steps:
+- [x] 1. Edit `app/Filament/Resources/Analytics/UserAnalytics/Pages/ListUserAnalytics.php`:
+  - Remove the three `->orderByDesc()` calls from `getTableQuery()`.
+  - Add `->defaultSort('decision_count', 'desc')` in `table()` before `->paginated()`.
+- [x] 2. Clear caches: `php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan filament:cache-components`
+- [x] 3. Test page: http://ulife.test/admin/analytics/user-analytics 
+- [x] 4. Update `TODO-GROUPBY-FIX.md` status and mark this complete.

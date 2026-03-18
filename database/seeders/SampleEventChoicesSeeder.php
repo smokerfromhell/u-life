@@ -225,4 +225,3 @@ class SampleEventChoicesSeeder extends Seeder
         ]);
     }
 }
-

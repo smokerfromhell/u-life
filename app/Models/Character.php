@@ -53,6 +53,7 @@ class Character extends Model
         'gender_bonus',
         'age_bonus',
         'effective_stats',
+        'character_state',
         'image',
         // Life Stats
         'health',
@@ -95,19 +96,19 @@ class Character extends Model
     protected $appends = ['current_state'];
 
     protected $attributes = [
-        'stats' => '{"Intelligence": 0, "Strength": 0, "Charisma": 0, "Creativity": 0, "Wealth": 0, "Luck": 0, "Social": 50, "Empathy": 50}',
-        'hidden_stats' => '{"Debt": 0, "Addiction": 0, "Burnout": 0, "Morality": 0, "Reputation": 0, "Discipline": 50, "Isolation": 0, "Ego": 0}',
+        'stats' => '{"Intelligence": 25, "Strength": 25, "Charisma": 25, "Creativity": 25, "Wealth": 20, "Luck": 20, "Social": 50, "Empathy": 50}',
+        'hidden_stats' => '{"Debt": 0, "Health": 78, "Addiction": 0, "Burnout": 5, "Morality": 45, "Happiness": 72, "Reputation": 35, "Discipline": 40, "Isolation": 6, "Ego": 10}',
         'gender_bonus' => '{}',
         'age_bonus' => '{}',
         'effective_stats' => '{}',
-        'character_state' => '{"life_stage": "child", "profession_state": "unemployed", "relationship_status": "single", "health_condition": "healthy"}',
+        'character_state' => '{"life_stage": "child", "profession_state": "unemployed", "relationship_status": "single", "health_condition": "healthy", "is_dead": false}',
         'shown_event_ids' => '[]',
         'completed_event_chains' => '[]',
         'active_event_paths' => '[]',
         // Life Stats defaults
-        'health' => 100,
-        'happiness' => 100,
-        'finance' => 0,
+        'health' => 78,
+        'happiness' => 72,
+        'finance' => 20,
         'relationship_status' => 'single',
         'career_level' => 'unemployed',
     ];

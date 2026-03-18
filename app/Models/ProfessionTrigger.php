@@ -16,6 +16,11 @@ class ProfessionTrigger extends Model
         'notes',
         'stat_effects',
         'description',
+        'choices',
+    ];
+
+    protected $casts = [
+        'choices' => 'array',
     ];
 
     /**
