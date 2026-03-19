@@ -231,7 +231,62 @@
         </div>
 
         <div class="events-area">
-          <div v-if="availableEvents.life_actions && availableEvents.life_actions.length > 0" class="event-section">
+          <!-- Skills to Learn Section -->
+          <div v-if="availableEvents.skills_to_learn && availableEvents.skills_to_learn.length > 0" class="event-section">
+            <h3 class="section-header actions">
+              <v-icon class="header-icon">mdi-school</v-icon>
+              <span class="section-header-text glitch" data-text="SKILLS TO LEARN">SKILLS TO LEARN</span>
+            </h3>
+            <div class="events-grid">
+              <div
+                v-for="(event, index) in availableEvents.skills_to_learn"
+                :key="`skills-${index}`"
+                class="event-card-item"
+                @click="!selectedEvent && !event.disabled && selectEvent(event)"
+                :class="{ 'disabled': selectedEvent || event.disabled }"
+              >
+                <div class="card-visual">
+                  <v-img :src="event.image" cover class="card-img" />
+                  <div class="card-type-badge skill">Skill</div>
+                </div>
+                <div class="card-content">
+                  <h4 class="card-title">{{ event.title }}</h4>
+                  <p class="card-desc">{{ event.description }}</p>
+                  <p v-if="event.disabled && event.disabled_reason" class="card-disabled-reason">{{ event.disabled_reason }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Daily Actions Section -->
+          <div v-if="availableEvents.daily_actions && availableEvents.daily_actions.length > 0" class="event-section">
+            <h3 class="section-header actions">
+              <v-icon class="header-icon">mdi-lightning-bolt</v-icon>
+              <span class="section-header-text glitch" data-text="DAILY ACTIONS">DAILY ACTIONS</span>
+            </h3>
+            <div class="events-grid">
+              <div
+                v-for="(event, index) in availableEvents.daily_actions"
+                :key="`daily-${index}`"
+                class="event-card-item"
+                @click="!selectedEvent && !event.disabled && selectEvent(event)"
+                :class="{ 'disabled': selectedEvent || event.disabled }"
+              >
+                <div class="card-visual">
+                  <v-img :src="event.image" cover class="card-img" />
+                  <div class="card-type-badge" :class="getCardBadgeClass(event)">{{ getCardBadgeLabel(event) }}</div>
+                </div>
+                <div class="card-content">
+                  <h4 class="card-title">{{ event.title }}</h4>
+                  <p class="card-desc">{{ event.description }}</p>
+                  <p v-if="event.disabled && event.disabled_reason" class="card-disabled-reason">{{ event.disabled_reason }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fallback: use life_actions if new categories don't exist (backward compat) -->
+          <div v-else-if="availableEvents.life_actions && availableEvents.life_actions.length > 0" class="event-section">
             <h3 class="section-header actions">
               <v-icon class="header-icon">mdi-lightning-bolt</v-icon>
               <span class="section-header-text glitch" data-text="DAILY ACTIONS">DAILY ACTIONS</span>
@@ -1221,6 +1276,8 @@ const formatNarrativeLabel = (value) => {
 }
 
 const normalizeEventsPayload = (data = {}) => ({
+  skills_to_learn: Array.isArray(data.skills_to_learn) ? data.skills_to_learn : [],
+  daily_actions: Array.isArray(data.daily_actions) ? data.daily_actions : [],
   life_actions: Array.isArray(data.life_actions) ? data.life_actions : [],
   triggers: Array.isArray(data.triggers) ? data.triggers : [],
   profession_choices: Array.isArray(data.profession_choices) ? data.profession_choices : [],
@@ -1388,6 +1445,8 @@ const healthStatusLabel = computed(() => {
 })
 
 const availableEvents = ref({
+  skills_to_learn: [],
+  daily_actions: [],
   life_actions: [],
   triggers: [],
   profession_choices: [],
@@ -1801,6 +1860,13 @@ const applyChoice = async (choiceIndex) => {
     
     // Update character stats - create new object to trigger Vue reactivity
     if (data.character || data.character_state || data.active_paths || data.narrative_path) {
+      // Update skills and talents if they changed
+      if (data.skills) {
+        character.value.skills = data.skills
+      }
+      if (data.talents) {
+        character.value.talents = data.talents
+      }
       syncCharacterRuntime({
         ...(data.character || {}),
         age: data.age || data.character?.age,
@@ -3755,6 +3821,10 @@ const startNewGame = () => {
 .card-type-badge.career {
   background: linear-gradient(135deg, #3b82f6, #2563eb);
   color: #fff;
+}
+
+.card-type-badge.skill {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
 }
 
 .card-type-badge.milestone {

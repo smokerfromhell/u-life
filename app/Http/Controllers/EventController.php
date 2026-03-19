@@ -307,9 +307,24 @@ Log::info('EventController::getAvailableEvents - Stateful events loaded', [
             
             // Profession choices are returned as their own deck; milestones stay focused on age transitions.
 
-$events = [
+// Separate system actions into skills_to_learn and daily_actions
+            $systemActions = $this->getSystemActions($character);
+            $skillsToLearn = [];
+            $dailyActions = [];
+            
+            foreach ($systemActions as $action) {
+                if (($action['type'] ?? '') === 'learning') {
+                    $skillsToLearn[] = $action;
+                } else {
+                    $dailyActions[] = $action;
+                }
+            }
+
+            $events = [
                 // Separate decks (same interaction model as life actions)
-                'life_actions' => $this->dedupeFormattedEvents($this->getSystemActions($character)),
+                'skills_to_learn' => $this->dedupeFormattedEvents($skillsToLearn),
+                'daily_actions' => $this->dedupeFormattedEvents($dailyActions),
+                'life_actions' => $this->dedupeFormattedEvents($this->getSystemActions($character)), // Backward compat
                 'triggers' => $this->dedupeFormattedEvents($triggerEvents),
                 'daily' => $this->dedupeFormattedEvents($dailyEvents),
                 'cultural' => $this->dedupeFormattedEvents($culturalEvents),
@@ -1241,6 +1256,15 @@ $events = [
             $isSystemEvent = ($validated['event_type'] === 'system');
             $isProfessionChoice = ($validated['event_type'] === 'profession_choice');
 
+            // DEBUG: Log what's being received from frontend
+            Log::debug('applyEventOutcome request received', [
+                'character_id' => $character->id,
+                'event_type' => $validated['event_type'],
+                'event_id' => $validated['event_id'],
+                'choice_index' => $validated['choice_index'],
+                'all_request_data' => $request->all(),
+            ]);
+
             // Get the event FIRST (for logging)
             $event = null;
             $eventData = null;
@@ -1340,6 +1364,182 @@ $events = [
                 $choiceIndex,
                 $choiceText
             );
+
+            // Process skill learning (for daily actions with learn_skill)
+            $skillLearningResult = null;
+            $talentDiscoveryResult = null;
+            $isLearningEvent = ($validated['event_type'] === 'learning');
+            
+            if (($isSystemEvent || $isLearningEvent) && isset($choice['learn_skill'])) {
+                $skillName = $choice['learn_skill'];
+                $learned = $character->learnSkill($skillName);
+                $skillLearningResult = $learned ? $skillName : false;
+                
+                Log::info('Skill learning attempt', [
+                    'character_id' => $character->id,
+                    'skill' => $skillName,
+                    'learned' => $learned,
+                    'event_type' => $validated['event_type']
+                ]);
+            }
+            
+            // Process talent discovery (for daily actions with discover_talent)
+            if (($isSystemEvent || $isLearningEvent) && isset($choice['discover_talent'])) {
+                $talentName = $choice['discover_talent'];
+                $discovered = $character->discoverTalent($talentName);
+                $talentDiscoveryResult = $discovered ? $talentName : false;
+                
+                Log::info('Talent discovery attempt', [
+                    'character_id' => $character->id,
+                    'talent' => $talentName,
+                    'discovered' => $discovered
+                ]);
+            }
+
+            // Process reputation effects (for daily actions with reputation_changes)
+            $reputationChanges = [];
+            if ($isSystemEvent && isset($choice['reputation_changes'])) {
+                $reputationData = $choice['reputation_changes'];
+                
+                if (is_array($reputationData)) {
+                    foreach ($reputationData as $faction => $change) {
+                        $character->updateReputation($faction, (int) $change);
+                        $reputationChanges[$faction] = $change;
+                    }
+                    
+                    Log::info('Reputation changes applied', [
+                        'character_id' => $character->id,
+                        'changes' => $reputationChanges
+                    ]);
+                }
+            }
+
+            // Process trauma healing (for daily actions with heal_trauma)
+            $traumaHealed = [];
+            if ($isSystemEvent && isset($choice['heal_trauma'])) {
+                $traumaToHeal = $choice['heal_trauma'];
+                $traumasToHeal = is_array($traumaToHeal) ? $traumaToHeal : [$traumaToHeal];
+                
+                foreach ($traumasToHeal as $traumaType) {
+                    $healed = $character->healTrauma($traumaType);
+                    if ($healed) {
+                        $traumaHealed[] = $traumaType;
+                    }
+                }
+                
+                Log::info('Trauma healing attempt', [
+                    'character_id' => $character->id,
+                    'traumas' => $traumasToHeal,
+                    'healed' => $traumaHealed
+                ]);
+            }
+
+            // Process trauma gain (for daily actions with gain_trauma)
+            $traumaGained = [];
+            if ($isSystemEvent && isset($choice['gain_trauma'])) {
+                $traumaToGain = $choice['gain_trauma'];
+                $traumasToGain = is_array($traumaToGain) ? $traumaToGain : [$traumaToGain];
+                
+                foreach ($traumasToGain as $traumaType) {
+                    $character->gainTrauma($traumaType);
+                    $traumaGained[] = $traumaType;
+                }
+                
+                Log::info('Trauma gained', [
+                    'character_id' => $character->id,
+                    'traumas' => $traumaGained
+                ]);
+            }
+
+            // Process relationship changes (for daily actions with relationship_status_change)
+            $relationshipChanges = [];
+            if ($isSystemEvent && isset($choice['relationship_status_change'])) {
+                $newStatus = $choice['relationship_status_change'];
+                $character->setRelationshipStatus($newStatus);
+                $relationshipChanges['status'] = $newStatus;
+                
+                Log::info('Relationship status changed', [
+                    'character_id' => $character->id,
+                    'new_status' => $newStatus
+                ]);
+            }
+
+            // Process relationship state changes (for daily actions with relationship_state_change)
+            if ($isSystemEvent && isset($choice['relationship_state_change'])) {
+                $stateChanges = $choice['relationship_state_change'];
+                
+                if (is_array($stateChanges)) {
+                    foreach ($stateChanges as $group => $newState) {
+                        $character->updateRelationshipState($group, $newState);
+                        $relationshipChanges[$group] = $newState;
+                    }
+                    
+                    Log::info('Relationship state changed', [
+                        'character_id' => $character->id,
+                        'changes' => $relationshipChanges
+                    ]);
+                }
+            }
+
+            // Process social connection (for daily actions with add_social_connection)
+            $socialConnectionsAdded = [];
+            if ($isSystemEvent && isset($choice['add_social_connection'])) {
+                $connectionData = $choice['add_social_connection'];
+                
+                if (is_array($connectionData)) {
+                    $type = $connectionData['type'] ?? 'friend';
+                    $name = $connectionData['name'] ?? 'Unknown';
+                    $details = $connectionData['details'] ?? [];
+                    
+                    $character->addSocialConnection($type, $name, $details);
+                    $socialConnectionsAdded[] = ['type' => $type, 'name' => $name];
+                    
+                    Log::info('Social connection added', [
+                        'character_id' => $character->id,
+                        'type' => $type,
+                        'name' => $name
+                    ]);
+                }
+            }
+
+            // Process location change (for daily actions with change_location)
+            $locationChanged = null;
+            if ($isSystemEvent && isset($choice['change_location'])) {
+                $newLocation = $choice['change_location'];
+                $character->setLocation($newLocation);
+                $locationChanged = $newLocation;
+                
+                Log::info('Location changed', [
+                    'character_id' => $character->id,
+                    'new_location' => $newLocation
+                ]);
+            }
+
+            // Process season change (for daily actions with change_season)
+            $seasonChanged = null;
+            if ($isSystemEvent && isset($choice['change_season'])) {
+                $newSeason = $choice['change_season'];
+                $character->setSeason($newSeason);
+                $seasonChanged = $newSeason;
+                
+                Log::info('Season changed', [
+                    'character_id' => $character->id,
+                    'new_season' => $newSeason
+                ]);
+            }
+
+            // Process weather change (for daily actions with change_weather)
+            $weatherChanged = null;
+            if ($isSystemEvent && isset($choice['change_weather'])) {
+                $newWeather = $choice['change_weather'];
+                $character->setWeather($newWeather);
+                $weatherChanged = $newWeather;
+                
+                Log::info('Weather changed', [
+                    'character_id' => $character->id,
+                    'new_weather' => $newWeather
+                ]);
+            }
 
             // FSM State advance
             $outcomeType = $this->eventService->determineOutcomeType($statEffects);
@@ -1565,7 +1765,7 @@ $events = [
                             'choice_index' => $choiceIndex,
                             'event_title' => $logData['event_title'] ?? null,
                             'choice_text' => $logData['choice_text'] ?? null,
-                            'effects' => $logData['effects'] ?? null,
+                            'effects' => isset($logData['effects']) && is_array($logData['effects']) ? json_encode($logData['effects']) : ($logData['effects'] ?? null),
                             'mbti' => $logData['mbti'] ?? null,
                             'profession' => $character->profession ?? null,
                             'data' => $logDataWithLifeStats,
@@ -1663,6 +1863,23 @@ $events = [
                 'ending_title' => $endingTitle,
                 'ending_description' => $endingDescription,
                 'character_state' => $character->character_state,
+                // Include skills and talents for frontend update
+                'skills' => $character->skills->toArray(),
+                'talents' => $character->talents->toArray(),
+                // Skill/Talent learning results
+                'skill_learned' => $skillLearningResult,
+                'talent_discovered' => $talentDiscoveryResult,
+                'reputation_changes' => $reputationChanges,
+                // Trauma healing/gaining results
+                'trauma_healed' => $traumaHealed ?? [],
+                'trauma_gained' => $traumaGained ?? [],
+                // Relationship changes
+                'relationship_changes' => $relationshipChanges ?? [],
+                'social_connections_added' => $socialConnectionsAdded ?? [],
+                // Environment changes
+                'location_changed' => $locationChanged ?? null,
+                'season_changed' => $seasonChanged ?? null,
+                'weather_changed' => $weatherChanged ?? null,
                 // Feature 4: Age instead of day
                 'age' => $this->calculateAge($character->current_day),
                 'age_group' => $character->age_group,
@@ -1819,6 +2036,7 @@ $events = [
             'ageSpecific' => AgeSpecificEvent::find($id),
             'profession' => ProfessionPathEvent::find($id),
             'trigger' => StatTriggerCondition::find($id),
+            'learning', 'action', 'system' => DailyAction::find($id),
             default => null
         };
     }
@@ -2008,12 +2226,47 @@ $events = [
 
     private function getSystemEventById(Character $character, int $id): ?array
     {
+        // First try to find in available actions (filtered by isAvailable)
         $actions = $this->getSystemActions($character);
+        
+        Log::debug('getSystemEventById called', [
+            'character_id' => $character->id,
+            'search_id' => $id,
+            'available_actions_count' => count($actions),
+            'available_action_ids' => array_column($actions, 'id'),
+        ]);
+        
         foreach ($actions as $action) {
             if ((int) ($action['id'] ?? 0) === $id) {
                 return $action;
             }
         }
+        
+        // If not found in filtered list, try to find directly in database
+        // This ensures the action can be found even if isAvailable() conditions changed
+        $dailyAction = DailyAction::find($id);
+        if ($dailyAction) {
+            Log::debug('getSystemEventById - found in database directly', [
+                'action_id' => $dailyAction->id,
+                'action_title' => $dailyAction->title,
+            ]);
+            return [
+                'id' => $dailyAction->id,
+                'title' => $dailyAction->title,
+                'description' => $dailyAction->description,
+                'image' => $dailyAction->image,
+                'type' => $dailyAction->type,
+                'deck_label' => $dailyAction->deck_label,
+                'choices' => $dailyAction->choices,
+                'conditions' => $dailyAction->conditions,
+            ];
+        }
+        
+        Log::warning('getSystemEventById - action not found', [
+            'search_id' => $id,
+            'character_id' => $character->id,
+        ]);
+        
         return null;
     }
 

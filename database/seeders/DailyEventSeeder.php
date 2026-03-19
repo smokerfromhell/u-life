@@ -21,7 +21,7 @@ class DailyEventSeeder extends Seeder
         $events = [
             // Child events
             [
-                'event_choice' => 'TV - Cartoon marathon',
+                'title' => 'TV',
                 'description' => 'Watch your favorite cartoons all day.',
                 'image' => '/css/images/dailyevents/tv.png',
                 'type' => 'daily',
@@ -33,13 +33,13 @@ class DailyEventSeeder extends Seeder
                 'display_order' => 1,
                 'age_group' => 'child',
                 'choices' => [
-                    ['text' => 'Watch cartoons all day', 'stat_effects' => '+5 Happiness, -5 Discipline', 'days_to_advance' => 0],
-                    ['text' => 'Turn off TV and play outside', 'stat_effects' => '+5 Health, +3 Happiness, -2 Discipline', 'days_to_advance' => 0],
+                    ['text' => 'Cartoon marathon', 'stat_effects' => '+5 Happiness, -5 Discipline', 'days_to_advance' => 0],
+                    ['text' => 'Play outside instead', 'stat_effects' => '+5 Health, +3 Happiness, -2 Discipline', 'days_to_advance' => 0],
                 ],
                 'conditions' => null,
             ],
             [
-                'title' => 'Playtime - Outdoor fun',
+                'title' => 'Playtime',
                 'description' => 'Enjoy playing outside with friends.',
                 'image' => '/css/images/dailyevents/playtime.png',
                 'type' => 'daily',
@@ -51,13 +51,13 @@ class DailyEventSeeder extends Seeder
                 'display_order' => 2,
                 'age_group' => 'child',
                 'choices' => [
-                    ['text' => 'Play outdoor games', 'stat_effects' => '+10 Health, +10 Happiness', 'days_to_advance' => 0],
+                    ['text' => 'Outdoor fun', 'stat_effects' => '+10 Health, +10 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Stay home and rest', 'stat_effects' => '+2 Health, -3 Happiness', 'days_to_advance' => 0],
                 ],
                 'conditions' => null,
             ],
             [
-                'title' => 'Homework - Complete',
+                'title' => 'Homework',
                 'description' => 'Finish your homework assignments.',
                 'image' => '/css/images/dailyevents/study.png',
                 'type' => 'daily',
@@ -75,7 +75,7 @@ class DailyEventSeeder extends Seeder
                 'conditions' => null,
             ],
             [
-                'title' => 'Chores - Help parents',
+                'title' => 'Chores',
                 'description' => 'Help around the house with chores.',
                 'image' => '/css/images/dailyevents/chores.png',
                 'type' => 'daily',
@@ -87,13 +87,13 @@ class DailyEventSeeder extends Seeder
                 'display_order' => 4,
                 'age_group' => 'child',
                 'choices' => [
-                    ['text' => 'Help with chores', 'stat_effects' => '+10 Discipline, +5 Morality', 'days_to_advance' => 0],
+                    ['text' => 'Help parents', 'stat_effects' => '+10 Discipline, +5 Morality', 'days_to_advance' => 0],
                     ['text' => 'Refuse to help', 'stat_effects' => '-5 Discipline, -3 Morality, +5 Happiness', 'days_to_advance' => 0],
                 ],
                 'conditions' => null,
             ],
             [
-                'title' => 'Meal - Healthy dinner',
+                'title' => 'Meal',
                 'description' => 'Eat a nutritious meal.',
                 'image' => '/css/images/dailyevents/meal.png',
                 'type' => 'daily',
@@ -105,13 +105,13 @@ class DailyEventSeeder extends Seeder
                 'display_order' => 5,
                 'age_group' => 'child',
                 'choices' => [
-                    ['text' => 'Eat healthy dinner', 'stat_effects' => '+10 Health, +5 Happiness', 'days_to_advance' => 0],
-                    ['text' => 'Snack on junk food', 'stat_effects' => '+3 Happiness, -5 Health', 'days_to_advance' => 0],
+                    ['text' => 'Healthy dinner', 'stat_effects' => '+10 Health, +5 Happiness', 'days_to_advance' => 0],
+                    ['text' => 'Junk food', 'stat_effects' => '+3 Happiness, -5 Health', 'days_to_advance' => 0],
                 ],
                 'conditions' => null,
             ],
             [
-                'title' => 'Bedtime - Sleep early',
+                'title' => 'Bedtime',
                 'description' => 'Get some restful sleep.',
                 'image' => '/css/images/dailyevents/bedtime.png',
                 'type' => 'daily',
@@ -129,7 +129,7 @@ class DailyEventSeeder extends Seeder
                 'conditions' => null,
             ],
             [
-                'title' => 'School - Good day',
+                'title' => 'School',
                 'description' => 'Have a good day at school.',
                 'image' => '/css/images/dailyevents/school-start.png',
                 'type' => 'daily',
@@ -147,7 +147,7 @@ class DailyEventSeeder extends Seeder
                 'conditions' => null,
             ],
             [
-                'title' => 'Reading - Story time',
+                'title' => 'Reading',
                 'description' => 'Read a good book.',
                 'image' => '/css/images/dailyevents/reading.png',
                 'type' => 'daily',
@@ -165,7 +165,7 @@ class DailyEventSeeder extends Seeder
                 'conditions' => null,
             ],
             [
-                'title' => 'Friends - Play date',
+                'title' => 'Friends',
                 'description' => 'Spend time with friends.',
                 'image' => '/css/images/dailyevents/friends.png',
                 'type' => 'daily',
@@ -184,7 +184,7 @@ class DailyEventSeeder extends Seeder
             ],
             // Teen events
             [
-                'title' => 'TV - TV Marathon',
+                'title' => 'TV',
                 'description' => 'Watch TV shows all evening.',
                 'image' => '/css/images/dailyevents/tv.png',
                 'type' => 'daily',
@@ -196,13 +196,13 @@ class DailyEventSeeder extends Seeder
                 'display_order' => 10,
                 'age_group' => 'teen',
                 'choices' => [
-                    ['text' => 'Watch TV marathon', 'stat_effects' => '+5 Happiness, -5 Discipline', 'days_to_advance' => 0],
+                    ['text' => 'TV marathon', 'stat_effects' => '+5 Happiness, -5 Discipline', 'days_to_advance' => 0],
                     ['text' => 'Do something productive', 'stat_effects' => '+5 Discipline, -3 Happiness', 'days_to_advance' => 0],
                 ],
                 'conditions' => null,
             ],
             [
-                'title' => 'Study - Ace exam',
+                'title' => 'Study',
                 'description' => 'Prepare for your exams.',
                 'image' => '/css/images/dailyevents/study.png',
                 'type' => 'daily',
@@ -220,7 +220,7 @@ class DailyEventSeeder extends Seeder
                 'conditions' => null,
             ],
             [
-                'title' => 'Part-time job - Earn money',
+                'title' => 'Part-time job',
                 'description' => 'Work at a part-time job.',
                 'image' => '/css/images/dailyevents/part-time-job.png',
                 'type' => 'daily',
@@ -238,7 +238,7 @@ class DailyEventSeeder extends Seeder
                 'conditions' => null,
             ],
             [
-                'title' => 'Friends - Hang out',
+                'title' => 'Friends',
                 'description' => 'Spend time with friends.',
                 'image' => '/css/images/dailyevents/friends.png',
                 'type' => 'daily',
@@ -256,7 +256,7 @@ class DailyEventSeeder extends Seeder
                 'conditions' => null,
             ],
             [
-                'title' => 'Sports - Team win',
+                'title' => 'Sports',
                 'description' => 'Play sports with your team.',
                 'image' => '/css/images/dailyevents/sports.png',
                 'type' => 'daily',
@@ -274,7 +274,7 @@ class DailyEventSeeder extends Seeder
                 'conditions' => null,
             ],
             [
-                'title' => 'Date - Successful date',
+                'title' => 'Date',
                 'description' => 'Go on a date.',
                 'image' => '/css/images/dailyevents/date-night.png',
                 'type' => 'daily',
@@ -292,7 +292,7 @@ class DailyEventSeeder extends Seeder
                 'conditions' => null,
             ],
             [
-                'title' => 'Curfew - Break',
+                'title' => 'Curfew',
                 'description' => 'Break curfew rules.',
                 'image' => '/css/images/dailyevents/curfew.png',
                 'type' => 'daily',
@@ -311,7 +311,7 @@ class DailyEventSeeder extends Seeder
             ],
             // Adult events
             [
-                'title' => 'TV - TV Marathon',
+                'title' => 'TV',
                 'description' => 'Watch TV shows after work.',
                 'image' => '/css/images/dailyevents/tv.png',
                 'type' => 'daily',
@@ -329,7 +329,7 @@ class DailyEventSeeder extends Seeder
                 'conditions' => null,
             ],
             [
-                'title' => 'Commute - Traffic jam',
+                'title' => 'Commute',
                 'description' => 'Deal with commute.',
                 'image' => '/css/images/dailyevents/commute.png',
                 'type' => 'daily',
@@ -347,7 +347,7 @@ class DailyEventSeeder extends Seeder
                 'conditions' => null,
             ],
             [
-                'title' => 'Work - Meeting success',
+                'title' => 'Work',
                 'description' => 'Have a successful work meeting.',
                 'image' => '/css/images/dailyevents/work.png',
                 'type' => 'daily',
@@ -365,7 +365,7 @@ class DailyEventSeeder extends Seeder
                 'conditions' => null,
             ],
             [
-                'title' => 'Family Time - Quality time',
+                'title' => 'Family Time',
                 'description' => 'Spend quality time with family.',
                 'image' => '/css/images/dailyevents/family-time.png',
                 'type' => 'daily',
@@ -383,7 +383,7 @@ class DailyEventSeeder extends Seeder
                 'conditions' => null,
             ],
             [
-                'title' => 'Gym - Workout',
+                'title' => 'Gym',
                 'description' => 'Go to the gym.',
                 'image' => '/css/images/dailyevents/gym.png',
                 'type' => 'daily',
@@ -401,7 +401,7 @@ class DailyEventSeeder extends Seeder
                 'conditions' => null,
             ],
             [
-                'title' => 'Cooking - Delicious meal',
+                'title' => 'Cooking',
                 'description' => 'Cook a nice meal.',
                 'image' => '/css/images/dailyevents/cooking.png',
                 'type' => 'daily',
@@ -419,7 +419,7 @@ class DailyEventSeeder extends Seeder
                 'conditions' => null,
             ],
             [
-                'title' => 'Date night - Romantic',
+                'title' => 'Date night',
                 'description' => 'Go on a romantic date.',
                 'image' => '/css/images/dailyevents/date-night.png',
                 'type' => 'daily',
@@ -437,7 +437,7 @@ class DailyEventSeeder extends Seeder
                 'conditions' => null,
             ],
             [
-                'title' => 'Bills - Paid on time',
+                'title' => 'Bills',
                 'description' => 'Pay your bills.',
                 'image' => '/css/images/dailyevents/bills.png',
                 'type' => 'daily',
@@ -456,7 +456,7 @@ class DailyEventSeeder extends Seeder
             ],
             // Old events
             [
-                'title' => 'Television - Classic movies',
+                'title' => 'Television',
                 'description' => 'Watch classic movies.',
                 'image' => '/css/images/dailyevents/tv.png',
                 'type' => 'daily',
@@ -474,7 +474,7 @@ class DailyEventSeeder extends Seeder
                 'conditions' => null,
             ],
             [
-                'title' => 'Morning walk - Fresh air',
+                'title' => 'Morning walk',
                 'description' => 'Take a morning walk.',
                 'image' => '/css/images/dailyevents/morning-walk.png',
                 'type' => 'daily',
@@ -492,7 +492,7 @@ class DailyEventSeeder extends Seeder
                 'conditions' => null,
             ],
             [
-                'title' => 'Grandchildren - Visit',
+                'title' => 'Grandchildren',
                 'description' => 'Visit with grandchildren.',
                 'image' => '/css/images/dailyevents/grandchildren.png',
                 'type' => 'daily',
@@ -510,7 +510,7 @@ class DailyEventSeeder extends Seeder
                 'conditions' => null,
             ],
             [
-                'title' => 'Garden - Tending plants',
+                'title' => 'Garden',
                 'description' => 'Tend to your garden.',
                 'image' => '/css/images/dailyevents/garden.png',
                 'type' => 'daily',
@@ -528,7 +528,7 @@ class DailyEventSeeder extends Seeder
                 'conditions' => null,
             ],
             [
-                'title' => 'Doctor checkup - Healthy',
+                'title' => 'Doctor checkup',
                 'description' => 'Visit the doctor.',
                 'image' => '/css/images/dailyevents/doctor-checkup.png',
                 'type' => 'daily',
@@ -546,7 +546,7 @@ class DailyEventSeeder extends Seeder
                 'conditions' => null,
             ],
             [
-                'title' => 'Nap - Restful',
+                'title' => 'Nap',
                 'description' => 'Take a nap.',
                 'image' => '/css/images/dailyevents/nap.png',
                 'type' => 'daily',
@@ -564,7 +564,7 @@ class DailyEventSeeder extends Seeder
                 'conditions' => null,
             ],
             [
-                'title' => 'Memories - Good memories',
+                'title' => 'Memories',
                 'description' => 'Reminisce about good times.',
                 'image' => '/css/images/dailyevents/memories.png',
                 'type' => 'daily',
@@ -582,7 +582,7 @@ class DailyEventSeeder extends Seeder
                 'conditions' => null,
             ],
             [
-                'title' => 'Medications - Taken',
+                'title' => 'Medications',
                 'description' => 'Take your medications.',
                 'image' => '/css/images/dailyevents/medication.png',
                 'type' => 'daily',

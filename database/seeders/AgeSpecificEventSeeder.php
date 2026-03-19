@@ -24,216 +24,387 @@ class AgeSpecificEventSeeder extends Seeder
             // CHILD EVENTS
             // ============================================
             // === EDUCATION CHAIN (Child) ===
-            ['age_group' => 'child', 'event_choice' => 'School Start - Excited to learn','stat_effects' => '+10 Intelligence, +10 Discipline', 'weight' => 0.7, 'event_category' => 'education', 'chain_order' => 1, 'parent_category' => null, 'is_milestone' => true],
-            ['age_group' => 'child', 'event_choice' => 'School Start - Struggles with lessons', 'stat_effects' => '-5 Intelligence, +5 Burnout', 'weight' => 0.3, 'event_category' => 'education', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'child', 'event_choice' => 'First School Exam - High score', 'stat_effects' => '+15 Intelligence, +10 Reputation', 'weight' => 0.5, 'event_category' => 'education', 'chain_order' => 2, 'parent_category' => 'education', 'required_choice_outcome' => 'positive'],
-            ['age_group' => 'child', 'event_choice' => 'First School Exam - Low score', 'stat_effects' => '-10 Intelligence, -5 Happiness', 'weight' => 0.4, 'event_category' => 'education', 'chain_order' => 2, 'parent_category' => 'education'],
-            ['age_group' => 'child', 'event_choice' => 'First School Exam - Cheating caught', 'stat_effects' => '-15 Reputation, -10 Morality', 'weight' => 0.2, 'event_category' => 'education', 'chain_order' => 2, 'parent_category' => 'education'],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Learning - Reads early', 'stat_effects' => '+15 Intelligence, +10 Discipline', 'weight' => 0.5, 'event_category' => 'education', 'chain_order' => 3, 'parent_category' => 'education'],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Learning - Struggles to read', 'stat_effects' => '-10 Intelligence, +5 Burnout', 'weight' => 0.3, 'event_category' => 'education', 'chain_order' => 3, 'parent_category' => 'education'],
-            ['age_group' => 'child', 'event_choice' => 'Childhood School Trip - Educational success', 'stat_effects' => '+10 Intelligence, +5 Reputation', 'weight' => 0.5, 'event_category' => 'education', 'chain_order' => 4, 'parent_category' => 'education'],
+            ['age_group' => 'child', 'event_choice' => 'School Start', 'description' => 'Start your school journey.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.7, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 1, 'event_category' => 'education', 'chain_order' => 1, 'parent_category' => null, 'is_milestone' => true, 'choices' => [
+                    ['text' => 'Go to school', 'stat_effects' => '+5 Intelligence, +5 Discipline', 'days_to_advance' => 0],
+                    ['text' => 'Cut class', 'stat_effects' => '+3 Happiness, -3 Discipline', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'child', 'event_choice' => 'First School Exam', 'description' => 'Your first major school exam.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.5, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 2, 'event_category' => 'education', 'chain_order' => 2, 'parent_category' => 'education', 'choices' => [
+                    ['text' => 'Study hard', 'stat_effects' => '+10 Intelligence, +5 Discipline', 'days_to_advance' => 0],
+                    ['text' => 'Guess answers', 'stat_effects' => '-5 Intelligence, +3 Happiness', 'days_to_advance' => 0],
+                    ['text' => 'Cheat', 'stat_effects' => '+5 Reputation, -10 Morality', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'child', 'event_choice' => 'Childhood Learning', 'description' => 'Learning to read and write.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.5, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 3, 'event_category' => 'education', 'chain_order' => 3, 'parent_category' => 'education', 'choices' => [
+                    ['text' => 'Practice reading daily', 'stat_effects' => '+15 Intelligence, +10 Discipline', 'days_to_advance' => 0],
+                    ['text' => 'Ask teacher for help', 'stat_effects' => '+10 Intelligence, +5 Discipline', 'days_to_advance' => 0],
+                    ['text' => 'Avoid reading practice', 'stat_effects' => '-10 Intelligence, +5 Burnout', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'child', 'event_choice' => 'Childhood School Trip', 'description' => 'A school field trip.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.5, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 4, 'event_category' => 'education', 'chain_order' => 4, 'parent_category' => 'education', 'choices' => [
+                    ['text' => 'Pay attention to guide', 'stat_effects' => '+10 Intelligence, +5 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Play with friends', 'stat_effects' => '+5 Happiness, +3 Reputation', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // === FAMILY CHAIN (Child) ===
-            ['age_group' => 'child', 'event_choice' => 'Family Bonding - Supportive parents', 'stat_effects' => '+20 Happiness, +10 Morality', 'weight' => 0.8, 'event_category' => 'family', 'chain_order' => 1, 'parent_category' => null, 'is_milestone' => true],
-            ['age_group' => 'child', 'event_choice' => 'Family Bonding - Neglectful parents', 'stat_effects' => '-20 Happiness, +10 Isolation', 'weight' => 0.2, 'event_category' => 'family', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'child', 'event_choice' => 'Sibling Bond - Close sibling', 'stat_effects' => '+15 Happiness, +5 Morality', 'weight' => 0.7, 'event_category' => 'family', 'chain_order' => 2, 'parent_category' => 'family'],
-            ['age_group' => 'child', 'event_choice' => 'Sibling Bond - Rivalry', 'stat_effects' => '-10 Happiness, +5 Burnout', 'weight' => 0.3, 'event_category' => 'family', 'chain_order' => 2, 'parent_category' => 'family'],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Bonding - Grandparent love', 'stat_effects' => '+15 Happiness, +10 Morality', 'weight' => 0.6, 'event_category' => 'family', 'chain_order' => 3, 'parent_category' => 'family'],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Bonding - Grandparent loss', 'stat_effects' => '-20 Happiness, +10 Isolation', 'weight' => 0.2, 'event_category' => 'family', 'chain_order' => 3, 'parent_category' => 'family'],
+            ['age_group' => 'child', 'event_choice' => 'Family Bonding', 'description' => 'Bond with your family.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.8, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 5, 'event_category' => 'family', 'chain_order' => 1, 'parent_category' => null, 'is_milestone' => true, 'choices' => [
+                    ['text' => 'Spend time with parents', 'stat_effects' => '+20 Happiness, +10 Morality', 'days_to_advance' => 0],
+                    ['text' => 'Play alone', 'stat_effects' => '-10 Happiness, +5 Isolation', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'child', 'event_choice' => 'Sibling Bond', 'description' => 'Bond with your siblings.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.7, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 6, 'event_category' => 'family', 'chain_order' => 2, 'parent_category' => 'family', 'choices' => [
+                    ['text' => 'Play together', 'stat_effects' => '+15 Happiness, +5 Morality', 'days_to_advance' => 0],
+                    ['text' => 'Compete for attention', 'stat_effects' => '-10 Happiness, +5 Burnout', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'child', 'event_choice' => 'Childhood Bonding', 'description' => 'Bond with extended family.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.6, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 7, 'event_category' => 'family', 'chain_order' => 3, 'parent_category' => 'family', 'choices' => [
+                    ['text' => 'Visit grandparents', 'stat_effects' => '+15 Happiness, +10 Morality', 'days_to_advance' => 0],
+                    ['text' => 'Skip family gathering', 'stat_effects' => '-10 Happiness, +3 Isolation', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // === SOCIAL CHAIN (Child) ===
-            ['age_group' => 'child', 'event_choice' => 'Childhood Friend - Best friend found', 'stat_effects' => '+15 Happiness, +5 Reputation', 'weight' => 0.7, 'event_category' => 'social', 'chain_order' => 1, 'parent_category' => null, 'is_milestone' => true],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Friend - Lonely childhood', 'stat_effects' => '+10 Isolation, -10 Happiness', 'weight' => 0.3, 'event_category' => 'social', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'child', 'event_choice' => 'Playtime - Outdoor games', 'stat_effects' => '+10 Strength, +10 Happiness', 'weight' => 0.8, 'event_category' => 'social', 'chain_order' => 2, 'parent_category' => 'social'],
-            ['age_group' => 'child', 'event_choice' => 'Playtime - Stays indoors', 'stat_effects' => '-5 Health, +5 Isolation', 'weight' => 0.2, 'event_category' => 'social', 'chain_order' => 2, 'parent_category' => 'social'],
-            ['age_group' => 'child', 'event_choice' => 'Bullying - Stands up', 'stat_effects' => '+10 Reputation, +10 Morality', 'weight' => 0.4, 'event_category' => 'social', 'chain_order' => 3, 'parent_category' => 'social'],
-            ['age_group' => 'child', 'event_choice' => 'Bullying - Silent', 'stat_effects' => '-10 Happiness, +10 Isolation', 'weight' => 0.4, 'event_category' => 'social', 'chain_order' => 3, 'parent_category' => 'social'],
-            ['age_group' => 'child', 'event_choice' => 'Bullying - Severe trauma', 'stat_effects' => '-30 Happiness, +20 Burnout', 'weight' => 0.1, 'event_category' => 'social', 'chain_order' => 3, 'parent_category' => 'social'],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Playdate - Fun with friends', 'stat_effects' => '+15 Happiness, +5 Reputation', 'weight' => 0.6, 'event_category' => 'social', 'chain_order' => 4, 'parent_category' => 'social'],
+            ['age_group' => 'child', 'event_choice' => 'Childhood Friend', 'description' => 'Make friends at school.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.7, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 8, 'event_category' => 'social', 'chain_order' => 1, 'parent_category' => null, 'is_milestone' => true, 'choices' => [
+                    ['text' => 'Talk to classmates', 'stat_effects' => '+15 Happiness, +5 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Stay alone', 'stat_effects' => '+10 Isolation, -10 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'child', 'event_choice' => 'Playtime', 'description' => 'Time to play with friends.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.8, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 9, 'event_category' => 'social', 'chain_order' => 2, 'parent_category' => 'social', 'choices' => [
+                    ['text' => 'Play outdoor games', 'stat_effects' => '+10 Strength, +10 Happiness', 'days_to_advance' => 0],
+                    ['text' => 'Stay indoors and read', 'stat_effects' => '+5 Intelligence, +3 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'child', 'event_choice' => 'Bullying', 'description' => 'Face bullying at school.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.4, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 10, 'event_category' => 'social', 'chain_order' => 3, 'parent_category' => 'social', 'choices' => [
+                    ['text' => 'Stand up to bully', 'stat_effects' => '+10 Reputation, +10 Morality', 'days_to_advance' => 0],
+                    ['text' => 'Tell a teacher', 'stat_effects' => '+5 Reputation, +5 Discipline', 'days_to_advance' => 0],
+                    ['text' => 'Stay silent', 'stat_effects' => '-10 Happiness, +10 Isolation', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'child', 'event_choice' => 'Childhood Playdate', 'description' => 'Playdate with friends.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.6, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 11, 'event_category' => 'social', 'chain_order' => 4, 'parent_category' => 'social', 'choices' => [
+                    ['text' => 'Invite friend over', 'stat_effects' => '+15 Happiness, +5 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Decline invitation', 'stat_effects' => '-5 Happiness, +3 Isolation', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // === HEALTH CHAIN (Child) ===
-            ['age_group' => 'child', 'event_choice' => 'Birth - Healthy baby', 'stat_effects' => '+20 Health, +20 Happiness', 'weight' => 0.9, 'event_category' => 'health', 'chain_order' => 1, 'parent_category' => null, 'is_milestone' => true],
-            ['age_group' => 'child', 'event_choice' => 'Birth - Complicated birth', 'stat_effects' => '-10 Health, +10 Burnout', 'weight' => 0.1, 'event_category' => 'health', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'child', 'event_choice' => 'First Steps - Walk early', 'stat_effects' => '+10 Strength, +5 Discipline', 'weight' => 0.7, 'event_category' => 'health', 'chain_order' => 2, 'parent_category' => 'health'],
-            ['age_group' => 'child', 'event_choice' => 'First Steps - Walk late', 'stat_effects' => '-5 Strength, -5 Happiness', 'weight' => 0.3, 'event_category' => 'health', 'chain_order' => 2, 'parent_category' => 'health'],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Illness - Quick recovery', 'stat_effects' => '+10 Health, +5 Happiness', 'weight' => 0.8, 'event_category' => 'health', 'chain_order' => 3, 'parent_category' => 'health'],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Illness - Long sickness', 'stat_effects' => '-15 Health, +10 Burnout', 'weight' => 0.2, 'event_category' => 'health', 'chain_order' => 3, 'parent_category' => 'health'],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Illness - Chickenpox', 'stat_effects' => '-10 Health, +5 Burnout', 'weight' => 0.4, 'event_category' => 'health', 'chain_order' => 4, 'parent_category' => 'health'],
-            ['age_group' => 'child', 'event_choice' => 'Nutrition - Balanced diet', 'stat_effects' => '+15 Health, +5 Discipline', 'weight' => 0.7, 'event_category' => 'health', 'chain_order' => 5, 'parent_category' => 'health'],
-            ['age_group' => 'child', 'event_choice' => 'Nutrition - Malnutrition', 'stat_effects' => '-20 Health, +10 Burnout', 'weight' => 0.1, 'event_category' => 'health', 'chain_order' => 5, 'parent_category' => 'health'],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Accident - Minor fall', 'stat_effects' => '-5 Health, +5 Burnout', 'weight' => 0.4, 'event_category' => 'health', 'chain_order' => 6, 'parent_category' => 'health'],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Accident - Major injury', 'stat_effects' => '-20 Health, -10 Happiness', 'weight' => 0.1, 'event_category' => 'health', 'chain_order' => 6, 'parent_category' => 'health'],
+            ['age_group' => 'child', 'event_choice' => 'Birth', 'description' => 'The beginning of life.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.9, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 12, 'event_category' => 'health', 'chain_order' => 1, 'parent_category' => null, 'is_milestone' => true, 'choices' => [
+                    ['text' => 'Born healthy', 'stat_effects' => '+20 Health, +20 Happiness', 'days_to_advance' => 0],
+                    ['text' => 'Born with complications', 'stat_effects' => '-10 Health, +10 Burnout', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'child', 'event_choice' => 'First Steps', 'description' => 'First steps as a baby.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.7, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 13, 'event_category' => 'health', 'chain_order' => 2, 'parent_category' => 'health', 'choices' => [
+                    ['text' => 'Practice walking', 'stat_effects' => '+10 Strength, +5 Discipline', 'days_to_advance' => 0],
+                    ['text' => 'Stay in crib', 'stat_effects' => '-5 Strength, +3 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'child', 'event_choice' => 'Childhood Illness', 'description' => 'Get sick during childhood.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.8, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 14, 'event_category' => 'health', 'chain_order' => 3, 'parent_category' => 'health', 'choices' => [
+                    ['text' => 'Rest and recover', 'stat_effects' => '+10 Health, +5 Happiness', 'days_to_advance' => 0],
+                    ['text' => 'Ignore symptoms', 'stat_effects' => '-15 Health, +10 Burnout', 'days_to_advance' => 0],
+                    ['text' => 'See a doctor', 'stat_effects' => '-5 Wealth, +8 Health', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'child', 'event_choice' => 'Nutrition', 'description' => 'Nutrition during childhood.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.7, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 15, 'event_category' => 'health', 'chain_order' => 5, 'parent_category' => 'health', 'choices' => [
+                    ['text' => 'Eat healthy foods', 'stat_effects' => '+15 Health, +5 Discipline', 'days_to_advance' => 0],
+                    ['text' => 'Eat junk food', 'stat_effects' => '-10 Health, +5 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'child', 'event_choice' => 'Childhood Accident', 'description' => 'Accidents happen.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.4, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 16, 'event_category' => 'health', 'chain_order' => 6, 'parent_category' => 'health', 'choices' => [
+                    ['text' => 'Be careful', 'stat_effects' => '-3 Health, +3 Discipline', 'days_to_advance' => 0],
+                    ['text' => 'Play dangerously', 'stat_effects' => '-15 Health, +5 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // === SKILL CHAIN (Child) ===
-            ['age_group' => 'child', 'event_choice' => 'First Words - Speaks clearly', 'stat_effects' => '+10 Intelligence, +5 Reputation', 'weight' => 0.7, 'event_category' => 'skill', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'child', 'event_choice' => 'First Words - Speech delay', 'stat_effects' => '-5 Intelligence, -5 Happiness', 'weight' => 0.3, 'event_category' => 'skill', 'chain_order' => 1, 'parent_category' => null],
-            [
-                'age_group' => 'child',
-                'event_choice' => 'Childhood Talent',
-                'description' => 'Every child has unique talents waiting to be discovered.',
-                'image' => '/css/images/event-placeholder.jpg',
-                'type' => 'ageSpecific',
-                'deck_label' => 'Age Event',
-                'repeatable' => false,
-                'weight' => 0.4,
-                'auto_resolve' => false,
-                'days_to_advance' => 0,
-                'display_order' => 17,
-                'event_category' => 'skill',
-                'chain_order' => 2,
-                'parent_category' => 'skill',
-                'choices' => [
-                    ['text' => 'Shows skill', 'stat_effects' => '+15 Creativity, +10 Reputation', 'days_to_advance' => 0],
-                    ['text' => 'Talent ignored', 'stat_effects' => '-10 Happiness, +5 Isolation', 'days_to_advance' => 0],
-                ],
-                'conditions' => null,
-            ],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Hobby - Learns instrument', 'stat_effects' => '+15 Creativity, +10 Discipline', 'weight' => 0.4, 'event_category' => 'skill', 'chain_order' => 3, 'parent_category' => 'skill'],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Hobby - Quits hobby', 'stat_effects' => '-10 Happiness, +5 Burnout', 'weight' => 0.3, 'event_category' => 'skill', 'chain_order' => 3, 'parent_category' => 'skill'],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Dream - Inspired', 'stat_effects' => '+15 Creativity, +10 Happiness', 'weight' => 0.5, 'event_category' => 'skill', 'chain_order' => 4, 'parent_category' => 'skill'],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Chores - Helps family', 'stat_effects' => '+10 Discipline, +10 Morality', 'weight' => 0.7, 'event_category' => 'skill', 'chain_order' => 5, 'parent_category' => 'skill'],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Chores - Refuses chores', 'stat_effects' => '-10 Discipline, -5 Reputation', 'weight' => 0.3, 'event_category' => 'skill', 'chain_order' => 5, 'parent_category' => 'skill'],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Sports - Wins race', 'stat_effects' => '+15 Strength, +10 Reputation', 'weight' => 0.4, 'event_category' => 'skill', 'chain_order' => 6, 'parent_category' => 'skill'],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Sports - Loses race', 'stat_effects' => '-5 Happiness, +5 Burnout', 'weight' => 0.4, 'event_category' => 'skill', 'chain_order' => 6, 'parent_category' => 'skill'],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Fear - Overcomes fear', 'stat_effects' => '+10 Discipline, +5 Morality', 'weight' => 0.5, 'event_category' => 'skill', 'chain_order' => 7, 'parent_category' => 'skill'],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Fear - Fear worsens', 'stat_effects' => '-10 Happiness, +5 Burnout', 'weight' => 0.3, 'event_category' => 'skill', 'chain_order' => 7, 'parent_category' => 'skill'],
+            ['age_group' => 'child', 'event_choice' => 'First Words', 'description' => 'First words spoken.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.7, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 17, 'event_category' => 'skill', 'chain_order' => 1, 'parent_category' => null, 'choices' => [
+                    ['text' => 'Practice speaking', 'stat_effects' => '+10 Intelligence, +5 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Stay quiet', 'stat_effects' => '-5 Intelligence, +3 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'child', 'event_choice' => 'Childhood Hobby', 'description' => 'Develop a hobby.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.4, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 18, 'event_category' => 'skill', 'chain_order' => 3, 'parent_category' => 'skill', 'choices' => [
+                    ['text' => 'Practice instrument daily', 'stat_effects' => '+15 Creativity, +10 Discipline', 'days_to_advance' => 0],
+                    ['text' => 'Skip practice', 'stat_effects' => '-5 Creativity, +5 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'child', 'event_choice' => 'Childhood Dream', 'description' => 'Dream about the future.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.5, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 19, 'event_category' => 'skill', 'chain_order' => 4, 'parent_category' => 'skill', 'choices' => [
+                    ['text' => 'Dream big', 'stat_effects' => '+15 Creativity, +10 Happiness', 'days_to_advance' => 0],
+                    ['text' => 'Stay realistic', 'stat_effects' => '+5 Discipline, +3 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'child', 'event_choice' => 'Childhood Chores', 'description' => 'Help with chores.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.7, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 20, 'event_category' => 'skill', 'chain_order' => 5, 'parent_category' => 'skill', 'choices' => [
+                    ['text' => 'Help with chores', 'stat_effects' => '+10 Discipline, +10 Morality', 'days_to_advance' => 0],
+                    ['text' => 'Refuse to help', 'stat_effects' => '-10 Discipline, -5 Reputation', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'child', 'event_choice' => 'Childhood Sports', 'description' => 'Play sports.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.4, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 21, 'event_category' => 'skill', 'chain_order' => 6, 'parent_category' => 'skill', 'choices' => [
+                    ['text' => 'Join sports team', 'stat_effects' => '+15 Strength, +10 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Skip practice', 'stat_effects' => '-5 Strength, +5 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'child', 'event_choice' => 'Childhood Fear', 'description' => 'Face childhood fears.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.5, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 22, 'event_category' => 'skill', 'chain_order' => 7, 'parent_category' => 'skill', 'choices' => [
+                    ['text' => 'Face your fears', 'stat_effects' => '+10 Discipline, +5 Morality', 'days_to_advance' => 0],
+                    ['text' => 'Avoid the fear', 'stat_effects' => '-5 Discipline, +3 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // === RANDOM CHILD EVENTS ===
-            ['age_group' => 'child', 'event_choice' => 'First Pet - Pet adopted', 'stat_effects' => '+10 Happiness, +5 Morality', 'weight' => 0.6, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'child', 'event_choice' => 'First Pet - Pet lost', 'stat_effects' => '-15 Happiness, +10 Isolation', 'weight' => 0.2, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'child', 'event_choice' => 'Birthday Party - Celebrated', 'stat_effects' => '+15 Happiness, +5 Reputation', 'weight' => 0.6, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'child', 'event_choice' => 'Birthday Party - Forgotten', 'stat_effects' => '-20 Happiness, +10 Isolation', 'weight' => 0.2, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Travel - Family trip', 'stat_effects' => '+10 Happiness, +5 Reputation', 'weight' => 0.5, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Trip - Zoo visit', 'stat_effects' => '+10 Happiness, +5 Creativity', 'weight' => 0.5, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Trip - Amusement park', 'stat_effects' => '+15 Happiness, +5 Reputation', 'weight' => 0.5, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Celebration - Christmas joy', 'stat_effects' => '+20 Happiness, +10 Morality', 'weight' => 0.6, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Celebration - New Year fireworks', 'stat_effects' => '+15 Happiness, +5 Reputation', 'weight' => 0.5, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Religion - Joins devotion', 'stat_effects' => '+15 Morality, +10 Reputation', 'weight' => 0.4, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Curiosity - Explores safely', 'stat_effects' => '+10 Creativity, +5 Intelligence', 'weight' => 0.5, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
+            ['age_group' => 'child', 'event_choice' => 'First Pet', 'description' => 'Get your first pet.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.6, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 23, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null, 'choices' => [
+                    ['text' => 'Ask for a pet', 'stat_effects' => '+10 Happiness, +5 Morality', 'days_to_advance' => 0],
+                    ['text' => 'Decline pet', 'stat_effects' => '-5 Happiness, +3 Wealth', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'child', 'event_choice' => 'Birthday Party', 'description' => 'Celebrate your birthday.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.6, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 24, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null, 'choices' => [
+                    ['text' => 'Invite friends', 'stat_effects' => '+15 Happiness, +5 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Skip celebration', 'stat_effects' => '-10 Happiness, +5 Discipline', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'child', 'event_choice' => 'Childhood Travel', 'description' => 'Travel with family.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.5, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 25, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null, 'choices' => [
+                    ['text' => 'Go on trip', 'stat_effects' => '+10 Happiness, +5 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Stay home', 'stat_effects' => '-5 Happiness, +3 Intelligence', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'child', 'event_choice' => 'Childhood Trip', 'description' => 'Go on a fun trip.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.5, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 26, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null, 'choices' => [
+                    ['text' => 'Visit zoo', 'stat_effects' => '+10 Happiness, +5 Creativity', 'days_to_advance' => 0],
+                    ['text' => 'Go to amusement park', 'stat_effects' => '+15 Happiness, +5 Reputation', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'child', 'event_choice' => 'Childhood Celebration', 'description' => 'Celebrate special occasions.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.6, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 27, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null, 'choices' => [
+                    ['text' => 'Join celebration', 'stat_effects' => '+20 Happiness, +10 Morality', 'days_to_advance' => 0],
+                    ['text' => 'Skip celebration', 'stat_effects' => '-5 Happiness, +3 Discipline', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'child', 'event_choice' => 'Childhood Religion', 'description' => 'Learn about faith.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.4, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 28, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null, 'choices' => [
+                    ['text' => 'Learn about faith', 'stat_effects' => '+15 Morality, +10 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Skip religious class', 'stat_effects' => '-5 Morality, +3 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'child', 'event_choice' => 'Childhood Curiosity', 'description' => 'Explore the world.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.5, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 29, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null, 'choices' => [
+                    ['text' => 'Explore surroundings', 'stat_effects' => '+10 Creativity, +5 Intelligence', 'days_to_advance' => 0],
+                    ['text' => 'Stay cautious', 'stat_effects' => '+5 Discipline, +3 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // Fatal child events
-            ['age_group' => 'child', 'event_choice' => 'Infant Mortality', 'stat_effects' => '-100 Health, End of game', 'weight' => 0.01, 'event_category' => 'health', 'chain_order' => 99, 'parent_category' => 'health'],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Illness - Fatal illness', 'stat_effects' => '-100 Health, End of game', 'weight' => 0.01, 'event_category' => 'health', 'chain_order' => 99, 'parent_category' => 'health'],
-            ['age_group' => 'child', 'event_choice' => 'Childhood Accident - Fatal accident', 'stat_effects' => '-100 Health, End of game', 'weight' => 0.01, 'event_category' => 'health', 'chain_order' => 99, 'parent_category' => 'health'],
+            ['age_group' => 'child', 'event_choice' => 'Infant Mortality', 'description' => 'Tragic loss of life.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.01, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 30, 'event_category' => 'health', 'chain_order' => 99, 'parent_category' => 'health', 'choices' => [
+                    ['text' => 'Fatal', 'stat_effects' => '-100 Health, End of game', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'child', 'event_choice' => 'Childhood Illness', 'description' => 'A serious illness.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.01, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 31, 'event_category' => 'health', 'chain_order' => 99, 'parent_category' => 'health', 'choices' => [
+                    ['text' => 'Fatal illness', 'stat_effects' => '-100 Health, End of game', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'child', 'event_choice' => 'Childhood Accident', 'description' => 'A tragic accident.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.01, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 32, 'event_category' => 'health', 'chain_order' => 99, 'parent_category' => 'health', 'choices' => [
+                    ['text' => 'Fatal accident', 'stat_effects' => '-100 Health, End of game', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // ============================================
             // TEEN EVENTS
             // ============================================
             // === EDUCATION CHAIN (Teen) ===
-            ['age_group' => 'teen', 'event_choice' => 'High School Start - Good grades', 'stat_effects' => '+15 Intelligence, +10 Discipline', 'weight' => 0.6, 'event_category' => 'education', 'chain_order' => 4, 'parent_category' => 'education', 'is_milestone' => true],
-            ['age_group' => 'teen', 'event_choice' => 'High School Start - Poor grades', 'stat_effects' => '-10 Intelligence, +10 Burnout', 'weight' => 0.4, 'event_category' => 'education', 'chain_order' => 4, 'parent_category' => 'education'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage School Exam - High score', 'stat_effects' => '+15 Intelligence, +10 Reputation', 'weight' => 0.4, 'event_category' => 'education', 'chain_order' => 5, 'parent_category' => 'education'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage School Exam - Low score', 'stat_effects' => '-10 Intelligence, -5 Happiness', 'weight' => 0.3, 'event_category' => 'education', 'chain_order' => 5, 'parent_category' => 'education'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Learning - Excels in science', 'stat_effects' => '+20 Intelligence, +10 Reputation', 'weight' => 0.3, 'event_category' => 'education', 'chain_order' => 6, 'parent_category' => 'education'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Learning - Struggles in math', 'stat_effects' => '-10 Intelligence, +5 Burnout', 'weight' => 0.3, 'event_category' => 'education', 'chain_order' => 6, 'parent_category' => 'education'],
-            ['age_group' => 'teen', 'event_choice' => 'Graduation - With honors', 'stat_effects' => '+20 Intelligence, +15 Reputation', 'weight' => 0.4, 'event_category' => 'education', 'chain_order' => 7, 'parent_category' => 'education', 'is_milestone' => true],
-            ['age_group' => 'teen', 'event_choice' => 'Graduation - Barely passes', 'stat_effects' => '+5 Intelligence, -5 Reputation', 'weight' => 0.3, 'event_category' => 'education', 'chain_order' => 7, 'parent_category' => 'education'],
+            ['age_group' => 'teen', 'event_choice' => 'High School Start', 'description' => 'Start high school.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.6, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 40, 'event_category' => 'education', 'chain_order' => 4, 'parent_category' => 'education', 'is_milestone' => true, 'choices' => [
+                    ['text' => 'Study diligently', 'stat_effects' => '+15 Intelligence, +10 Discipline', 'days_to_advance' => 0],
+                    ['text' => 'Skip classes', 'stat_effects' => '-10 Intelligence, +10 Burnout', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'teen', 'event_choice' => 'Teenage School Exam', 'description' => 'Take your exams.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.4, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 41, 'event_category' => 'education', 'chain_order' => 5, 'parent_category' => 'education', 'choices' => [
+                    ['text' => 'Prepare thoroughly', 'stat_effects' => '+15 Intelligence, +10 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Guess on exam', 'stat_effects' => '-10 Intelligence, +3 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'teen', 'event_choice' => 'Teenage Learning', 'description' => 'Learn new subjects.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 42, 'event_category' => 'education', 'chain_order' => 6, 'parent_category' => 'education', 'choices' => [
+                    ['text' => 'Focus on science', 'stat_effects' => '+20 Intelligence, +10 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Skip math class', 'stat_effects' => '-10 Intelligence, +5 Burnout', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'teen', 'event_choice' => 'Graduation', 'description' => 'Graduate from school.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.4, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 43, 'event_category' => 'education', 'chain_order' => 7, 'parent_category' => 'education', 'is_milestone' => true, 'choices' => [
+                    ['text' => 'Graduate with honors', 'stat_effects' => '+20 Intelligence, +15 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Just graduate', 'stat_effects' => '+5 Intelligence, -5 Reputation', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // === SOCIAL CHAIN (Teen) ===
-            ['age_group' => 'teen', 'event_choice' => 'First Crush - Mutual feelings', 'stat_effects' => '+15 Happiness, +5 Reputation', 'weight' => 0.5, 'event_category' => 'social', 'chain_order' => 5, 'parent_category' => 'social', 'is_milestone' => true],
-            ['age_group' => 'teen', 'event_choice' => 'First Crush - Rejected', 'stat_effects' => '-15 Happiness, +5 Isolation', 'weight' => 0.5, 'event_category' => 'social', 'chain_order' => 5, 'parent_category' => 'social'],
-            ['age_group' => 'teen', 'event_choice' => 'First Love - Relationship begins', 'stat_effects' => '+20 Happiness, +10 Reputation', 'weight' => 0.3, 'event_category' => 'social', 'chain_order' => 6, 'parent_category' => 'social'],
-            ['age_group' => 'teen', 'event_choice' => 'First Love - Heartbreak', 'stat_effects' => '-20 Happiness, +10 Isolation', 'weight' => 0.2, 'event_category' => 'social', 'chain_order' => 6, 'parent_category' => 'social'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Friendship - Loyal friend', 'stat_effects' => '+20 Happiness, +10 Reputation', 'weight' => 0.4, 'event_category' => 'social', 'chain_order' => 7, 'parent_category' => 'social'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Friendship - Betrayal', 'stat_effects' => '-20 Happiness, +10 Isolation', 'weight' => 0.2, 'event_category' => 'social', 'chain_order' => 7, 'parent_category' => 'social'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Relationship - Healthy romance', 'stat_effects' => '+20 Happiness, +10 Reputation', 'weight' => 0.3, 'event_category' => 'social', 'chain_order' => 8, 'parent_category' => 'social'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Relationship - Breakup', 'stat_effects' => '-20 Happiness, +10 Isolation', 'weight' => 0.2, 'event_category' => 'social', 'chain_order' => 8, 'parent_category' => 'social'],
+            ['age_group' => 'teen', 'event_choice' => 'First Crush', 'description' => 'Experience your first crush.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.5, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 44, 'event_category' => 'social', 'chain_order' => 5, 'parent_category' => 'social', 'is_milestone' => true, 'choices' => [
+                    ['text' => 'Confess feelings', 'stat_effects' => '+15 Happiness, +5 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Keep it secret', 'stat_effects' => '-5 Happiness, +3 Isolation', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'teen', 'event_choice' => 'First Love', 'description' => 'Fall in love.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 45, 'event_category' => 'social', 'chain_order' => 6, 'parent_category' => 'social', 'choices' => [
+                    ['text' => 'Start relationship', 'stat_effects' => '+20 Happiness, +10 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Focus on studies', 'stat_effects' => '+10 Intelligence, -5 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'teen', 'event_choice' => 'Teenage Friendship', 'description' => 'Friendships during teen years.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.4, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 46, 'event_category' => 'social', 'chain_order' => 7, 'parent_category' => 'social', 'choices' => [
+                    ['text' => 'Be loyal to friends', 'stat_effects' => '+20 Happiness, +10 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Distance from friends', 'stat_effects' => '-10 Happiness, +5 Isolation', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'teen', 'event_choice' => 'Teenage Relationship', 'description' => 'Romantic relationships.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 47, 'event_category' => 'social', 'chain_order' => 8, 'parent_category' => 'social', 'choices' => [
+                    ['text' => 'Invest in relationship', 'stat_effects' => '+20 Happiness, +10 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'End relationship', 'stat_effects' => '-15 Happiness, +8 Isolation', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // === FAMILY CHAIN (Teen) ===
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Bonding - Family support', 'stat_effects' => '+20 Happiness, +10 Morality', 'weight' => 0.4, 'event_category' => 'family', 'chain_order' => 4, 'parent_category' => 'family'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Bonding - Family conflict', 'stat_effects' => '-20 Happiness, +10 Burnout', 'weight' => 0.2, 'event_category' => 'family', 'chain_order' => 4, 'parent_category' => 'family'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Bonding - Grandparent love', 'stat_effects' => '+15 Happiness, +10 Morality', 'weight' => 0.4, 'event_category' => 'family', 'chain_order' => 5, 'parent_category' => 'family'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Bonding - Grandparent loss', 'stat_effects' => '-20 Happiness, +10 Isolation', 'weight' => 0.2, 'event_category' => 'family', 'chain_order' => 5, 'parent_category' => 'family'],
+            ['age_group' => 'teen', 'event_choice' => 'Teenage Bonding', 'description' => 'Bond with family.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.4, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 48, 'event_category' => 'family', 'chain_order' => 4, 'parent_category' => 'family', 'choices' => [
+                    ['text' => 'Talk with family', 'stat_effects' => '+20 Happiness, +10 Morality', 'days_to_advance' => 0],
+                    ['text' => 'Argue with family', 'stat_effects' => '-20 Happiness, +10 Burnout', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'teen', 'event_choice' => 'Teenage Bonding', 'description' => 'Bond with extended family.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.4, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 49, 'event_category' => 'family', 'chain_order' => 5, 'parent_category' => 'family', 'choices' => [
+                    ['text' => 'Visit grandparents', 'stat_effects' => '+15 Happiness, +10 Morality', 'days_to_advance' => 0],
+                    ['text' => 'Skip family visit', 'stat_effects' => '-10 Happiness, +3 Isolation', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // === CAREER CHAIN (Teen) ===
-            ['age_group' => 'teen', 'event_choice' => 'First Job (Part-time) - Hired', 'stat_effects' => '+10 Wealth, +5 Discipline', 'weight' => 0.5, 'event_category' => 'career', 'chain_order' => 1, 'parent_category' => null, 'is_milestone' => true],
-            ['age_group' => 'teen', 'event_choice' => 'First Job (Part-time) - Fired', 'stat_effects' => '-5 Wealth, -5 Reputation', 'weight' => 0.2, 'event_category' => 'career', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'teen', 'event_choice' => 'Peer Pressure - Resists', 'stat_effects' => '+10 Discipline, +10 Morality', 'weight' => 0.5, 'event_category' => 'career', 'chain_order' => 2, 'parent_category' => 'career'],
-            ['age_group' => 'teen', 'event_choice' => 'Peer Pressure - Gives in', 'stat_effects' => '-10 Discipline, -10 Morality', 'weight' => 0.5, 'event_category' => 'career', 'chain_order' => 2, 'parent_category' => 'career'],
-            ['age_group' => 'teen', 'event_choice' => 'Rebellion - Sneaks out', 'stat_effects' => '+10 Happiness, -10 Discipline', 'weight' => 0.3, 'event_category' => 'career', 'chain_order' => 3, 'parent_category' => 'career'],
-            ['age_group' => 'teen', 'event_choice' => 'Rebellion - Caught', 'stat_effects' => '-10 Reputation, +5 Burnout', 'weight' => 0.2, 'event_category' => 'career', 'chain_order' => 3, 'parent_category' => 'career'],
+            ['age_group' => 'teen', 'event_choice' => 'First Job (Part-time)', 'description' => 'Get your first job.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.5, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 50, 'event_category' => 'career', 'chain_order' => 1, 'parent_category' => null, 'is_milestone' => true, 'choices' => [
+                    ['text' => 'Apply for job', 'stat_effects' => '+10 Wealth, +5 Discipline', 'days_to_advance' => 0],
+                    ['text' => 'Skip job search', 'stat_effects' => '-5 Wealth, +5 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'teen', 'event_choice' => 'Peer Pressure', 'description' => 'Face peer pressure.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.5, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 51, 'event_category' => 'career', 'chain_order' => 2, 'parent_category' => 'career', 'choices' => [
+                    ['text' => 'Say no to pressure', 'stat_effects' => '+10 Discipline, +10 Morality', 'days_to_advance' => 0],
+                    ['text' => 'Give in to pressure', 'stat_effects' => '-10 Discipline, -10 Morality', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'teen', 'event_choice' => 'Rebellion', 'description' => 'Rebel against rules.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 52, 'event_category' => 'career', 'chain_order' => 3, 'parent_category' => 'career', 'choices' => [
+                    ['text' => 'Sneak out', 'stat_effects' => '+10 Happiness, -10 Discipline', 'days_to_advance' => 0],
+                    ['text' => 'Obey parents', 'stat_effects' => '+5 Discipline, +5 Morality', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // === SKILL CHAIN (Teen) ===
-            ['age_group' => 'teen', 'event_choice' => 'Sports Team - Makes varsity', 'stat_effects' => '+15 Strength, +10 Reputation', 'weight' => 0.4, 'event_category' => 'skill', 'chain_order' => 9, 'parent_category' => 'skill'],
-            ['age_group' => 'teen', 'event_choice' => 'Sports Team - Cut from team', 'stat_effects' => '-10 Happiness, +5 Burnout', 'weight' => 0.3, 'event_category' => 'skill', 'chain_order' => 9, 'parent_category' => 'skill'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Hobby - Learns guitar', 'stat_effects' => '+15 Creativity, +10 Discipline', 'weight' => 0.3, 'event_category' => 'skill', 'chain_order' => 10, 'parent_category' => 'skill'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Hobby - Quits hobby', 'stat_effects' => '-10 Happiness, +5 Burnout', 'weight' => 0.2, 'event_category' => 'skill', 'chain_order' => 10, 'parent_category' => 'skill'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Talent - Shows skill', 'stat_effects' => '+15 Creativity, +10 Reputation', 'weight' => 0.3, 'event_category' => 'skill', 'chain_order' => 11, 'parent_category' => 'skill'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Talent - Talent mocked', 'stat_effects' => '-20 Happiness, -10 Reputation', 'weight' => 0.1, 'event_category' => 'skill', 'chain_order' => 11, 'parent_category' => 'skill'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Contest - Wins', 'stat_effects' => '+15 Reputation, +10 Happiness', 'weight' => 0.3, 'event_category' => 'skill', 'chain_order' => 12, 'parent_category' => 'skill'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Contest - Loses', 'stat_effects' => '-5 Happiness, +5 Burnout', 'weight' => 0.3, 'event_category' => 'skill', 'chain_order' => 12, 'parent_category' => 'skill'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Sports - Wins championship', 'stat_effects' => '+20 Strength, +15 Reputation', 'weight' => 0.3, 'event_category' => 'skill', 'chain_order' => 13, 'parent_category' => 'skill'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Fear - Overcomes fear', 'stat_effects' => '+10 Discipline, +5 Morality', 'weight' => 0.3, 'event_category' => 'skill', 'chain_order' => 14, 'parent_category' => 'skill'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Fear - Fear worsens', 'stat_effects' => '-10 Happiness, +5 Burnout', 'weight' => 0.2, 'event_category' => 'skill', 'chain_order' => 14, 'parent_category' => 'skill'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Exploration - Safe adventure', 'stat_effects' => '+10 Creativity, +5 Intelligence', 'weight' => 0.3, 'event_category' => 'skill', 'chain_order' => 15, 'parent_category' => 'skill'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Chores - Helps family', 'stat_effects' => '+10 Discipline, +10 Morality', 'weight' => 0.5, 'event_category' => 'skill', 'chain_order' => 16, 'parent_category' => 'skill'],
+            ['age_group' => 'teen', 'event_choice' => 'Sports Team', 'description' => 'Join a sports team.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.4, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 53, 'event_category' => 'skill', 'chain_order' => 9, 'parent_category' => 'skill', 'choices' => [
+                    ['text' => 'Join sports team', 'stat_effects' => '+15 Strength, +10 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Quit team', 'stat_effects' => '-5 Strength, +5 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'teen', 'event_choice' => 'Teenage Hobby', 'description' => 'Develop a hobby.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 54, 'event_category' => 'skill', 'chain_order' => 10, 'parent_category' => 'skill', 'choices' => [
+                    ['text' => 'Learn guitar', 'stat_effects' => '+15 Creativity, +10 Discipline', 'days_to_advance' => 0],
+                    ['text' => 'Skip practice', 'stat_effects' => '-5 Creativity, +5 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'teen', 'event_choice' => 'Teenage Talent', 'description' => 'Show your talent.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 55, 'event_category' => 'skill', 'chain_order' => 11, 'parent_category' => 'skill', 'choices' => [
+                    ['text' => 'Show talent publicly', 'stat_effects' => '+15 Creativity, +10 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Keep talent private', 'stat_effects' => '+3 Creativity, +2 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'teen', 'event_choice' => 'Teenage Contest', 'description' => 'Enter a contest.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 56, 'event_category' => 'skill', 'chain_order' => 12, 'parent_category' => 'skill', 'choices' => [
+                    ['text' => 'Practice for contest', 'stat_effects' => '+15 Reputation, +10 Happiness', 'days_to_advance' => 0],
+                    ['text' => 'Skip contest', 'stat_effects' => '-3 Reputation, +3 Discipline', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'teen', 'event_choice' => 'Teenage Sports', 'description' => 'Play sports.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 57, 'event_category' => 'skill', 'chain_order' => 13, 'parent_category' => 'skill', 'choices' => [
+                    ['text' => 'Join championship', 'stat_effects' => '+20 Strength, +15 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Watch from sidelines', 'stat_effects' => '+3 Strength, +3 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'teen', 'event_choice' => 'Teenage Fear', 'description' => 'Face your fears.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 58, 'event_category' => 'skill', 'chain_order' => 14, 'parent_category' => 'skill', 'choices' => [
+                    ['text' => 'Face your fears', 'stat_effects' => '+10 Discipline, +5 Morality', 'days_to_advance' => 0],
+                    ['text' => 'Avoid fears', 'stat_effects' => '-5 Discipline, +3 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'teen', 'event_choice' => 'Teenage Exploration', 'description' => 'Explore the world.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 59, 'event_category' => 'skill', 'chain_order' => 15, 'parent_category' => 'skill', 'choices' => [
+                    ['text' => 'Explore safely', 'stat_effects' => '+10 Creativity, +5 Intelligence', 'days_to_advance' => 0],
+                    ['text' => 'Stay home', 'stat_effects' => '+3 Discipline, +2 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'teen', 'event_choice' => 'Teenage Chores', 'description' => 'Help with chores.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.5, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 60, 'event_category' => 'skill', 'chain_order' => 16, 'parent_category' => 'skill', 'choices' => [
+                    ['text' => 'Help with chores', 'stat_effects' => '+10 Discipline, +10 Morality', 'days_to_advance' => 0],
+                    ['text' => 'Refuse chores', 'stat_effects' => '-5 Discipline, +3 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // === HEALTH CHAIN (Teen) ===
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Illness - Flu recovery', 'stat_effects' => '-10 Health, -5 Happiness', 'weight' => 0.3, 'event_category' => 'health', 'chain_order' => 7, 'parent_category' => 'health'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Illness - Dengue recovery', 'stat_effects' => '-20 Health, +10 Burnout', 'weight' => 0.2, 'event_category' => 'health', 'chain_order' => 7, 'parent_category' => 'health'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Accident - Minor injury', 'stat_effects' => '-10 Health, +5 Burnout', 'weight' => 0.3, 'event_category' => 'health', 'chain_order' => 8, 'parent_category' => 'health'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Accident - Major injury', 'stat_effects' => '-30 Health, -20 Happiness', 'weight' => 0.1, 'event_category' => 'health', 'chain_order' => 8, 'parent_category' => 'health'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Accident - Bike crash', 'stat_effects' => '-15 Health, +10 Burnout', 'weight' => 0.2, 'event_category' => 'health', 'chain_order' => 9, 'parent_category' => 'health'],
+            ['age_group' => 'teen', 'event_choice' => 'Teenage Illness', 'description' => 'Get sick during teen years.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 61, 'event_category' => 'health', 'chain_order' => 7, 'parent_category' => 'health', 'choices' => [
+                    ['text' => 'Rest and recover', 'stat_effects' => '-10 Health, -5 Happiness', 'days_to_advance' => 0],
+                    ['text' => 'Push through sickness', 'stat_effects' => '-20 Health, +10 Burnout', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'teen', 'event_choice' => 'Teenage Accident', 'description' => 'Have an accident.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 62, 'event_category' => 'health', 'chain_order' => 8, 'parent_category' => 'health', 'choices' => [
+                    ['text' => 'Be careful', 'stat_effects' => '-5 Health, +3 Discipline', 'days_to_advance' => 0],
+                    ['text' => 'Take risks', 'stat_effects' => '-20 Health, +5 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // === RANDOM TEEN EVENTS ===
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Party - Fun night', 'stat_effects' => '+15 Happiness, +10 Reputation', 'weight' => 0.3, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Party - Embarrassment', 'stat_effects' => '-10 Reputation, -10 Happiness', 'weight' => 0.2, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Festival - Joins parade', 'stat_effects' => '+10 Happiness, +5 Reputation', 'weight' => 0.3, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Festival - Joins cultural parade', 'stat_effects' => '+15 Happiness, +10 Reputation', 'weight' => 0.3, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Celebration - Christmas joy', 'stat_effects' => '+20 Happiness, +10 Morality', 'weight' => 0.4, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Celebration - New Year fireworks', 'stat_effects' => '+15 Happiness, +5 Reputation', 'weight' => 0.3, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
+            ['age_group' => 'teen', 'event_choice' => 'Teenage Party', 'description' => 'Attend a party.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 63, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null, 'choices' => [
+                    ['text' => 'Go to party', 'stat_effects' => '+15 Happiness, +10 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Skip party', 'stat_effects' => '+5 Discipline, -3 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'teen', 'event_choice' => 'Teenage Festival', 'description' => 'Attend a festival.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 64, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null, 'choices' => [
+                    ['text' => 'Join parade', 'stat_effects' => '+10 Happiness, +5 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Watch from crowd', 'stat_effects' => '+5 Happiness, +3 Reputation', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'teen', 'event_choice' => 'Teenage Celebration', 'description' => 'Celebrate special occasions.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.4, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 65, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null, 'choices' => [
+                    ['text' => 'Join celebration', 'stat_effects' => '+20 Happiness, +10 Morality', 'days_to_advance' => 0],
+                    ['text' => 'Skip celebration', 'stat_effects' => '-5 Happiness, +3 Discipline', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // Fatal teen events
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Illness - Dengue fatal', 'stat_effects' => '-100 Health, End of game', 'weight' => 0.01, 'event_category' => 'health', 'chain_order' => 99, 'parent_category' => 'health'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Accident - Fatal accident', 'stat_effects' => '-100 Health, End of game', 'weight' => 0.01, 'event_category' => 'health', 'chain_order' => 99, 'parent_category' => 'health'],
-            ['age_group' => 'teen', 'event_choice' => 'Teenage Party - Fatal overdose', 'stat_effects' => '-100 Health, End of game', 'weight' => 0.01, 'event_category' => 'health', 'chain_order' => 99, 'parent_category' => 'health'],
+            ['age_group' => 'teen', 'event_choice' => 'Teenage Illness', 'description' => 'A serious illness.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.01, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 66, 'event_category' => 'health', 'chain_order' => 99, 'parent_category' => 'health', 'choices' => [
+                    ['text' => 'Dengue fatal', 'stat_effects' => '-100 Health, End of game', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'teen', 'event_choice' => 'Teenage Accident', 'description' => 'A tragic accident.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.01, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 67, 'event_category' => 'health', 'chain_order' => 99, 'parent_category' => 'health', 'choices' => [
+                    ['text' => 'Fatal accident', 'stat_effects' => '-100 Health, End of game', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'teen', 'event_choice' => 'Teenage Party', 'description' => 'A dangerous party.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.01, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 68, 'event_category' => 'health', 'chain_order' => 99, 'parent_category' => 'health', 'choices' => [
+                    ['text' => 'Fatal overdose', 'stat_effects' => '-100 Health, End of game', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // ============================================
             // ADULT EVENTS
             // ============================================
             // === EDUCATION CHAIN (Adult) ===
-            ['age_group' => 'adult', 'event_choice' => 'College - Graduates', 'stat_effects' => '+20 Intelligence, +10 Reputation', 'weight' => 0.4, 'event_category' => 'education', 'chain_order' => 8, 'parent_category' => 'education', 'is_milestone' => true],
-            ['age_group' => 'adult', 'event_choice' => 'College - Drops out', 'stat_effects' => '-10 Intelligence, -10 Reputation', 'weight' => 0.2, 'event_category' => 'education', 'chain_order' => 8, 'parent_category' => 'education'],
+            ['age_group' => 'adult', 'event_choice' => 'College Graduation', 'description' => 'Graduate from college.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.4, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 80, 'event_category' => 'education', 'chain_order' => 8, 'parent_category' => 'education', 'is_milestone' => true, 'choices' => [
+                    ['text' => 'Graduate with honors', 'stat_effects' => '+20 Intelligence, +10 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Just graduate', 'stat_effects' => '+10 Intelligence, +5 Reputation', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'adult', 'event_choice' => 'College Dropout', 'description' => 'Drop out of college.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.2, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 81, 'event_category' => 'education', 'chain_order' => 8, 'parent_category' => 'education', 'choices' => [
+                    ['text' => 'Drop out and work', 'stat_effects' => '+10 Wealth, -10 Intelligence', 'days_to_advance' => 0],
+                    ['text' => 'Take a break', 'stat_effects' => '-5 Intelligence, +5 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // === CAREER CHAIN (Adult) ===
-            ['age_group' => 'adult', 'event_choice' => 'Career Start - Hired', 'stat_effects' => '+20 Wealth, +10 Discipline', 'weight' => 0.4, 'event_category' => 'career', 'chain_order' => 4, 'parent_category' => 'career', 'is_milestone' => true],
-            ['age_group' => 'adult', 'event_choice' => 'Career Start - Rejected', 'stat_effects' => '-10 Happiness, +10 Burnout', 'weight' => 0.2, 'event_category' => 'career', 'chain_order' => 4, 'parent_category' => 'career'],
-            ['age_group' => 'adult', 'event_choice' => 'Career Promotion - Rise in rank', 'stat_effects' => '+20 Wealth, +15 Reputation', 'weight' => 0.3, 'event_category' => 'career', 'chain_order' => 5, 'parent_category' => 'career'],
-            ['age_group' => 'adult', 'event_choice' => 'Career Promotion - Passed over', 'stat_effects' => '-10 Happiness, +10 Burnout', 'weight' => 0.2, 'event_category' => 'career', 'chain_order' => 5, 'parent_category' => 'career'],
-            ['age_group' => 'adult', 'event_choice' => 'Career Change - Successful transition', 'stat_effects' => '+20 Wealth, +10 Happiness', 'weight' => 0.2, 'event_category' => 'career', 'chain_order' => 6, 'parent_category' => 'career'],
-            ['age_group' => 'adult', 'event_choice' => 'Career Change - Failed transition', 'stat_effects' => '-10 Wealth, +10 Burnout', 'weight' => 0.2, 'event_category' => 'career', 'chain_order' => 6, 'parent_category' => 'career'],
-            ['age_group' => 'adult', 'event_choice' => 'Business Venture - Startup success', 'stat_effects' => '+30 Wealth, +20 Reputation', 'weight' => 0.2, 'event_category' => 'career', 'chain_order' => 7, 'parent_category' => 'career'],
-            ['age_group' => 'adult', 'event_choice' => 'Business Venture - Startup failure', 'stat_effects' => '-20 Wealth, +20 Debt', 'weight' => 0.2, 'event_category' => 'career', 'chain_order' => 7, 'parent_category' => 'career'],
-            ['age_group' => 'adult', 'event_choice' => 'Migration - Move abroad', 'stat_effects' => '+20 Wealth, +10 Reputation', 'weight' => 0.2, 'event_category' => 'career', 'chain_order' => 8, 'parent_category' => 'career'],
-            ['age_group' => 'adult', 'event_choice' => 'Migration - Denied visa', 'stat_effects' => '-10 Happiness, -5 Reputation', 'weight' => 0.1, 'event_category' => 'career', 'chain_order' => 8, 'parent_category' => 'career'],
-            ['age_group' => 'adult', 'event_choice' => 'Midlife Crisis - Reinvent self', 'stat_effects' => '+15 Creativity, +10 Happiness', 'weight' => 0.2, 'event_category' => 'career', 'chain_order' => 9, 'parent_category' => 'career'],
-            ['age_group' => 'adult', 'event_choice' => 'Midlife Crisis - Burnout deepens', 'stat_effects' => '+20 Burnout, -20 Happiness', 'weight' => 0.2, 'event_category' => 'career', 'chain_order' => 9, 'parent_category' => 'career'],
+            ['age_group' => 'adult', 'event_choice' => 'Career Start', 'description' => 'Start your career.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.4, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 82, 'event_category' => 'career', 'chain_order' => 4, 'parent_category' => 'career', 'is_milestone' => true, 'choices' => [
+                    ['text' => 'Accept job offer', 'stat_effects' => '+20 Wealth, +10 Discipline', 'days_to_advance' => 0],
+                    ['text' => 'Keep looking', 'stat_effects' => '-5 Wealth, +5 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'adult', 'event_choice' => 'Career Promotion', 'description' => 'Get promoted.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 83, 'event_category' => 'career', 'chain_order' => 5, 'parent_category' => 'career', 'choices' => [
+                    ['text' => 'Work for promotion', 'stat_effects' => '+20 Wealth, +15 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Stay in current role', 'stat_effects' => '+5 Happiness, +3 Discipline', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'adult', 'event_choice' => 'Career Change', 'description' => 'Change your career.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.2, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 84, 'event_category' => 'career', 'chain_order' => 6, 'parent_category' => 'career', 'choices' => [
+                    ['text' => 'Switch careers', 'stat_effects' => '+20 Wealth, +10 Happiness', 'days_to_advance' => 0],
+                    ['text' => 'Stay in field', 'stat_effects' => '+5 Wealth, +5 Reputation', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'adult', 'event_choice' => 'Business Venture', 'description' => 'Start a business.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.2, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 85, 'event_category' => 'career', 'chain_order' => 7, 'parent_category' => 'career', 'choices' => [
+                    ['text' => 'Start business', 'stat_effects' => '+30 Wealth, +20 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Play it safe', 'stat_effects' => '+5 Wealth, +3 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'adult', 'event_choice' => 'Migration', 'description' => 'Move abroad.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.2, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 86, 'event_category' => 'career', 'chain_order' => 8, 'parent_category' => 'career', 'choices' => [
+                    ['text' => 'Apply for visa', 'stat_effects' => '+20 Wealth, +10 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Stay home', 'stat_effects' => '+5 Happiness, +3 Morality', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'adult', 'event_choice' => 'Midlife Crisis', 'description' => 'Face a midlife crisis.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.2, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 87, 'event_category' => 'career', 'chain_order' => 9, 'parent_category' => 'career', 'choices' => [
+                    ['text' => 'Reinvent yourself', 'stat_effects' => '+15 Creativity, +10 Happiness', 'days_to_advance' => 0],
+                    ['text' => 'Push through', 'stat_effects' => '+10 Wealth, -10 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // === FAMILY CHAIN (Adult) ===
-            ['age_group' => 'adult', 'event_choice' => 'Marriage - Wedding', 'stat_effects' => '+30 Happiness, +10 Reputation', 'weight' => 0.2, 'event_category' => 'family', 'chain_order' => 6, 'parent_category' => 'family', 'is_milestone' => true],
-            ['age_group' => 'adult', 'event_choice' => 'Marriage - Cancelled engagement', 'stat_effects' => '-20 Happiness, -10 Reputation', 'weight' => 0.1, 'event_category' => 'family', 'chain_order' => 6, 'parent_category' => 'family'],
-            ['age_group' => 'adult', 'event_choice' => 'Parenthood - Child born', 'stat_effects' => '+20 Happiness, +10 Morality', 'weight' => 0.3, 'event_category' => 'family', 'chain_order' => 7, 'parent_category' => 'family'],
-            ['age_group' => 'adult', 'event_choice' => 'Parenthood - Child illness', 'stat_effects' => '-15 Happiness, +10 Burnout', 'weight' => 0.2, 'event_category' => 'family', 'chain_order' => 7, 'parent_category' => 'family'],
-            ['age_group' => 'adult', 'event_choice' => 'Parenthood - Child fatality', 'stat_effects' => '-50 Happiness, +20 Isolation', 'weight' => 0.05, 'event_category' => 'family', 'chain_order' => 7, 'parent_category' => 'family'],
-            ['age_group' => 'adult', 'event_choice' => 'Divorce - Separation', 'stat_effects' => '-30 Happiness, -10 Reputation', 'weight' => 0.1, 'event_category' => 'family', 'chain_order' => 8, 'parent_category' => 'family'],
-            ['age_group' => 'adult', 'event_choice' => 'Divorce - Amicable split', 'stat_effects' => '-10 Happiness, +5 Morality', 'weight' => 0.1, 'event_category' => 'family', 'chain_order' => 8, 'parent_category' => 'family'],
-            ['age_group' => 'adult', 'event_choice' => 'Adult Bonding - Family support', 'stat_effects' => '+20 Happiness, +10 Morality', 'weight' => 0.4, 'event_category' => 'family', 'chain_order' => 9, 'parent_category' => 'family'],
-            ['age_group' => 'adult', 'event_choice' => 'Adult Bonding - Family conflict', 'stat_effects' => '-20 Happiness, +10 Burnout', 'weight' => 0.2, 'event_category' => 'family', 'chain_order' => 9, 'parent_category' => 'family'],
+            ['age_group' => 'adult', 'event_choice' => 'Marriage', 'description' => 'Get married.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.2, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 90, 'event_category' => 'family', 'chain_order' => 6, 'parent_category' => 'family', 'is_milestone' => true, 'choices' => [
+                    ['text' => 'Get married', 'stat_effects' => '+30 Happiness, +10 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Call off wedding', 'stat_effects' => '-20 Happiness, -10 Reputation', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'adult', 'event_choice' => 'Parenthood', 'description' => 'Have a child.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 91, 'event_category' => 'family', 'chain_order' => 7, 'parent_category' => 'family', 'choices' => [
+                    ['text' => 'Start a family', 'stat_effects' => '+20 Happiness, +10 Morality', 'days_to_advance' => 0],
+                    ['text' => 'Focus on career', 'stat_effects' => '+10 Wealth, -5 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'adult', 'event_choice' => 'Divorce', 'description' => 'Get divorced.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.1, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 92, 'event_category' => 'family', 'chain_order' => 8, 'parent_category' => 'family', 'choices' => [
+                    ['text' => 'File for divorce', 'stat_effects' => '-30 Happiness, -10 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Try counseling', 'stat_effects' => '+10 Happiness, +5 Discipline', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'adult', 'event_choice' => 'Adult Bonding', 'description' => 'Bond with family.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.4, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 93, 'event_category' => 'family', 'chain_order' => 9, 'parent_category' => 'family', 'choices' => [
+                    ['text' => 'Spend time with family', 'stat_effects' => '+20 Happiness, +10 Morality', 'days_to_advance' => 0],
+                    ['text' => 'Focus on work', 'stat_effects' => '+10 Wealth, -10 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // === SOCIAL CHAIN (Adult) ===
-            ['age_group' => 'adult', 'event_choice' => 'Adult Friendship - Loyal friend', 'stat_effects' => '+20 Happiness, +10 Reputation', 'weight' => 0.3, 'event_category' => 'social', 'chain_order' => 10, 'parent_category' => 'social'],
-            ['age_group' => 'adult', 'event_choice' => 'Adult Friendship - Betrayal', 'stat_effects' => '-20 Happiness, +10 Isolation', 'weight' => 0.2, 'event_category' => 'social', 'chain_order' => 10, 'parent_category' => 'social'],
-            ['age_group' => 'adult', 'event_choice' => 'Adult Relationship - Healthy romance', 'stat_effects' => '+20 Happiness, +10 Reputation', 'weight' => 0.3, 'event_category' => 'social', 'chain_order' => 11, 'parent_category' => 'social'],
-            ['age_group' => 'adult', 'event_choice' => 'Adult Relationship - Breakup', 'stat_effects' => '-20 Happiness, +10 Isolation', 'weight' => 0.2, 'event_category' => 'social', 'chain_order' => 11, 'parent_category' => 'social'],
+            ['age_group' => 'adult', 'event_choice' => 'Adult Friendship', 'description' => 'Make new friends.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 94, 'event_category' => 'social', 'chain_order' => 10, 'parent_category' => 'social', 'choices' => [
+                    ['text' => 'Build friendships', 'stat_effects' => '+20 Happiness, +10 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Stay isolated', 'stat_effects' => '+5 Isolation, +5 Creativity', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'adult', 'event_choice' => 'Adult Relationship', 'description' => 'Find romance.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 95, 'event_category' => 'social', 'chain_order' => 11, 'parent_category' => 'social', 'choices' => [
+                    ['text' => 'Pursue relationship', 'stat_effects' => '+20 Happiness, +10 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Focus on self', 'stat_effects' => '+5 Happiness, +5 Creativity', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // === HEALTH CHAIN (Adult) ===
-            ['age_group' => 'adult', 'event_choice' => 'Health Crisis - Major illness', 'stat_effects' => '-30 Health, +20 Burnout', 'weight' => 0.1, 'event_category' => 'health', 'chain_order' => 10, 'parent_category' => 'health'],
-            ['age_group' => 'adult', 'event_choice' => 'Health Crisis - Recovery', 'stat_effects' => '+20 Health, +10 Happiness', 'weight' => 0.2, 'event_category' => 'health', 'chain_order' => 10, 'parent_category' => 'health'],
-            ['age_group' => 'adult', 'event_choice' => 'Adult Illness - Flu recovery', 'stat_effects' => '-10 Health, +5 Burnout', 'weight' => 0.3, 'event_category' => 'health', 'chain_order' => 11, 'parent_category' => 'health'],
-            ['age_group' => 'adult', 'event_choice' => 'Adult Illness - Severe dengue recovery', 'stat_effects' => '-30 Health, -20 Happiness', 'weight' => 0.2, 'event_category' => 'health', 'chain_order' => 11, 'parent_category' => 'health'],
-            ['age_group' => 'adult', 'event_choice' => 'Adult Accident - Bike crash', 'stat_effects' => '-15 Health, +10 Burnout', 'weight' => 0.2, 'event_category' => 'health', 'chain_order' => 12, 'parent_category' => 'health'],
-            ['age_group' => 'adult', 'event_choice' => 'Adult Accident - Car crash survival', 'stat_effects' => '-30 Health, -20 Happiness', 'weight' => 0.1, 'event_category' => 'health', 'chain_order' => 12, 'parent_category' => 'health'],
+            ['age_group' => 'adult', 'event_choice' => 'Health Crisis', 'description' => 'Face a health crisis.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.1, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 96, 'event_category' => 'health', 'chain_order' => 10, 'parent_category' => 'health', 'choices' => [
+                    ['text' => 'Seek treatment', 'stat_effects' => '+20 Health, +10 Happiness', 'days_to_advance' => 0],
+                    ['text' => 'Ignore symptoms', 'stat_effects' => '-30 Health, +20 Burnout', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'adult', 'event_choice' => 'Adult Illness', 'description' => 'Get sick.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 97, 'event_category' => 'health', 'chain_order' => 11, 'parent_category' => 'health', 'choices' => [
+                    ['text' => 'See doctor', 'stat_effects' => '-5 Wealth, +10 Health', 'days_to_advance' => 0],
+                    ['text' => 'Rest at home', 'stat_effects' => '-10 Health, +5 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'adult', 'event_choice' => 'Adult Accident', 'description' => 'Have an accident.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.2, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 98, 'event_category' => 'health', 'chain_order' => 12, 'parent_category' => 'health', 'choices' => [
+                    ['text' => 'Go to hospital', 'stat_effects' => '-10 Wealth, +15 Health', 'days_to_advance' => 0],
+                    ['text' => 'Self-treat', 'stat_effects' => '-15 Health, +5 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // === SKILL CHAIN (Adult) ===
-            ['age_group' => 'adult', 'event_choice' => 'Adult Hobby - Learns painting', 'stat_effects' => '+15 Creativity, +10 Happiness', 'weight' => 0.3, 'event_category' => 'skill', 'chain_order' => 17, 'parent_category' => 'skill'],
-            ['age_group' => 'adult', 'event_choice' => 'Adult Hobby - Gives up hobby', 'stat_effects' => '-10 Happiness, +5 Burnout', 'weight' => 0.2, 'event_category' => 'skill', 'chain_order' => 17, 'parent_category' => 'skill'],
-            ['age_group' => 'adult', 'event_choice' => 'Adult Talent - Shows skill', 'stat_effects' => '+15 Creativity, +10 Reputation', 'weight' => 0.3, 'event_category' => 'skill', 'chain_order' => 18, 'parent_category' => 'skill'],
-            ['age_group' => 'adult', 'event_choice' => 'Adult Talent - Talent mocked', 'stat_effects' => '-20 Happiness, -10 Reputation', 'weight' => 0.1, 'event_category' => 'skill', 'chain_order' => 18, 'parent_category' => 'skill'],
-            ['age_group' => 'adult', 'event_choice' => 'Adult Learning - Excels in training', 'stat_effects' => '+20 Intelligence, +10 Reputation', 'weight' => 0.3, 'event_category' => 'skill', 'chain_order' => 19, 'parent_category' => 'skill'],
-            ['age_group' => 'adult', 'event_choice' => 'Adult Learning - Struggles in training', 'stat_effects' => '-10 Intelligence, +5 Burnout', 'weight' => 0.3, 'event_category' => 'skill', 'chain_order' => 19, 'parent_category' => 'skill'],
-            ['age_group' => 'adult', 'event_choice' => 'Adult Sports - Wins championship', 'stat_effects' => '+20 Strength, +15 Reputation', 'weight' => 0.3, 'event_category' => 'skill', 'chain_order' => 20, 'parent_category' => 'skill'],
-            ['age_group' => 'adult', 'event_choice' => 'Adult Contest - Wins', 'stat_effects' => '+15 Reputation, +10 Happiness', 'weight' => 0.3, 'event_category' => 'skill', 'chain_order' => 21, 'parent_category' => 'skill'],
+            ['age_group' => 'adult', 'event_choice' => 'Adult Hobby', 'description' => 'Pick up a hobby.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 100, 'event_category' => 'skill', 'chain_order' => 17, 'parent_category' => 'skill', 'choices' => [
+                    ['text' => 'Learn painting', 'stat_effects' => '+15 Creativity, +10 Happiness', 'days_to_advance' => 0],
+                    ['text' => 'Give up hobby', 'stat_effects' => '-10 Happiness, +5 Burnout', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'adult', 'event_choice' => 'Adult Talent', 'description' => 'Show your talent.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 101, 'event_category' => 'skill', 'chain_order' => 18, 'parent_category' => 'skill', 'choices' => [
+                    ['text' => 'Showcase talent', 'stat_effects' => '+15 Creativity, +10 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Keep it private', 'stat_effects' => '+5 Happiness, +5 Creativity', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'adult', 'event_choice' => 'Adult Learning', 'description' => 'Learn new skills.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 102, 'event_category' => 'skill', 'chain_order' => 19, 'parent_category' => 'skill', 'choices' => [
+                    ['text' => 'Excel in training', 'stat_effects' => '+20 Intelligence, +10 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Struggle through', 'stat_effects' => '-10 Intelligence, +5 Discipline', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'adult', 'event_choice' => 'Adult Sports', 'description' => 'Play sports.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 103, 'event_category' => 'skill', 'chain_order' => 20, 'parent_category' => 'skill', 'choices' => [
+                    ['text' => 'Train for championship', 'stat_effects' => '+20 Strength, +15 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Just for fun', 'stat_effects' => '+10 Health, +5 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'adult', 'event_choice' => 'Adult Contest', 'description' => 'Enter a contest.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 104, 'event_category' => 'skill', 'chain_order' => 21, 'parent_category' => 'skill', 'choices' => [
+                    ['text' => 'Enter competition', 'stat_effects' => '+15 Reputation, +10 Happiness', 'days_to_advance' => 0],
+                    ['text' => 'Stay out', 'stat_effects' => '+5 Happiness, +5 Discipline', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // === RANDOM ADULT EVENTS ===
-            ['age_group' => 'adult', 'event_choice' => 'Inheritance - Receive wealth', 'stat_effects' => '+50 Wealth, +10 Reputation', 'weight' => 0.1, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'adult', 'event_choice' => 'Inheritance - Family dispute', 'stat_effects' => '-20 Happiness, +10 Isolation', 'weight' => 0.1, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'adult', 'event_choice' => 'Fame - Become celebrity', 'stat_effects' => '+30 Reputation, +20 Ego', 'weight' => 0.1, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'adult', 'event_choice' => 'Fame - Scandal', 'stat_effects' => '-30 Reputation, -20 Happiness', 'weight' => 0.1, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'adult', 'event_choice' => 'Political Change - Join movement', 'stat_effects' => '+20 Morality, +20 Reputation', 'weight' => 0.2, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'adult', 'event_choice' => 'Natural Disaster - Survive typhoon', 'stat_effects' => '-10 Health, -10 Wealth', 'weight' => 0.1, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'adult', 'event_choice' => 'Natural Disaster - Lose property', 'stat_effects' => '-30 Wealth, -20 Happiness', 'weight' => 0.1, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'adult', 'event_choice' => 'Adult Celebration - Christmas joy', 'stat_effects' => '+20 Happiness, +10 Morality', 'weight' => 0.4, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'adult', 'event_choice' => 'Adult Celebration - New Year fireworks', 'stat_effects' => '+15 Happiness, +5 Reputation', 'weight' => 0.3, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'adult', 'event_choice' => 'Adult Festival - Joins cultural parade', 'stat_effects' => '+15 Happiness, +10 Reputation', 'weight' => 0.3, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
+            ['age_group' => 'adult', 'event_choice' => 'Inheritance', 'description' => 'Receive inheritance.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.1, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 105, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null, 'choices' => [
+                    ['text' => 'Accept inheritance', 'stat_effects' => '+50 Wealth, +10 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Dispute with family', 'stat_effects' => '-20 Happiness, +10 Isolation', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'adult', 'event_choice' => 'Fame', 'description' => 'Become famous.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.1, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 106, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null, 'choices' => [
+                    ['text' => 'Embrace fame', 'stat_effects' => '+30 Reputation, +20 Ego', 'days_to_advance' => 0],
+                    ['text' => 'Stay humble', 'stat_effects' => '+5 Reputation, +10 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'adult', 'event_choice' => 'Political Change', 'description' => 'Join a political movement.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.2, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 107, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null, 'choices' => [
+                    ['text' => 'Join movement', 'stat_effects' => '+20 Morality, +20 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Stay out', 'stat_effects' => '+5 Happiness, +5 Morality', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'adult', 'event_choice' => 'Natural Disaster', 'description' => 'Face a disaster.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.1, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 108, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null, 'choices' => [
+                    ['text' => 'Rebuild after disaster', 'stat_effects' => '-10 Health, -10 Wealth', 'days_to_advance' => 0],
+                    ['text' => 'Move away', 'stat_effects' => '-30 Wealth, +10 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'adult', 'event_choice' => 'Adult Celebration', 'description' => 'Celebrate a holiday.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.4, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 109, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null, 'choices' => [
+                    ['text' => 'Celebrate with family', 'stat_effects' => '+20 Happiness, +10 Morality', 'days_to_advance' => 0],
+                    ['text' => 'Celebrate alone', 'stat_effects' => '+5 Happiness, +10 Creativity', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'adult', 'event_choice' => 'Adult Festival', 'description' => 'Join a festival.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 110, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null, 'choices' => [
+                    ['text' => 'Join parade', 'stat_effects' => '+15 Happiness, +10 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Watch from afar', 'stat_effects' => '+5 Happiness, +5 Creativity', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // Fatal adult events
             ['age_group' => 'adult', 'event_choice' => 'Health Crisis - Fatal illness', 'stat_effects' => '-100 Health, End of game', 'weight' => 0.01, 'event_category' => 'health', 'chain_order' => 99, 'parent_category' => 'health'],
             ['age_group' => 'adult', 'event_choice' => 'Career Start - Fatal workplace accident', 'stat_effects' => '-100 Health, End of game', 'weight' => 0.01, 'event_category' => 'health', 'chain_order' => 99, 'parent_category' => 'health'],
@@ -243,42 +414,75 @@ class AgeSpecificEventSeeder extends Seeder
             // OLD EVENTS
             // ============================================
             // === RETIREMENT CHAIN ===
-            ['age_group' => 'old', 'event_choice' => 'Retirement - Peaceful retirement', 'stat_effects' => '+20 Happiness, -10 Isolation', 'weight' => 0.3, 'event_category' => 'career', 'chain_order' => 10, 'parent_category' => 'career', 'is_milestone' => true],
-            ['age_group' => 'old', 'event_choice' => 'Retirement - Forced retirement', 'stat_effects' => '-15 Happiness, -10 Reputation', 'weight' => 0.2, 'event_category' => 'career', 'chain_order' => 10, 'parent_category' => 'career'],
+            ['age_group' => 'old', 'event_choice' => 'Retirement', 'description' => 'Retire from work.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 115, 'event_category' => 'career', 'chain_order' => 10, 'parent_category' => 'career', 'is_milestone' => true, 'choices' => [
+                    ['text' => 'Enjoy retirement', 'stat_effects' => '+20 Happiness, -10 Isolation', 'days_to_advance' => 0],
+                    ['text' => 'Keep working', 'stat_effects' => '+10 Wealth, -15 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // === FAMILY CHAIN (Old) ===
-            ['age_group' => 'old', 'event_choice' => 'Grandparenthood - Bond with grandchild', 'stat_effects' => '+20 Happiness, +10 Morality', 'weight' => 0.3, 'event_category' => 'family', 'chain_order' => 10, 'parent_category' => 'family', 'is_milestone' => true],
-            ['age_group' => 'old', 'event_choice' => 'Grandparenthood - Estranged family', 'stat_effects' => '-20 Happiness, +10 Isolation', 'weight' => 0.2, 'event_category' => 'family', 'chain_order' => 10, 'parent_category' => 'family'],
-            ['age_group' => 'old', 'event_choice' => 'Grandparenthood - Grandchild fatality', 'stat_effects' => '-50 Happiness, +20 Isolation', 'weight' => 0.05, 'event_category' => 'family', 'chain_order' => 10, 'parent_category' => 'family'],
-            ['age_group' => 'old', 'event_choice' => 'Elder Bonding - Family reunion', 'stat_effects' => '+20 Happiness, +10 Morality', 'weight' => 0.3, 'event_category' => 'family', 'chain_order' => 11, 'parent_category' => 'family'],
-            ['age_group' => 'old', 'event_choice' => 'Elder Bonding - Family conflict', 'stat_effects' => '-20 Happiness, +10 Isolation', 'weight' => 0.2, 'event_category' => 'family', 'chain_order' => 11, 'parent_category' => 'family'],
+            ['age_group' => 'old', 'event_choice' => 'Grandparenthood', 'description' => 'Become a grandparent.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 116, 'event_category' => 'family', 'chain_order' => 10, 'parent_category' => 'family', 'is_milestone' => true, 'choices' => [
+                    ['text' => 'Bond with grandchild', 'stat_effects' => '+20 Happiness, +10 Morality', 'days_to_advance' => 0],
+                    ['text' => 'Keep distance', 'stat_effects' => '-20 Happiness, +10 Isolation', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'old', 'event_choice' => 'Elder Bonding', 'description' => 'Connect with family.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 117, 'event_category' => 'family', 'chain_order' => 11, 'parent_category' => 'family', 'choices' => [
+                    ['text' => 'Attend reunion', 'stat_effects' => '+20 Happiness, +10 Morality', 'days_to_advance' => 0],
+                    ['text' => 'Skip event', 'stat_effects' => '-20 Happiness, +10 Isolation', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // === HEALTH CHAIN (Old) ===
-            ['age_group' => 'old', 'event_choice' => 'Health Decline - Arthritis', 'stat_effects' => '-10 Health, +5 Burnout', 'weight' => 0.3, 'event_category' => 'health', 'chain_order' => 13, 'parent_category' => 'health'],
-            ['age_group' => 'old', 'event_choice' => 'Health Decline - Dementia onset', 'stat_effects' => '-20 Intelligence, -20 Happiness', 'weight' => 0.2, 'event_category' => 'health', 'chain_order' => 13, 'parent_category' => 'health'],
-            ['age_group' => 'old', 'event_choice' => 'Elder Illness - Flu recovery', 'stat_effects' => '-10 Health, +5 Burnout', 'weight' => 0.3, 'event_category' => 'health', 'chain_order' => 14, 'parent_category' => 'health'],
-            ['age_group' => 'old', 'event_choice' => 'Elder Illness - Pneumonia recovery', 'stat_effects' => '-30 Health, -20 Happiness', 'weight' => 0.2, 'event_category' => 'health', 'chain_order' => 14, 'parent_category' => 'health'],
-            ['age_group' => 'old', 'event_choice' => 'Elder Accident - Minor fall', 'stat_effects' => '-10 Health, +5 Burnout', 'weight' => 0.3, 'event_category' => 'health', 'chain_order' => 15, 'parent_category' => 'health'],
-            ['age_group' => 'old', 'event_choice' => 'Elder Accident - Hip fracture', 'stat_effects' => '-30 Health, -20 Happiness', 'weight' => 0.2, 'event_category' => 'health', 'chain_order' => 15, 'parent_category' => 'health'],
+            ['age_group' => 'old', 'event_choice' => 'Health Decline', 'description' => 'Face health issues.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 118, 'event_category' => 'health', 'chain_order' => 13, 'parent_category' => 'health', 'choices' => [
+                    ['text' => 'Seek treatment', 'stat_effects' => '-5 Wealth, +10 Health', 'days_to_advance' => 0],
+                    ['text' => 'Accept fate', 'stat_effects' => '-10 Health, +5 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'old', 'event_choice' => 'Elder Illness', 'description' => 'Get sick.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 119, 'event_category' => 'health', 'chain_order' => 14, 'parent_category' => 'health', 'choices' => [
+                    ['text' => 'See doctor', 'stat_effects' => '-5 Wealth, +15 Health', 'days_to_advance' => 0],
+                    ['text' => 'Rest at home', 'stat_effects' => '-10 Health, +5 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'old', 'event_choice' => 'Elder Accident', 'description' => 'Have an accident.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 120, 'event_category' => 'health', 'chain_order' => 15, 'parent_category' => 'health', 'choices' => [
+                    ['text' => 'Call for help', 'stat_effects' => '-5 Wealth, +15 Health', 'days_to_advance' => 0],
+                    ['text' => 'Try to get up', 'stat_effects' => '-10 Health, +5 Discipline', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // === SKILL/LEGACY CHAIN (Old) ===
-            ['age_group' => 'old', 'event_choice' => 'Legacy Project - Writes memoir', 'stat_effects' => '+20 Creativity, +15 Reputation', 'weight' => 0.2, 'event_category' => 'skill', 'chain_order' => 22, 'parent_category' => 'skill'],
-            ['age_group' => 'old', 'event_choice' => 'Legacy Project - Memoir ignored', 'stat_effects' => '-10 Happiness, +5 Isolation', 'weight' => 0.2, 'event_category' => 'skill', 'chain_order' => 22, 'parent_category' => 'skill'],
-            ['age_group' => 'old', 'event_choice' => 'Legacy Project - Memoir celebrated', 'stat_effects' => '+30 Reputation, +20 Happiness', 'weight' => 0.2, 'event_category' => 'skill', 'chain_order' => 22, 'parent_category' => 'skill'],
-            ['age_group' => 'old', 'event_choice' => 'Wisdom Sharing - Mentor youth', 'stat_effects' => '+20 Morality, +10 Reputation', 'weight' => 0.3, 'event_category' => 'skill', 'chain_order' => 23, 'parent_category' => 'skill'],
-            ['age_group' => 'old', 'event_choice' => 'Wisdom Sharing - Advice ignored', 'stat_effects' => '-10 Happiness, +5 Isolation', 'weight' => 0.2, 'event_category' => 'skill', 'chain_order' => 23, 'parent_category' => 'skill'],
-            ['age_group' => 'old', 'event_choice' => 'Community Role - Joins senior group', 'stat_effects' => '+15 Happiness, +10 Reputation', 'weight' => 0.3, 'event_category' => 'social', 'chain_order' => 12, 'parent_category' => 'social'],
-            ['age_group' => 'old', 'event_choice' => 'Community Role - Declines participation', 'stat_effects' => '+10 Isolation, -10 Happiness', 'weight' => 0.2, 'event_category' => 'social', 'chain_order' => 12, 'parent_category' => 'social'],
+            ['age_group' => 'old', 'event_choice' => 'Legacy Project', 'description' => 'Create a legacy.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.2, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 121, 'event_category' => 'skill', 'chain_order' => 22, 'parent_category' => 'skill', 'choices' => [
+                    ['text' => 'Write memoir', 'stat_effects' => '+20 Creativity, +15 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Start project', 'stat_effects' => '+10 Creativity, +5 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'old', 'event_choice' => 'Wisdom Sharing', 'description' => 'Share your wisdom.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 122, 'event_category' => 'skill', 'chain_order' => 23, 'parent_category' => 'skill', 'choices' => [
+                    ['text' => 'Mentor youth', 'stat_effects' => '+20 Morality, +10 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Keep to yourself', 'stat_effects' => '-10 Happiness, +5 Isolation', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'old', 'event_choice' => 'Community Role', 'description' => 'Join community.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 123, 'event_category' => 'social', 'chain_order' => 12, 'parent_category' => 'social', 'choices' => [
+                    ['text' => 'Join senior group', 'stat_effects' => '+15 Happiness, +10 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Decline', 'stat_effects' => '+10 Isolation, -10 Happiness', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // === SOCIAL (Old) ===
-            ['age_group' => 'old', 'event_choice' => 'Elder Friendship - Loyal companion', 'stat_effects' => '+20 Happiness, +10 Reputation', 'weight' => 0.3, 'event_category' => 'social', 'chain_order' => 13, 'parent_category' => 'social'],
-            ['age_group' => 'old', 'event_choice' => 'Elder Friendship - Betrayal', 'stat_effects' => '-20 Happiness, +10 Isolation', 'weight' => 0.2, 'event_category' => 'social', 'chain_order' => 13, 'parent_category' => 'social'],
+            ['age_group' => 'old', 'event_choice' => 'Elder Friendship', 'description' => 'Make friends.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 124, 'event_category' => 'social', 'chain_order' => 13, 'parent_category' => 'social', 'choices' => [
+                    ['text' => 'Build companionship', 'stat_effects' => '+20 Happiness, +10 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Stay isolated', 'stat_effects' => '-20 Happiness, +10 Isolation', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // === RANDOM OLD EVENTS ===
-            ['age_group' => 'old', 'event_choice' => 'Elder Celebration - Christmas joy', 'stat_effects' => '+20 Happiness, +10 Morality', 'weight' => 0.4, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'old', 'event_choice' => 'Elder Celebration - Missed Christmas', 'stat_effects' => '-15 Happiness, +10 Isolation', 'weight' => 0.2, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'old', 'event_choice' => 'Elder Travel - Pilgrimage', 'stat_effects' => '+20 Morality, +15 Happiness', 'weight' => 0.2, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'old', 'event_choice' => 'Elder Hobby - Gardening', 'stat_effects' => '+10 Creativity, +10 Health', 'weight' => 0.3, 'event_category' => 'skill', 'chain_order' => 24, 'parent_category' => 'skill'],
-            ['age_group' => 'old', 'event_choice' => 'Elder Hobby - Abandons hobby', 'stat_effects' => '-10 Happiness, +5 Burnout', 'weight' => 0.2, 'event_category' => 'skill', 'chain_order' => 24, 'parent_category' => 'skill'],
-            ['age_group' => 'old', 'event_choice' => 'Elder Reflection - Peaceful reflection', 'stat_effects' => '+20 Happiness, +10 Morality', 'weight' => 0.3, 'event_category' => 'skill', 'chain_order' => 25, 'parent_category' => 'skill'],
-            ['age_group' => 'old', 'event_choice' => 'Elder Reflection - Regret', 'stat_effects' => '-20 Happiness, +10 Isolation', 'weight' => 0.2, 'event_category' => 'skill', 'chain_order' => 25, 'parent_category' => 'skill'],
-            ['age_group' => 'old', 'event_choice' => 'Elder Festival - Joins parade', 'stat_effects' => '+15 Happiness, +10 Reputation', 'weight' => 0.3, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null],
-            ['age_group' => 'old', 'event_choice' => 'Elder Contest - Wins', 'stat_effects' => '+15 Reputation, +10 Happiness', 'weight' => 0.3, 'event_category' => 'skill', 'chain_order' => 26, 'parent_category' => 'skill'],
+            ['age_group' => 'old', 'event_choice' => 'Elder Celebration', 'description' => 'Celebrate a holiday.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.4, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 125, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null, 'choices' => [
+                    ['text' => 'Celebrate with family', 'stat_effects' => '+20 Happiness, +10 Morality', 'days_to_advance' => 0],
+                    ['text' => 'Skip holiday', 'stat_effects' => '-15 Happiness, +10 Isolation', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'old', 'event_choice' => 'Elder Travel', 'description' => 'Travel somewhere.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.2, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 126, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null, 'choices' => [
+                    ['text' => 'Go on pilgrimage', 'stat_effects' => '+20 Morality, +15 Happiness', 'days_to_advance' => 0],
+                    ['text' => 'Stay home', 'stat_effects' => '+5 Happiness, +5 Morality', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'old', 'event_choice' => 'Elder Hobby', 'description' => 'Pick up a hobby.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 127, 'event_category' => 'skill', 'chain_order' => 24, 'parent_category' => 'skill', 'choices' => [
+                    ['text' => 'Start gardening', 'stat_effects' => '+10 Creativity, +10 Health', 'days_to_advance' => 0],
+                    ['text' => 'Abandon hobby', 'stat_effects' => '-10 Happiness, +5 Burnout', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'old', 'event_choice' => 'Elder Reflection', 'description' => 'Reflect on life.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 128, 'event_category' => 'skill', 'chain_order' => 25, 'parent_category' => 'skill', 'choices' => [
+                    ['text' => 'Find peace', 'stat_effects' => '+20 Happiness, +10 Morality', 'days_to_advance' => 0],
+                    ['text' => 'Feel regret', 'stat_effects' => '-20 Happiness, +10 Isolation', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'old', 'event_choice' => 'Elder Festival', 'description' => 'Join a festival.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 129, 'event_category' => 'random', 'chain_order' => 1, 'parent_category' => null, 'choices' => [
+                    ['text' => 'Join parade', 'stat_effects' => '+15 Happiness, +10 Reputation', 'days_to_advance' => 0],
+                    ['text' => 'Watch from home', 'stat_effects' => '+5 Happiness, +5 Creativity', 'days_to_advance' => 0],
+                ], 'conditions' => null],
+            ['age_group' => 'old', 'event_choice' => 'Elder Contest', 'description' => 'Enter a contest.', 'image' => '/css/images/event-placeholder.jpg', 'type' => 'ageSpecific', 'deck_label' => 'Age Event', 'repeatable' => false, 'weight' => 0.3, 'auto_resolve' => false, 'days_to_advance' => 0, 'display_order' => 130, 'event_category' => 'skill', 'chain_order' => 26, 'parent_category' => 'skill', 'choices' => [
+                    ['text' => 'Enter competition', 'stat_effects' => '+15 Reputation, +10 Happiness', 'days_to_advance' => 0],
+                    ['text' => 'Stay out', 'stat_effects' => '+5 Happiness, +5 Discipline', 'days_to_advance' => 0],
+                ], 'conditions' => null],
             // === END OF LIFE (Old) ===
             ['age_group' => 'old', 'event_choice' => 'End of Life - Peaceful passing', 'stat_effects' => '-100 Health, End of game', 'weight' => 0.5, 'event_category' => 'health', 'chain_order' => 99, 'parent_category' => 'health', 'is_milestone' => true],
             ['age_group' => 'old', 'event_choice' => 'End of Life - Sudden death', 'stat_effects' => '-100 Health, End of game', 'weight' => 0.2, 'event_category' => 'health', 'chain_order' => 99, 'parent_category' => 'health'],

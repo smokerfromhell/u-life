@@ -28,6 +28,9 @@ class DatabaseSeeder extends Seeder
         $this->call(CulturalEventSeeder::class);
         $this->call(DailyActionSeeder::class);
         
+        // 4. Seed random outcomes for event choices
+        $this->call(RandomOutcomeSeeder::class);
+        
         // 4. Seed profession-related data
         $this->call(ProfessionTriggerSeeder::class);
         $this->call(ProfessionPathEventSeeder::class);

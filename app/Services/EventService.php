@@ -1198,4 +1198,334 @@ $character->current_narrative = $narrative . (($outcomeType === 'positive') ? '_
 
         return $type;
     }
+
+    /**
+     * Process choice consequences for branching system
+     * This is called when a choice is made to track long-term effects
+     */
+    public function processChoiceConsequences(Character $character, string $eventCategory, string $choiceId, string $outcomeType, $statEffects, ?string $nextChainCategory = null, array $choiceRandomOutcomes = []): void
+    {
+        // Get or create consequence record for this chain
+        $consequence = \App\Models\CharacterChoiceConsequence::getOrCreateForChain($character, $eventCategory);
+        
+        // Update chain order
+        $consequence->chain_order = ($consequence->chain_order ?? 0) + 1;
+        
+        // Update choice path based on outcome
+        if ($outcomeType === 'positive' && $consequence->choice_path !== 'positive') {
+            $consequence->choice_path = $consequence->choice_path === 'negative' ? 'neutral' : 'positive';
+        } elseif ($outcomeType === 'negative' && $consequence->choice_path !== 'negative') {
+            $consequence->choice_path = $consequence->choice_path === 'positive' ? 'neutral' : 'negative';
+        }
+        
+        // Update outcome streak
+        $consequence->updateOutcomeStreak($outcomeType);
+        
+        // Set random outcomes if available in the choice
+        if (!empty($choiceRandomOutcomes) && is_array($choiceRandomOutcomes)) {
+            // Determine outcome type based on profession/category
+            $randomType = 'both'; // Default to allowing both positive and negative
+            if (in_array($eventCategory, ['education', 'skill'])) {
+                $randomType = 'both';
+            } elseif (in_array($eventCategory, ['career', 'profession'])) {
+                $randomType = 'both';
+            }
+            
+            // Configure random outcomes on the consequence
+            $consequence->setRandomOutcomes(
+                30, // 30% chance to trigger random outcome
+                $randomType,
+                $choiceRandomOutcomes,
+                50, // positive weight
+                50  // negative weight
+            );
+            
+            // Generate and apply random outcome
+            $randomResult = $consequence->generateRandomOutcome();
+            if ($randomResult) {
+                // Apply the random outcome effects to character
+                $appliedEffects = $consequence->applyRandomOutcomeEffects($character);
+                
+                // Log the random outcome in the character history
+                $character->recordChoice(
+                    $eventCategory . '_random',
+                    $choiceId,
+                    $randomResult['type'],
+                    $appliedEffects
+                );
+            }
+        }
+        
+        // Add cumulative stat modifiers - convert array to string if needed
+        $effectsString = is_array($statEffects) ? json_encode($statEffects) : ($statEffects ?? '');
+        $parsedEffects = $this->parseStatEffects($effectsString);
+        foreach ($parsedEffects as $stat => $value) {
+            $consequence->addStatModifier($stat, $value);
+        }
+        
+        // Handle locked/unlocked choices based on event
+        if ($outcomeType === 'positive') {
+            // Positive outcomes can unlock new paths
+            if ($nextChainCategory) {
+                $consequence->unlockChoice($nextChainCategory);
+            }
+        } elseif ($outcomeType === 'negative') {
+            // Negative outcomes can lock certain choices
+            if (isset($parsedEffects['Morality']) && $parsedEffects['Morality'] < -10) {
+                $consequence->lockChoice('moral_path');
+            }
+        }
+        
+        // Record in character choice history
+        $character->recordChoice($eventCategory, $choiceId, $outcomeType, $parsedEffects);
+        
+        // Update relationship state if relevant
+        if (in_array($eventCategory, ['family', 'social', 'romantic'])) {
+            $newState = $outcomeType === 'positive' ? 'positive' : ($outcomeType === 'negative' ? 'negative' : 'neutral');
+            $character->updateRelationshipState($eventCategory, $newState);
+        }
+        
+        // Add trauma flags for negative outcomes
+        if ($outcomeType === 'negative') {
+            if (isset($parsedEffects['Happiness']) && $parsedEffects['Happiness'] < -15) {
+                $character->addTraumaFlag('emotional_harm', $eventCategory);
+            }
+            if (isset($parsedEffects['Health']) && $parsedEffects['Health'] < -15) {
+                $character->addTraumaFlag('physical_harm', $eventCategory);
+            }
+        }
+        
+        // Add achievements for positive milestones
+        if ($consequence->chain_order >= 3 && $outcomeType === 'positive') {
+            $character->addAchievement($eventCategory . '_master', 'Completed major milestone in ' . $eventCategory);
+        }
+    }
+
+    /**
+     * Get available choices for an event, considering locked choices
+     */
+    public function getAvailableChoices(Character $character, array $choices): array
+    {
+        $lockedChoices = $character->choiceConsequences()
+            ->whereNotNull('locked_choices')
+            ->get()
+            ->pluck('locked_choices')
+            ->flatten()
+            ->toArray();
+        
+        if (empty($lockedChoices)) {
+            return $choices;
+        }
+        
+        // Filter out locked choices
+        return array_filter($choices, function($choice) use ($lockedChoices) {
+            $choiceId = is_array($choice) ? ($choice['id'] ?? '') : $choice;
+            return !in_array($choiceId, $lockedChoices);
+        });
+    }
+
+    /**
+     * Check if pending events should trigger
+     */
+    public function checkPendingEvents(Character $character): array
+    {
+        $pendingEvents = $character->pending_events ?? [];
+        $triggeredEvents = [];
+        
+        $character->pending_events = array_filter($pendingEvents, function($event) use ($character, &$triggeredEvents) {
+            $triggerDay = $event['trigger_day'] ?? 0;
+            
+            if ($character->current_day >= $triggerDay) {
+                $triggeredEvents[] = $event;
+                return false; // Remove from pending
+            }
+            return true; // Keep in pending
+        });
+        
+        $character->save();
+        
+        return $triggeredEvents;
+    }
+
+    /**
+     * Calculate enhanced MBTI based on cumulative personality profile
+     * Uses personality_profiles table for persistent tracking
+     */
+    public function calculateEnhancedMBTI(Character $character, string $eventType, int $choiceIndex, string $outcomeType, array $statEffects): array
+    {
+        // Get or create personality profile
+        $profile = \App\Models\PersonalityProfile::getOrCreateForCharacter($character);
+        
+        // Calculate choice-based score (0-100)
+        $choiceScore = $this->calculateChoiceScore($choiceIndex, $outcomeType);
+        
+        // Calculate stat-based dimension scores
+        $stats = array_merge(
+            $character->effective_stats ?? [],
+            $character->hidden_stats ?? []
+        );
+        
+        // E/I: Social stat + Isolation + choice
+        $socialScore = isset($stats['Social']) ? (int) (30 + $stats['Social'] * 0.4) : 50;
+        $isolationMod = isset($stats['Isolation']) ? -($stats['Isolation'] * 0.2) : 0;
+        if (in_array($eventType, ['social', 'cultural'])) {
+            $socialScore += $choiceScore * 0.1;
+        }
+        $energyScore = max(0, min(100, $socialScore + $isolationMod));
+        
+        // N/S: Creativity + Intelligence + learning outcomes
+        $creativityScore = isset($stats['Creativity']) ? (int) (30 + $stats['Creativity'] * 0.4) : 50;
+        $intelligenceMod = isset($stats['Intelligence']) ? ($stats['Intelligence'] - 50) * 0.2 : 0;
+        if (stripos($outcomeType, 'growth') !== false || stripos($outcomeType, 'learn') !== false) {
+            $creativityScore += 5;
+        }
+        $infoScore = max(0, min(100, $creativityScore + $intelligenceMod));
+        
+        // T/F: Empathy + Morality + relationship outcomes
+        $empathyScore = isset($stats['Empathy']) ? (int) (30 + $stats['Empathy'] * 0.4) : 50;
+        $moralityMod = isset($stats['Morality']) ? ($stats['Morality'] - 50) * 0.2 : 0;
+        if (stripos($outcomeType, 'love') !== false || stripos($outcomeType, 'happy') !== false) {
+            $empathyScore += 5;
+        }
+        $decisionScore = max(0, min(100, $empathyScore + $moralityMod));
+        
+        // J/P: Discipline + Burnout + achievement outcomes
+        $disciplineScore = isset($stats['Discipline']) ? (int) (30 + $stats['Discipline'] * 0.4) : 50;
+        $burnoutMod = isset($stats['Burnout']) ? -($stats['Burnout'] * 0.2) : 0;
+        if (stripos($outcomeType, 'success') !== false || stripos($outcomeType, 'achievement') !== false) {
+            $disciplineScore += 5;
+        }
+        $lifestyleScore = max(0, min(100, $disciplineScore + $burnoutMod));
+        
+        // Apply weighted update to profile (alpha = 0.15 for more responsive)
+        $profile->updateDimension('energy_orientation', $energyScore, 0.15);
+        $profile->updateDimension('information_gathering', $infoScore, 0.15);
+        $profile->updateDimension('decision_forming', $decisionScore, 0.15);
+        $profile->updateDimension('lifestyle_approach', $lifestyleScore, 0.15);
+        
+        // Update Big Five traits
+        if (isset($stats['Creativity'])) {
+            $profile->updateTrait('openness', $stats['Creativity'], 0.1);
+        }
+        if (isset($stats['Discipline'])) {
+            $profile->updateTrait('conscientiousness', $stats['Discipline'], 0.1);
+        }
+        if (isset($stats['Social'])) {
+            $profile->updateTrait('extraversion', $stats['Social'], 0.1);
+        }
+        if (isset($stats['Empathy'])) {
+            $profile->updateTrait('agreeableness', $stats['Empathy'], 0.1);
+        }
+        if (isset($stats['Happiness'])) {
+            // Invert: high happiness = low neuroticism
+            $profile->updateTrait('neuroticism', 100 - $stats['Happiness'], 0.1);
+        }
+        
+        // Add decision to history
+        $profile->addDecision($eventType, $choiceScore);
+        
+        // Update behavioral scores
+        if (in_array($eventType, ['social', 'cultural'])) {
+            $scoreDelta = $outcomeType === 'positive' ? 2 : ($outcomeType === 'negative' ? -1 : 0);
+            $profile->updateBehavioralScore('social_boldness', $scoreDelta);
+        }
+        if (in_array($eventType, ['career', 'profession'])) {
+            $scoreDelta = $outcomeType === 'positive' ? 2 : ($outcomeType === 'negative' ? -1 : 0);
+            $profile->updateBehavioralScore('conscientiousness', $scoreDelta);
+        }
+        if (in_array($eventType, ['moral', 'ethics'])) {
+            $scoreDelta = $outcomeType === 'positive' ? 2 : ($outcomeType === 'negative' ? -1 : 0);
+            $profile->updateBehavioralScore('agreeableness', $scoreDelta);
+        }
+        
+        // Get final MBTI
+        $result = $profile->getMBTIWithConfidence();
+        
+        Log::info('Enhanced MBTI Calculated', [
+            'character_id' => $character->id,
+            'mbti' => $result['mbti'],
+            'confidence' => $result['confidence'],
+            'dimensions' => $result['dimensions'],
+            'big_five' => $result['big_five'],
+            'event_type' => $eventType,
+            'choice_index' => $choiceIndex,
+            'outcome' => $outcomeType,
+        ]);
+        
+        return $result;
+    }
+
+    /**
+     * Calculate choice score (0-100) based on choice index and outcome
+     */
+    private function calculateChoiceScore(int $choiceIndex, string $outcomeType): int
+    {
+        // Base score from choice position
+        $baseScores = [60, 50, 40, 30]; // First choice = more decisive
+        $baseScore = $baseScores[$choiceIndex] ?? 40;
+        
+        // Adjust for outcome
+        $outcomeMod = match($outcomeType) {
+            'positive' => 10,
+            'negative' => -10,
+            default => 0,
+        };
+        
+        return max(0, min(100, $baseScore + $outcomeMod));
+    }
+
+    /**
+     * Get personality insight - describes the character's personality in detail
+     */
+    public function getPersonalityInsight(Character $character): array
+    {
+        $profile = \App\Models\PersonalityProfile::getOrCreateForCharacter($character);
+        $result = $profile->getMBTIWithConfidence();
+        
+        $insights = [];
+        
+        // MBTI-based insights
+        $mbti = $result['mbti'];
+        if ($mbti[0] === 'E') {
+            $insights[] = 'Extraverted - gains energy from social interactions';
+        } else {
+            $insights[] = 'Introverted - needs solitude to recharge';
+        }
+        if ($mbti[1] === 'N') {
+            $insights[] = 'Intuitive - focuses on possibilities and patterns';
+        } else {
+            $insights[] = 'Sensing - focuses on concrete facts and details';
+        }
+        if ($mbti[2] === 'T') {
+            $insights[] = 'Thinking - makes decisions based on logic';
+        } else {
+            $insights[] = 'Feeling - considers values and impacts on people';
+        }
+        if ($mbti[3] === 'J') {
+            $insights[] = 'Judging - prefers structure and planning';
+        } else {
+            $insights[] = 'Perceiving - flexible and adaptable';
+        }
+        
+        // Big Five insights
+        $bf = $result['big_five'];
+        if ($bf['O'] > 60) $insights[] = 'High openness - curious and creative';
+        if ($bf['O'] < 40) $insights[] = 'Low openness - traditional and practical';
+        if ($bf['C'] > 60) $insights[] = 'High conscientiousness - organized and reliable';
+        if ($bf['C'] < 40) $insights[] = 'Low conscientiousness - spontaneous and flexible';
+        if ($bf['E'] > 60) $insights[] = 'High extraversion - outgoing and energetic';
+        if ($bf['E'] < 40) $insights[] = 'Low extraversion - reserved and independent';
+        if ($bf['A'] > 60) $insights[] = 'High agreeableness - trusting and cooperative';
+        if ($bf['A'] < 40) $insights[] = 'Low agreeableness - competitive and challenging';
+        if ($bf['N'] > 60) $insights[] = 'High neuroticism - emotionally reactive';
+        if ($bf['N'] < 40) $insights[] = 'Low neuroticism - emotionally stable';
+        
+        return [
+            'mbti' => $mbti,
+            'mbti_confidence' => $result['confidence'],
+            'insights' => $insights,
+            'dimensions' => $result['dimensions'],
+            'big_five' => $bf,
+        ];
+    }
 }

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class DailyAction extends Model
 {
@@ -39,6 +40,12 @@ class DailyAction extends Model
      */
     public function isAvailable(Character $character): bool
     {
+        \Illuminate\Support\Facades\Log::debug('DailyAction::isAvailable checking', [
+            'action_id' => $this->id,
+            'action_title' => $this->title,
+            'character_id' => $character->id,
+        ]);
+        
         $conditions = $this->conditions;
 
         if (empty($conditions)) {
@@ -113,6 +120,234 @@ class DailyAction extends Model
             return false;
         }
 
+        // Check has_skill condition - character must have ALL specified skills
+        if (isset($conditions['has_skill'])) {
+            $requiredSkills = is_array($conditions['has_skill']) ? $conditions['has_skill'] : [$conditions['has_skill']];
+            $characterSkills = $character->skills()->pluck('skills.name')->toArray();
+            
+            foreach ($requiredSkills as $requiredSkill) {
+                if (!in_array($requiredSkill, $characterSkills, true)) {
+                    return false;
+                }
+            }
+        }
+
+        // Check lacks_skill condition - character must NOT have ANY of the specified skills
+        if (isset($conditions['lacks_skill'])) {
+            $forbiddenSkills = is_array($conditions['lacks_skill']) ? $conditions['lacks_skill'] : [$conditions['lacks_skill']];
+            $characterSkills = $character->skills()->pluck('skills.name')->toArray();
+            
+            foreach ($forbiddenSkills as $forbiddenSkill) {
+                if (in_array($forbiddenSkill, $characterSkills, true)) {
+                    return false;
+                }
+            }
+        }
+
+        // Check has_talent condition - character must have ALL specified talents
+        if (isset($conditions['has_talent'])) {
+            $requiredTalents = is_array($conditions['has_talent']) ? $conditions['has_talent'] : [$conditions['has_talent']];
+            $characterTalents = $character->talents()->pluck('talents.name')->toArray();
+            
+            foreach ($requiredTalents as $requiredTalent) {
+                if (!in_array($requiredTalent, $characterTalents, true)) {
+                    return false;
+                }
+            }
+        }
+
+        // Check lacks_talent condition - character must NOT have ANY of the specified talents
+        if (isset($conditions['lacks_talent'])) {
+            $forbiddenTalents = is_array($conditions['lacks_talent']) ? $conditions['lacks_talent'] : [$conditions['lacks_talent']];
+            $characterTalents = $character->talents()->pluck('talents.name')->toArray();
+            
+            foreach ($forbiddenTalents as $forbiddenTalent) {
+                if (in_array($forbiddenTalent, $characterTalents, true)) {
+                    return false;
+                }
+            }
+        }
+
+        // Check min_reputation condition - character must have minimum reputation in faction
+        if (isset($conditions['min_reputation'])) {
+            $minReputations = is_array($conditions['min_reputation']) 
+                ? $conditions['min_reputation'] 
+                : [$conditions['min_reputation']];
+            
+            foreach ($minReputations as $faction => $minimum) {
+                if (!$character->hasMinReputation($faction, (int) $minimum)) {
+                    return false;
+                }
+            }
+        }
+
+        // Check max_reputation condition - character must have reputation at or below threshold
+        if (isset($conditions['max_reputation'])) {
+            $maxReputations = is_array($conditions['max_reputation']) 
+                ? $conditions['max_reputation'] 
+                : [$conditions['max_reputation']];
+            
+            foreach ($maxReputations as $faction => $maximum) {
+                if (!$character->hasMaxReputation($faction, (int) $maximum)) {
+                    return false;
+                }
+            }
+        }
+
+        // Check has_trauma condition - character must have ALL specified trauma types
+        if (isset($conditions['has_trauma'])) {
+            $requiredTraumas = is_array($conditions['has_trauma']) 
+                ? $conditions['has_trauma'] 
+                : [$conditions['has_trauma']];
+            
+            foreach ($requiredTraumas as $traumaType) {
+                if (!$character->hasTrauma($traumaType)) {
+                    return false;
+                }
+            }
+        }
+
+        // Check lacks_trauma condition - character must NOT have ANY of the specified traumas
+        if (isset($conditions['lacks_trauma'])) {
+            $forbiddenTraumas = is_array($conditions['lacks_trauma']) 
+                ? $conditions['lacks_trauma'] 
+                : [$conditions['lacks_trauma']];
+            
+            foreach ($forbiddenTraumas as $traumaType) {
+                if ($character->hasTrauma($traumaType)) {
+                    return false;
+                }
+            }
+        }
+
+        // Check relationship_status condition - character must have specific status
+        if (isset($conditions['relationship_status'])) {
+            $requiredStatuses = is_array($conditions['relationship_status']) 
+                ? $conditions['relationship_status'] 
+                : [$conditions['relationship_status']];
+            
+            if (!in_array($character->getRelationshipStatus(), $requiredStatuses, true)) {
+                return false;
+            }
+        }
+
+        // Check not_relationship_status condition - character must NOT have specific status
+        if (isset($conditions['not_relationship_status'])) {
+            $forbiddenStatuses = is_array($conditions['not_relationship_status']) 
+                ? $conditions['not_relationship_status'] 
+                : [$conditions['not_relationship_status']];
+            
+            if (in_array($character->getRelationshipStatus(), $forbiddenStatuses, true)) {
+                return false;
+            }
+        }
+
+        // Check in_relationship condition - must be in a relationship (dating, engaged, married)
+        if (isset($conditions['in_relationship'])) {
+            if ($conditions['in_relationship'] && !$character->isInRelationship()) {
+                return false;
+            }
+            if (!$conditions['in_relationship'] && $character->isInRelationship()) {
+                return false;
+            }
+        }
+
+        // Check min_relationship_state condition - relationship group must meet minimum state
+        if (isset($conditions['min_relationship_state'])) {
+            $minStates = is_array($conditions['min_relationship_state']) 
+                ? $conditions['min_relationship_state'] 
+                : [$conditions['min_relationship_state']];
+            
+            foreach ($minStates as $group => $minimumState) {
+                if (!$character->hasMinRelationshipState($group, $minimumState)) {
+                    return false;
+                }
+            }
+        }
+
+        // Check max_relationship_state condition - relationship group must be at or below maximum state
+        if (isset($conditions['max_relationship_state'])) {
+            $maxStates = is_array($conditions['max_relationship_state']) 
+                ? $conditions['max_relationship_state'] 
+                : [$conditions['max_relationship_state']];
+            
+            foreach ($maxStates as $group => $maximumState) {
+                if (!$character->hasMaxRelationshipState($group, $maximumState)) {
+                    return false;
+                }
+            }
+        }
+
+        // Check has_social_connection condition - character must have connection of type
+        if (isset($conditions['has_social_connection'])) {
+            $requiredConnections = is_array($conditions['has_social_connection']) 
+                ? $conditions['has_social_connection'] 
+                : [$conditions['has_social_connection']];
+            
+            foreach ($requiredConnections as $connectionType) {
+                if (!$character->hasSocialConnection($connectionType)) {
+                    return false;
+                }
+            }
+        }
+
+        // Check lacks_social_connection condition - character must NOT have connection of type
+        if (isset($conditions['lacks_social_connection'])) {
+            $forbiddenConnections = is_array($conditions['lacks_social_connection']) 
+                ? $conditions['lacks_social_connection'] 
+                : [$conditions['lacks_social_connection']];
+            
+            foreach ($forbiddenConnections as $connectionType) {
+                if ($character->hasSocialConnection($connectionType)) {
+                    return false;
+                }
+            }
+        }
+
+        // Check location condition - character must be at specific location
+        if (isset($conditions['location'])) {
+            $requiredLocations = is_array($conditions['location']) 
+                ? $conditions['location'] 
+                : [$conditions['location']];
+            
+            if (!in_array($character->getLocation(), $requiredLocations, true)) {
+                return false;
+            }
+        }
+
+        // Check not_location condition - character must NOT be at specific location
+        if (isset($conditions['not_location'])) {
+            $forbiddenLocations = is_array($conditions['not_location']) 
+                ? $conditions['not_location'] 
+                : [$conditions['not_location']];
+            
+            if (in_array($character->getLocation(), $forbiddenLocations, true)) {
+                return false;
+            }
+        }
+
+        // Check season condition - must be specific season
+        if (isset($conditions['season'])) {
+            $requiredSeasons = is_array($conditions['season']) 
+                ? $conditions['season'] 
+                : [$conditions['season']];
+            
+            if (!in_array($character->getSeason(), $requiredSeasons, true)) {
+                return false;
+            }
+        }
+
+        // Check weather condition - must be specific weather
+        if (isset($conditions['weather'])) {
+            $requiredWeather = is_array($conditions['weather']) 
+                ? $conditions['weather'] 
+                : [$conditions['weather']];
+            
+            if (!in_array($character->getWeather(), $requiredWeather, true)) {
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -152,5 +387,36 @@ class DailyAction extends Model
             'auto_resolve' => $this->auto_resolve,
             'days_to_advance' => $this->days_to_advance,
         ];
+    }
+
+    /**
+     * Process a choice and apply all effects to a character.
+     * Returns array of effects applied.
+     */
+    public function processChoice(Character $character, array $choice): array
+    {
+        $effects = [];
+        
+        // Apply stat effects if present
+        if (isset($choice['stat_effects'])) {
+            // TODO: Parse and apply stat effects
+            $effects['stat_effects'] = $choice['stat_effects'];
+        }
+        
+        // Learn skill if present
+        if (isset($choice['learn_skill'])) {
+            $skillName = $choice['learn_skill'];
+            $learned = $character->learnSkill($skillName);
+            $effects['learned_skill'] = $learned ? $skillName : null;
+        }
+        
+        // Discover talent if present
+        if (isset($choice['discover_talent'])) {
+            $talentName = $choice['discover_talent'];
+            $discovered = $character->discoverTalent($talentName);
+            $effects['discovered_talent'] = $discovered ? $talentName : null;
+        }
+        
+        return $effects;
     }
 }
