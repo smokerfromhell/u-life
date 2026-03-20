@@ -23,6 +23,9 @@ use App\Filament\Widgets\Analytics\HealthTrendChart;
 use App\Filament\Widgets\Analytics\ProfessionDistributionChart;
 use App\Filament\Widgets\Analytics\RelationshipDistributionChart;
 use App\Filament\Widgets\Analytics\DailyActivityChart;
+use App\Filament\Widgets\Analytics\PersonalityAnalyticsWidget;
+use App\Filament\Widgets\Analytics\BigFiveRadarChart;
+use App\Filament\Widgets\Analytics\MbtiDimensionChart;
 use App\Filament\Resources\Analytics\UserAnalyticsResource;
 use App\Filament\Resources\Analytics\LifeStatsSnapshotResource;
 use App\Filament\Resources\Analytics\SharedDecisionLogResource;
@@ -40,7 +43,7 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->default()
             ->id('admin')
-            ->path('admin')
+            ->path('ulife-admin')
             ->login()
             ->colors([
                 'primary' => Color::Amber,
@@ -61,6 +64,9 @@ class AdminPanelProvider extends PanelProvider
                 SharedDecisionTypesChart::class,
                 LifeStatsOverview::class,
                 MbtiDistributionChart::class,
+                PersonalityAnalyticsWidget::class,
+                BigFiveRadarChart::class,
+                MbtiDimensionChart::class,
                 AgeGroupDistributionChart::class,
                 EventTypeDistributionChart::class,
                 ChoicesPopularityChart::class,

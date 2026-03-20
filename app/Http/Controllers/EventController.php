@@ -16,6 +16,10 @@ use App\Models\User;
 use App\Support\Privacy;
 use App\Services\AdaptiveNarrativeService;
 use App\Services\EventService;
+use App\Services\MiniGameService;
+use App\Services\LuckService;
+use App\Services\AchievementService;
+use App\Services\LifeSummaryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -26,6 +30,9 @@ class EventController extends Controller
 {
     protected EventService $eventService;
     protected AdaptiveNarrativeService $adaptiveNarrativeService;
+    protected MiniGameService $miniGameService;
+    protected LuckService $luckService;
+    protected AchievementService $achievementService;
 
     // Age progression thresholds (in days) - SHORTENED for faster gameplay
     const AGE_GROUPS = [
@@ -41,10 +48,13 @@ class EventController extends Controller
     // Maximum days in game
     const MAX_DAYS = 50;
 
-    public function __construct(EventService $eventService, AdaptiveNarrativeService $adaptiveNarrativeService)
+    public function __construct(EventService $eventService, AdaptiveNarrativeService $adaptiveNarrativeService, MiniGameService $miniGameService, LuckService $luckService, AchievementService $achievementService)
     {
         $this->eventService = $eventService;
         $this->adaptiveNarrativeService = $adaptiveNarrativeService;
+        $this->miniGameService = $miniGameService;
+        $this->luckService = $luckService;
+        $this->achievementService = $achievementService;
     }
 
     /**
@@ -132,7 +142,7 @@ class EventController extends Controller
     }
 
     /**
-     * Feature 7: Get life summary from birth to death
+     * Feature 7: Get enhanced life summary from birth to death
      */
     public function getLifeSummary(Character $character)
     {
@@ -141,58 +151,45 @@ class EventController extends Controller
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
 
-            // Get all snapshots (life stats history)
-            $snapshots = LifeStatsSnapshot::where('anon_character_id', $character->anon_character_id)
-                ->orderBy('day')
-                ->get();
+            // Use the comprehensive LifeSummaryService
+            $summaryService = app(LifeSummaryService::class);
+            $comprehensiveSummary = $summaryService->generateSummary($character);
 
-            // Get all decision logs
-            $decisions = DecisionLog::where('character_id', $character->id)
-                ->orderBy('day')
-                ->get();
-
-            // Build timeline
-            $timeline = [];
-            foreach ($decisions as $decision) {
-                $timeline[] = [
-                    'day' => $decision->day,
-                    'age' => $this->calculateAge($decision->day),
-                    'event_title' => $decision->event_title,
-                    'choice_text' => $decision->choice_text,
-                    'outcome' => $decision->outcome,
-                    'health_change' => $decision->health_change,
-                    'happiness_change' => $decision->happiness_change,
-                    'finance_change' => $decision->finance_change,
-                ];
-            }
-
-            // Extract milestones
-            $milestones = $this->extractMilestones($decisions);
-
-            // Determine ending
+            // Get ending details
             $endingType = $this->determineEndingType($character, 
                 ($character->current_day >= self::MAX_DAYS) ? 'old_age' : 'death');
             $endingDetails = $this->getEndingDetails($endingType, $character);
 
             return response()->json([
+                'success' => true,
+                'message' => 'Life summary generated',
+                // Basic info
                 'character_name' => $character->name,
-                'birth_date' => $character->created_at,
-                'death_date' => now(),
-                'lifespan_days' => $character->current_day,
-                'lifespan_years' => $this->calculateAge($character->current_day),
+                'character' => $comprehensiveSummary['character'],
+                // Lifespan analysis
+                'lifespan' => $comprehensiveSummary['lifespan'],
+                // Stats analysis
+                'stats_analysis' => $comprehensiveSummary['statsAnalysis'],
+                // Decisions analysis
+                'decisions_analysis' => $comprehensiveSummary['decisionsAnalysis'],
+                // Milestones
+                'milestones' => $comprehensiveSummary['milestones'],
+                // Personality analysis
+                'personality' => $comprehensiveSummary['personality'],
+                // Life rating
+                'life_rating' => $comprehensiveSummary['lifeRating'],
+                // Key moments
+                'key_moments' => $comprehensiveSummary['keyMoments'],
+                // Life advice
+                'advice' => $comprehensiveSummary['advice'],
+                // Ending
                 'ending_type' => $endingType,
                 'ending_title' => $endingDetails['title'] ?? 'Unknown',
                 'ending_description' => $endingDetails['description'] ?? '',
-                'final_stats' => [
-                    'health' => $character->health ?? 100,
-                    'happiness' => $character->happiness ?? 100,
-                    'finance' => $character->finance ?? 0,
-                    'profession' => $character->profession ?? 'none',
-                    'relationship' => $character->relationship_status ?? 'single',
-                ],
-                'total_decisions' => $decisions->count(),
-                'milestones' => $milestones,
-                'timeline' => $timeline,
+                // Unlocked achievements
+                'achievements' => $comprehensiveSummary['achievements'],
+                // Comparison data
+                'comparison' => $summaryService->getComparisonData($character),
             ]);
         } catch (\Exception $e) {
             Log::error('Error in getLifeSummary: ' . $e->getMessage());
@@ -279,10 +276,11 @@ class EventController extends Controller
                 'current_day' => $character->current_day,
             ]);
             
-            // Get narrative-aware events (disabled for debugging)
-            $narrativeData = ['daily' => collect([]), 'cultural' => collect([]), 'ageSpecific' => collect([]), 'profession' => collect([])];
+            // Get narrative-aware events using NarrativeService
+            $narrativeService = app(\App\Services\NarrativeService::class);
+            $narrativeData = $narrativeService->getNarrativeEvents($character, $ageGroup, $shownEventIds);
             
-Log::info('EventController::getAvailableEvents - Stateful events loaded', [
+Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 'character_id' => $character->id,
                 'narrativeData_keys' => array_keys((array)$narrativeData)
             ]);
@@ -1582,6 +1580,9 @@ Log::info('EventController::getAvailableEvents - Stateful events loaded', [
             }
             $character->save();
 
+            // Update narrative path based on the event choice (must be after save so narrative is persisted)
+            $this->handleEventBranching($character, $event, $effects);
+
             // Apply any age progression based on the new day
             $this->checkAndApplyAgeProgression($character);
 
@@ -1958,6 +1959,94 @@ Log::info('EventController::getAvailableEvents - Stateful events loaded', [
     }
 
     /**
+     * Reincarnate - Start a new life with optional karma bonus
+     */
+    public function reincarnate(Request $request, Character $character)
+    {
+        try {
+            if ($character->user_id !== Auth::id()) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+
+            // Validate request
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'gender' => 'required|string|in:male,female,other',
+            ]);
+
+            // Calculate karma bonus (previous life's karma affects new life)
+            $karma = $character->karma ?? 0;
+            $luckBonus = min(20, max(-20, (int) ($karma / 1000))); // -20 to +20 luck bonus
+
+            // Create new character for the same user
+            $newCharacter = Character::create([
+                'user_id' => $character->user_id,
+                'name' => $validated['name'],
+                'gender' => $validated['gender'],
+                'age_group' => 'child',
+                'current_day' => 1,
+                'profession' => null,
+                'health' => 100 + ($luckBonus > 0 ? $luckBonus : 0), // Positive karma = better health start
+                'happiness' => 80,
+                'finance' => 0,
+                'luck' => 50 + $luckBonus, // Karma affects starting luck
+                'karma' => 0, // Reset karma for new life
+                'relationship_status' => 'single',
+                'career_level' => 1,
+                'stats' => [
+                    'Health' => 100,
+                    'Happiness' => 80,
+                    'Finance' => 0,
+                    'Ego' => 50,
+                    'Discipline' => 50,
+                    'Morality' => 50,
+                    'Social' => 50,
+                    'Intelligence' => 50,
+                    'Burnout' => 0,
+                    'Addiction' => 0,
+                    'Isolation' => 0,
+                ],
+                'shown_event_ids' => [],
+                'completed_event_chains' => [],
+                'active_event_paths' => [],
+                'current_narrative' => null,
+                'choice_history' => [],
+                'relationship_state' => [],
+                'reputation_by_faction' => [],
+                'trauma_flags' => [],
+                'achievement_flags' => $character->achievement_flags ?? [], // Carry over achievements
+                'pending_events' => [],
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Reincarnation successful! A new journey begins.',
+                'character' => $newCharacter,
+                'karma_bonus' => $luckBonus,
+                'previous_life' => [
+                    'name' => $character->name,
+                    'karma_earned' => $karma,
+                    'achievements_kept' => count($character->achievement_flags ?? []),
+                ],
+                'new_life' => [
+                    'luck_bonus' => $luckBonus,
+                    'starting_health' => 100 + ($luckBonus > 0 ? $luckBonus : 0),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in reincarnate: ' . $e->getMessage(), [
+                'character_id' => $character->id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'message' => 'Error during reincarnation: ' . $e->getMessage(),
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Handle event branching - update narrative path and complete chains
      */
     private function handleEventBranching(Character $character, $event, array $effects): void
@@ -1978,8 +2067,9 @@ Log::info('EventController::getAvailableEvents - Stateful events loaded', [
         // Determine outcome type based on stat effects
         $outcomeType = $this->eventService->determineOutcomeType($event->stat_effects ?? '');
         
-        // Update the narrative path
-        $this->eventService->updateNarrativePath($character, $eventCategory, $outcomeType);
+        // Update the narrative path using NarrativeService
+        $narrativeService = app(\App\Services\NarrativeService::class);
+        $narrativeService->updateNarrativePath($character, $eventCategory, $outcomeType);
         
         // Complete the event chain and unlock next events
         $this->eventService->completeEventChain($character, $eventCategory, $outcomeType);
@@ -1994,32 +2084,37 @@ Log::info('EventController::getAvailableEvents - Stateful events loaded', [
         
         // Education-related events
         if (preg_match('/(school|exam|college|university|grade|homework|study|learning)/', $eventName)) {
-            return 'education_elementary';
+            return 'education';
         }
         
         // Career-related events
-        if (preg_match('/(job|career|work|promotion|office|boss|colleague)/', $eventName)) {
-            return 'career_start';
+        if (preg_match('/(job|career|work|promotion|office|boss|colleague|business)/', $eventName)) {
+            return 'career';
         }
         
         // Family-related events
-        if (preg_match('/(marriage|wedding|spouse|child|parent|family|sibling)/', $eventName)) {
-            return 'family_relationship';
+        if (preg_match('/(marriage|wedding|spouse|child|parent|family|sibling|dating|engaged)/', $eventName)) {
+            return 'family';
         }
         
         // Health-related events
-        if (preg_match('/(health|illness|disease|doctor|hospital|injury|accident)/', $eventName)) {
-            return 'health_crisis';
+        if (preg_match('/(health|illness|disease|doctor|hospital|injury|accident|fitness|exercise)/', $eventName)) {
+            return 'health';
+        }
+        
+        // Wealth-related events
+        if (preg_match('/(money|finance|investment|rich|poor|broke|shopping)/', $eventName)) {
+            return 'wealth';
         }
         
         // Social-related events
-        if (preg_match('/(friend|date|relationship|party|social|bully)/', $eventName)) {
-            return 'social_friendship';
+        if (preg_match('/(friend|date|relationship|party|social|bully|community)/', $eventName)) {
+            return 'social';
         }
         
         // Skill-related events
         if (preg_match('/(skill|talent|hobby|practice|training|sport)/', $eventName)) {
-            return 'skill_learning';
+            return 'skill';
         }
         
         return null;
@@ -2893,5 +2988,252 @@ Log::info('EventController::getAvailableEvents - Stateful events loaded', [
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Get mini-game data for an event
+     */
+    public function getMiniGame(Request $request, Character $character)
+    {
+        try {
+            $gameType = $request->input('game_type');
+            $difficulty = (int) $request->input('difficulty', 1);
+            $category = $request->input('category', 'career');
+            $eventId = $request->input('event_id');
+            $eventType = $request->input('event_type', 'daily');
+            
+            // Get event's stat effects for the mini-game outcome
+            $eventData = $this->getEventStatEffects($eventId, $eventType);
+            
+            $gameData = match($gameType) {
+                'qte' => $this->miniGameService->generateQTESequence($difficulty),
+                'memory_match' => $this->miniGameService->generateMemoryMatch($difficulty),
+                'choice_chain' => $this->miniGameService->generateChoiceChain($category, $difficulty),
+                'timing' => $this->miniGameService->generateTimingGame($difficulty),
+                default => null
+            };
+            
+            if (!$gameData) {
+                return response()->json([
+                    'error' => 'Invalid game type'
+                ], 400);
+            }
+            
+            // Add stat effects to game data for outcome calculation
+            $gameData['stat_effects'] = $eventData['stat_effects'] ?? [];
+            $gameData['event_id'] = $eventId;
+            $gameData['event_type'] = $eventType;
+            
+            return response()->json([
+                'game_type' => $gameType,
+                'game_data' => $gameData,
+                'difficulty' => $difficulty
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error generating mini-game: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to generate mini-game'
+            ], 500);
+        }
+    }
+
+    /**
+     * Process mini-game result and return modified stat effects
+     */
+    public function submitMiniGame(Request $request, Character $character)
+    {
+        try {
+            $gameType = $request->input('game_type');
+            $score = (int) $request->input('score');
+            $gameData = $request->input('game_data', []);
+            
+            // Process the game result
+            $result = $this->miniGameService->processGameResult(
+                $character,
+                $gameType,
+                $gameData,
+                $score
+            );
+            
+            return response()->json([
+                'success' => true,
+                'effects' => $result['effects'],
+                'outcome' => $result['outcome'],
+                'score' => $result['score'],
+                'message' => $result['message']
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error processing mini-game result: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to process mini-game result'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get event stat effects for mini-game outcome calculation
+     */
+    private function getEventStatEffects($eventId, string $eventType): array
+    {
+        if (!$eventId) {
+            return ['stat_effects' => null];
+        }
+        
+        $model = match($eventType) {
+            'daily' => DailyEvent::class,
+            'cultural' => CulturalEvent::class,
+            'age_specific', 'ageSpecific' => AgeSpecificEvent::class,
+            'profession' => ProfessionPathEvent::class,
+            'action', 'learning' => DailyAction::class,
+            default => null
+        };
+        
+        if (!$model) {
+            return ['stat_effects' => null];
+        }
+        
+        $event = $model::find($eventId);
+        
+        if (!$event) {
+            return ['stat_effects' => null];
+        }
+        
+        return [
+            'stat_effects' => $event->stat_effects,
+            'event' => $event
+        ];
+    }
+
+    /**
+     * Get random luck event for character
+     */
+    public function getLuckEvent(Character $character)
+    {
+        try {
+            // Check if we can trigger a luck event (limit to once per day)
+            $lastLuckEvent = $character->last_luck_event;
+            if ($lastLuckEvent) {
+                $lastDate = \Carbon\Carbon::parse($lastLuckEvent)->toDateString();
+                $today = now()->toDateString();
+                if ($lastDate === $today) {
+                    return [
+                        'available' => false,
+                        'message' => 'You already had your daily dose of luck!'
+                    ];
+                }
+            }
+            
+            // Generate luck event
+            $luckEvent = $this->luckService->generateLuckEvent($character);
+            
+            if (!$luckEvent) {
+                return [
+                    'available' => false,
+                    'message' => 'No luck event triggered this time.'
+                ];
+            }
+            
+            // Mark that character had a luck event today
+            $character->last_luck_event = now();
+            $character->save();
+            
+            return [
+                'available' => true,
+                'luck_event' => $luckEvent,
+                'luck' => $character->luck,
+                'karma' => $character->karma
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error generating luck event: ' . $e->getMessage());
+            return [
+                'available' => false,
+                'error' => 'Failed to generate luck event'
+            ];
+        }
+    }
+
+    /**
+     * Apply luck event effects to character
+     */
+    public function applyLuckEvent(Request $request, Character $character)
+    {
+        try {
+            $validated = $request->validate([
+                'event_id' => 'required|string',
+                'choice_index' => 'nullable|integer'
+            ]);
+            
+            // Get the event from the request (we need to regenerate it)
+            $luckEvent = $this->luckService->generateLuckEvent($character);
+            
+            if (!$luckEvent || $luckEvent['id'] !== $validated['event_id']) {
+                return response()->json([
+                    'error' => 'Invalid luck event'
+                ], 400);
+            }
+            
+            $effects = $luckEvent['effects'] ?? [];
+            
+            // Handle choice-based effects
+            $choiceIndex = $validated['choice_index'] ?? 0;
+            if (isset($luckEvent['choices']) && isset($luckEvent['choices'][$choiceIndex])) {
+                $effects = $luckEvent['choices'][$choiceIndex]['effects'] ?? $effects;
+            }
+            
+            // Apply effects
+            $appliedEffects = $this->eventService->applyStatEffects($character, $effects);
+            
+            // Update luck based on event type
+            if ($luckEvent['luck_type'] === 'fortune') {
+                $this->luckService->updateLuck($character, 'good_deed');
+            } elseif ($luckEvent['luck_type'] === 'misfortune') {
+                $this->luckService->updateLuck($character, 'bad_deed');
+            }
+            
+            $character->refresh();
+            
+            return response()->json([
+                'success' => true,
+                'message' => $luckEvent['title'] . ' applied!',
+                'effects' => $appliedEffects,
+                'character' => $character,
+                'luck' => $character->luck,
+                'karma' => $character->karma
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error applying luck event: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to apply luck event'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all achievements for character
+     */
+    public function getAchievements(Character $character)
+    {
+        $achievements = $this->achievementService->getCharacterAchievements($character);
+        $stats = $this->achievementService->getAchievementStats($character);
+        
+        return response()->json([
+            'achievements' => $achievements,
+            'stats' => $stats
+        ]);
+    }
+
+    /**
+     * Check and unlock new achievements
+     */
+    public function checkAchievements(Character $character)
+    {
+        $unlocked = $this->achievementService->checkAndUnlockAchievements($character);
+        $stats = $this->achievementService->getAchievementStats($character);
+        
+        return response()->json([
+            'new_achievements' => $unlocked,
+            'unlocked_count' => count($character->achievement_flags ?? []),
+            'stats' => $stats
+        ]);
     }
 }

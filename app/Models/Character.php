@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 use App\Support\Privacy;
 
@@ -68,6 +69,13 @@ class Character extends Model
         'finance',
         'relationship_status',
         'career_level',
+        // Social Connections
+        'social_connections',
+        // Luck System
+        'luck',
+        'karma',
+        'luck_history',
+        'last_luck_event',
     ];
 
     /**
@@ -105,6 +113,8 @@ class Character extends Model
         'trauma_flags' => 'array',
         'achievement_flags' => 'array',
         'pending_events' => 'array',
+        // Social Connections
+        'social_connections' => 'array',
     ];
 
     protected $appends = ['current_state'];
@@ -132,6 +142,8 @@ class Character extends Model
         'finance' => 20,
         'relationship_status' => 'single',
         'career_level' => 'unemployed',
+        // Social Connections defaults
+        'social_connections' => '[]',
     ];
 
     public function getCurrentStateAttribute()
@@ -323,6 +335,14 @@ class Character extends Model
     public function choiceConsequences(): HasMany
     {
         return $this->hasMany(CharacterChoiceConsequence::class);
+    }
+
+    /**
+     * Get the personality profile for this character.
+     */
+    public function personalityProfile(): HasOne
+    {
+        return $this->hasOne(PersonalityProfile::class);
     }
 
     /**

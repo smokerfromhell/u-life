@@ -21,6 +21,7 @@ class DailyEventSeeder extends Seeder
         $events = [
             // Child events
             [
+                'event_choice' => 'TV',
                 'title' => 'TV',
                 'description' => 'Watch your favorite cartoons all day.',
                 'image' => '/css/images/dailyevents/tv.png',
@@ -36,7 +37,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Cartoon marathon', 'stat_effects' => '+5 Happiness, -5 Discipline', 'days_to_advance' => 0],
                     ['text' => 'Play outside instead', 'stat_effects' => '+5 Health, +3 Happiness, -2 Discipline', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => 'child'],
             ],
             [
                 'title' => 'Playtime',
@@ -54,7 +55,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Outdoor fun', 'stat_effects' => '+10 Health, +10 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Stay home and rest', 'stat_effects' => '+2 Health, -3 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => 'child'],
             ],
             [
                 'title' => 'Homework',
@@ -72,7 +73,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Complete all homework', 'stat_effects' => '+10 Intelligence, +5 Discipline', 'days_to_advance' => 0],
                     ['text' => 'Skip homework', 'stat_effects' => '-5 Intelligence, -3 Discipline, +5 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => 'child'],
             ],
             [
                 'title' => 'Chores',
@@ -90,7 +91,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Help parents', 'stat_effects' => '+10 Discipline, +5 Morality', 'days_to_advance' => 0],
                     ['text' => 'Refuse to help', 'stat_effects' => '-5 Discipline, -3 Morality, +5 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => 'child'],
             ],
             [
                 'title' => 'Meal',
@@ -108,7 +109,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Healthy dinner', 'stat_effects' => '+10 Health, +5 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Junk food', 'stat_effects' => '+3 Happiness, -5 Health', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => 'child'],
             ],
             [
                 'title' => 'Bedtime',
@@ -126,7 +127,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Sleep early', 'stat_effects' => '+10 Health, +5 Discipline', 'days_to_advance' => 0],
                     ['text' => 'Stay up late', 'stat_effects' => '-5 Health, +3 Happiness, -3 Discipline', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => 'child'],
             ],
             [
                 'title' => 'School',
@@ -144,7 +145,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Focus on studies', 'stat_effects' => '+10 Intelligence, +10 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Daydream in class', 'stat_effects' => '+2 Happiness, -5 Intelligence', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => 'child'],
             ],
             [
                 'title' => 'Reading',
@@ -162,7 +163,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Read books', 'stat_effects' => '+10 Intelligence, +5 Creativity', 'days_to_advance' => 0],
                     ['text' => 'Play games instead', 'stat_effects' => '+3 Happiness, -3 Intelligence', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => 'child', 'has_skill' => 'Reading'],
             ],
             [
                 'title' => 'Friends',
@@ -180,7 +181,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Play with friends', 'stat_effects' => '+15 Happiness, +5 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Play alone', 'stat_effects' => '+2 Happiness, -5 Reputation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => 'child'],
             ],
             // Teen events
             [
@@ -199,7 +200,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'TV marathon', 'stat_effects' => '+5 Happiness, -5 Discipline', 'days_to_advance' => 0],
                     ['text' => 'Do something productive', 'stat_effects' => '+5 Discipline, -3 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['teen', 'teenager']],
             ],
             [
                 'title' => 'Study',
@@ -217,7 +218,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Study hard', 'stat_effects' => '+15 Intelligence, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Skip studying', 'stat_effects' => '-5 Intelligence, +5 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['teen', 'teenager']],
             ],
             [
                 'title' => 'Part-time job',
@@ -235,7 +236,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Work part-time job', 'stat_effects' => '+10 Wealth, +5 Discipline', 'days_to_advance' => 0],
                     ['text' => 'Skip work', 'stat_effects' => '-5 Wealth, +5 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['teen', 'teenager'], 'min_wealth' => 5],
             ],
             [
                 'title' => 'Friends',
@@ -253,7 +254,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Hang out with friends', 'stat_effects' => '+15 Happiness, +5 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Stay home', 'stat_effects' => '-5 Happiness, +3 Discipline', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['teen', 'teenager']],
             ],
             [
                 'title' => 'Sports',
@@ -271,7 +272,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Play sports', 'stat_effects' => '+15 Strength, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Skip practice', 'stat_effects' => '-5 Strength, +3 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['teen', 'teenager'], 'has_skill' => 'Fitness'],
             ],
             [
                 'title' => 'Date',
@@ -289,7 +290,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Go on date', 'stat_effects' => '+15 Happiness, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Cancel date', 'stat_effects' => '-5 Happiness, -3 Reputation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['teen', 'teenager'], 'relationship_status' => 'dating'],
             ],
             [
                 'title' => 'Curfew',
@@ -307,7 +308,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Break curfew', 'stat_effects' => '-10 Reputation, +10 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Follow curfew', 'stat_effects' => '+5 Reputation, -3 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['teen', 'teenager'], 'min_burnout' => 30],
             ],
             // Adult events
             [
@@ -326,7 +327,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Watch TV', 'stat_effects' => '+5 Happiness, -5 Discipline', 'days_to_advance' => 0],
                     ['text' => 'Do hobby instead', 'stat_effects' => '+3 Creativity, -2 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => 'adult'],
             ],
             [
                 'title' => 'Commute',
@@ -344,7 +345,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Stay patient', 'stat_effects' => '-2 Happiness, +3 Discipline', 'days_to_advance' => 0],
                     ['text' => 'Get frustrated', 'stat_effects' => '+5 Burnout, -5 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => 'adult', 'profession_state' => ['entry_level', 'mid_level', 'senior', 'executive']],
             ],
             [
                 'title' => 'Work',
@@ -362,7 +363,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Excel in meeting', 'stat_effects' => '+10 Discipline, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Just attend', 'stat_effects' => '+2 Discipline, -3 Reputation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => 'adult', 'profession_state' => ['entry_level', 'mid_level', 'senior', 'executive']],
             ],
             [
                 'title' => 'Family Time',
@@ -380,7 +381,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Spend time with family', 'stat_effects' => '+10 Happiness, +5 Morality', 'days_to_advance' => 0],
                     ['text' => 'Work late instead', 'stat_effects' => '+5 Wealth, -5 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => 'adult', 'relationship_status' => ['married', 'dating', 'engaged']],
             ],
             [
                 'title' => 'Gym',
@@ -398,7 +399,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Work out', 'stat_effects' => '+10 Strength, +5 Health', 'days_to_advance' => 0],
                     ['text' => 'Skip workout', 'stat_effects' => '-3 Health, +3 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => 'adult', 'min_health' => 30],
             ],
             [
                 'title' => 'Cooking',
@@ -416,7 +417,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Cook a meal', 'stat_effects' => '+10 Happiness, +5 Creativity', 'days_to_advance' => 0],
                     ['text' => 'Order takeout', 'stat_effects' => '+3 Happiness, -3 Wealth, +2 Health', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => 'adult', 'has_skill' => 'Cooking'],
             ],
             [
                 'title' => 'Date night',
@@ -434,7 +435,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Go on date night', 'stat_effects' => '+15 Happiness, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Stay home', 'stat_effects' => '-5 Happiness, +3 Discipline', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => 'adult', 'relationship_status' => ['married', 'dating', 'engaged']],
             ],
             [
                 'title' => 'Bills',
@@ -452,7 +453,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Pay bills on time', 'stat_effects' => '+5 Discipline, +5 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Delay payment', 'stat_effects' => '-5 Reputation, -3 Wealth', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => 'adult', 'min_wealth' => 10],
             ],
             // Old events
             [
@@ -471,7 +472,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Watch movies', 'stat_effects' => '+10 Happiness, +5 Creativity', 'days_to_advance' => 0],
                     ['text' => 'Do puzzles instead', 'stat_effects' => '+5 Intelligence, -3 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => 'old'],
             ],
             [
                 'title' => 'Morning walk',
@@ -489,7 +490,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Go for walk', 'stat_effects' => '+10 Health, +10 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Stay in bed', 'stat_effects' => '-5 Health, +3 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => 'old', 'health_status' => ['healthy', 'fair']],
             ],
             [
                 'title' => 'Grandchildren',
@@ -507,7 +508,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Visit grandchildren', 'stat_effects' => '+20 Happiness, +10 Morality', 'days_to_advance' => 0],
                     ['text' => 'Decline visit', 'stat_effects' => '-10 Happiness, +3 Morality', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => 'old', 'relationship_status' => 'married'],
             ],
             [
                 'title' => 'Garden',
@@ -525,7 +526,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Tend garden', 'stat_effects' => '+10 Happiness, +5 Health', 'days_to_advance' => 0],
                     ['text' => 'Ignore garden', 'stat_effects' => '-3 Happiness, +3 Rest', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => 'old'],
             ],
             [
                 'title' => 'Doctor checkup',
@@ -543,7 +544,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Get checkup', 'stat_effects' => '+10 Health, +5 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Skip checkup', 'stat_effects' => '-5 Health, +3 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => 'old', 'health_status' => ['fair', 'poor', 'critical']],
             ],
             [
                 'title' => 'Nap',
@@ -561,7 +562,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Take nap', 'stat_effects' => '+10 Health, +5 Burnout', 'days_to_advance' => 0],
                     ['text' => 'Stay awake', 'stat_effects' => '-3 Health, +3 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => 'old', 'min_burnout' => 30],
             ],
             [
                 'title' => 'Memories',
@@ -579,7 +580,7 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Remember good times', 'stat_effects' => '+15 Happiness, +5 Morality', 'days_to_advance' => 0],
                     ['text' => 'Focus on regrets', 'stat_effects' => '-10 Happiness, +3 Wisdom', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => 'old'],
             ],
             [
                 'title' => 'Medications',
@@ -597,11 +598,23 @@ class DailyEventSeeder extends Seeder
                     ['text' => 'Take medications', 'stat_effects' => '+5 Health, +5 Discipline', 'days_to_advance' => 0],
                     ['text' => 'Skip medications', 'stat_effects' => '-10 Health, +3 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => 'old', 'health_status' => ['fair', 'poor', 'critical']],
             ],
         ];
 
         foreach ($events as $event) {
+            // Use title as event_choice if not specified
+            if (!isset($event['event_choice']) && isset($event['title'])) {
+                $event['event_choice'] = $event['title'];
+            }
+            // Provide default outcome if not set
+            if (!isset($event['outcome'])) {
+                $event['outcome'] = $event['description'] ?? 'Event completed.';
+            }
+            // Provide default stat_effects if not set
+            if (!isset($event['stat_effects'])) {
+                $event['stat_effects'] = '+1 Happiness';
+            }
             DailyEvent::create($event);
         }
     }

@@ -1211,6 +1211,92 @@ class DailyActionSeeder extends Seeder
                 ],
             ],
 
+            // Finding a mentor
+            [
+                'title' => 'Find Mentor',
+                'description' => 'Seek guidance from someone experienced in your field.',
+                'image' => '/css/images/relationship/mentor.png',
+                'type' => 'social',
+                'deck_label' => 'Action',
+                'repeatable' => true,
+                'weight' => 2,
+                'auto_resolve' => false,
+                'days_to_advance' => 0,
+                'display_order' => 90,
+                'choices' => [
+                    ['text' => 'Approach expert', 'stat_effects' => '+3 Intelligence, +2 Discipline', 'days_to_advance' => 0, 'add_social_connection' => ['type' => 'mentor', 'name' => 'Wise Mentor', 'details' => ['expertise' => 'career']]],
+                    ['text' => 'Join workshop', 'stat_effects' => '+2 Creativity, +2 Charisma', 'days_to_advance' => 0, 'add_social_connection' => ['type' => 'mentor', 'name' => 'Workshop Leader', 'details' => ['field' => 'skills']]],
+                ],
+                'conditions' => [
+                    'lacks_social_connection' => 'mentor',
+                    'age_group' => ['teen', 'adult'],
+                ],
+            ],
+
+            // Dating/romantic relationship
+            [
+                'title' => 'Start Dating',
+                'description' => 'Put yourself out there and look for romance.',
+                'image' => '/css/images/relationship/dating.png',
+                'type' => 'social',
+                'deck_label' => 'Action',
+                'repeatable' => true,
+                'weight' => 2,
+                'auto_resolve' => false,
+                'days_to_advance' => 0,
+                'display_order' => 91,
+                'choices' => [
+                    ['text' => 'Try online dating', 'stat_effects' => '+3 Happiness, +1 Charisma', 'days_to_advance' => 0, 'add_social_connection' => ['type' => 'romantic', 'name' => 'Dating Match', 'details' => ['status' => 'dating']], 'relationship_status_change' => 'dating'],
+                    ['text' => 'Ask someone out', 'stat_effects' => '+4 Happiness, -2 Ego', 'days_to_advance' => 0, 'add_social_connection' => ['type' => 'romantic', 'name' => 'Crush', 'details' => ['status' => 'dating']], 'relationship_status_change' => 'dating'],
+                ],
+                'conditions' => [
+                    'relationship_status' => ['single', 'divorced'],
+                    'age_group' => ['teen', 'adult'],
+                ],
+            ],
+
+            // Family connections
+            [
+                'title' => 'Reconnect with Family',
+                'description' => 'Reach out to family members you have lost touch with.',
+                'image' => '/css/images/relationship/family.png',
+                'type' => 'social',
+                'deck_label' => 'Action',
+                'repeatable' => true,
+                'weight' => 3,
+                'auto_resolve' => false,
+                'days_to_advance' => 0,
+                'display_order' => 92,
+                'choices' => [
+                    ['text' => 'Visit parents', 'stat_effects' => '+5 Happiness, +3 Morality', 'days_to_advance' => 0, 'add_social_connection' => ['type' => 'family', 'name' => 'Parent', 'details' => ['relation' => 'parent', 'bond' => 'reconnected']]],
+                    ['text' => 'Call sibling', 'stat_effects' => '+3 Happiness, +2 Empathy', 'days_to_advance' => 0, 'add_social_connection' => ['type' => 'family', 'name' => 'Sibling', 'details' => ['relation' => 'sibling', 'bond' => 'reconnected']]],
+                ],
+                'conditions' => [
+                    'age_group' => ['adult', 'old'],
+                ],
+            ],
+
+            // Work colleagues
+            [
+                'title' => 'Network at Work',
+                'description' => 'Build professional relationships with coworkers.',
+                'image' => '/css/images/relationship/work.png',
+                'type' => 'social',
+                'deck_label' => 'Action',
+                'repeatable' => true,
+                'weight' => 2,
+                'auto_resolve' => false,
+                'days_to_advance' => 0,
+                'display_order' => 93,
+                'choices' => [
+                    ['text' => 'Mentor junior', 'stat_effects' => '+3 Reputation, +2 Discipline', 'days_to_advance' => 0, 'add_social_connection' => ['type' => 'colleague', 'name' => 'Junior Coworker', 'details' => ['relation' => 'mentee']]],
+                    ['text' => 'Team lunch', 'stat_effects' => '+3 Charisma, +2 Happiness', 'days_to_advance' => 0, 'add_social_connection' => ['type' => 'colleague', 'name' => 'Work Buddy', 'details' => ['relation' => 'friend']]],
+                ],
+                'conditions' => [
+                    'age_group' => ['teen', 'adult', 'old'],
+                ],
+            ],
+
             // ========================================
             // LOCATION/ENVIRONMENT ACTIONS (Step 3)
             // ========================================

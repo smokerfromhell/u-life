@@ -3,19 +3,16 @@
 namespace App\Filament\Resources\Analytics\UserAnalytics\Pages;
 
 use App\Filament\Resources\Analytics\UserAnalyticsResource;
-use App\Models\SharedDecisionLog;
+use App\Filament\Resources\Characters\CharacterResource;
+use App\Models\Character;
 use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\BadgeColumn;
 use Filament\Actions\Action;
-use Filament\Widgets\StatsOverviewWidget\Stat;
-use Filament\Widgets\StatsOverviewWidget as StatsOverview;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 
 class ViewUserAnalytics extends ViewRecord implements HasTable
 {
@@ -23,7 +20,7 @@ class ViewUserAnalytics extends ViewRecord implements HasTable
 
     protected static string $resource = UserAnalyticsResource::class;
 
-    protected static ?string $title = 'User Analytics';
+    protected static ?string $title = 'User Details';
 
     protected function getHeaderActions(): array
     {
@@ -35,72 +32,70 @@ class ViewUserAnalytics extends ViewRecord implements HasTable
         ];
     }
 
+    protected function getTableQuery(): Builder
+    {
+        return Character::query()->where('user_id', $this->record->id);
+    }
+
     public function table(Table $table): Table
     {
-        $userName = $this->record->user_name;
-
         return $table
-            ->query(SharedDecisionLog::query()->where('user_name', $userName))
             ->columns([
-                TextColumn::make('day')
-                    ->label('Day')
+                TextColumn::make('id')
                     ->sortable(),
-                BadgeColumn::make('event_type')
-                    ->label('Event Type')
-                    ->colors([
-                        'warning' => 'daily',
-                        'primary' => 'cultural',
-                        'success' => 'profession',
-                        'danger' => 'age_specific',
-                    ]),
-                TextColumn::make('choice_text')
-                    ->label('Choice')
-                    ->limit(30),
+                TextColumn::make('name')
+                    ->label('Character Name')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('age_group')
+                    ->label('Age Group')
+                    ->badge()
+                    ->sortable(),
                 TextColumn::make('profession')
                     ->label('Profession')
-                    ->badge(),
-                TextColumn::make('mbti')
-                    ->label('MBTI')
-                    ->badge(),
+                    ->placeholder('—')
+                    ->badge()
+                    ->sortable(),
+                TextColumn::make('current_day')
+                    ->label('Day')
+                    ->sortable(),
+                TextColumn::make('health')
+                    ->label('Health')
+                    ->suffix('%')
+                    ->badge()
+                    ->color(fn (int $state): string => $state >= 70 ? 'success' : ($state >= 40 ? 'warning' : 'danger'))
+                    ->sortable(),
+                TextColumn::make('happiness')
+                    ->label('Happiness')
+                    ->suffix('%')
+                    ->badge()
+                    ->color(fn (int $state): string => $state >= 70 ? 'success' : ($state >= 40 ? 'warning' : 'danger'))
+                    ->sortable(),
+                TextColumn::make('finance')
+                    ->label('Finance')
+                    ->badge()
+                    ->color(fn (int $state): string => $state >= 0 ? 'success' : 'danger')
+                    ->sortable(),
+                TextColumn::make('relationship_status')
+                    ->label('Relationship')
+                    ->badge()
+                    ->sortable(),
+                TextColumn::make('career_level')
+                    ->label('Career')
+                    ->badge()
+                    ->sortable(),
             ])
             ->filters([
                 //
             ])
             ->actions([
-                Action::make('details')
-                    ->label('Details')
-                    ->url(fn ($record) => '#'),
+                Action::make('view_character')
+                    ->label('View')
+                    ->icon('heroicon-o-eye')
+                    ->url(fn ($record) => CharacterResource::getUrl('view', ['record' => $record->id])),
             ])
-            ->emptyStateHeading('No shared data')
-            ->emptyStateDescription('This user has not shared any decision data yet.')
+            ->emptyStateHeading('No characters')
+            ->emptyStateDescription('This user has not created any characters yet.')
             ->paginated([10, 25, 50]);
     }
-
-    protected function getHeaderWidgets(): array
-    {
-        $userName = $this->record->user_name;
-
-        $totalDecisions = SharedDecisionLog::where('user_name', $userName)->count();
-        $uniqueEvents = SharedDecisionLog::where('user_name', $userName)->distinct('event_id')->count('event_id');
-        $avgDay = SharedDecisionLog::where('user_name', $userName)->avg('day');
-        $mbti = SharedDecisionLog::where('user_name', $userName)->first()?->mbti ?? 'N/A';
-
-        return [
-            StatsOverview::make([
-                Stat::make('Total Shared Decisions', $totalDecisions)
-                    ->description('Decisions shared by this user')
-                    ->color('success'),
-                Stat::make('Unique Events', $uniqueEvents)
-                    ->description('Different events experienced')
-                    ->color('primary'),
-                Stat::make('Average Day', round($avgDay))
-                    ->description('Avg game day of shared data')
-                    ->color('warning'),
-                Stat::make('MBTI', $mbti)
-                    ->description('User\'s personality type')
-                    ->color('info'),
-            ]),
-        ];
-    }
 }
-

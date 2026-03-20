@@ -35,7 +35,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Perform surgery', 'stat_effects' => '+15 Morality, +10 Reputation, +5 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Decline', 'stat_effects' => '-5 Morality, -3 Reputation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Doctor'],
             ],
             [
                 'profession' => 'Doctor',
@@ -53,7 +53,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Apologize and compensate', 'stat_effects' => '-10 Wealth, -5 Reputation, +5 Morality', 'days_to_advance' => 0],
                     ['text' => 'Deny responsibility', 'stat_effects' => '-15 Reputation, +5 Ego, -10 Morality', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Doctor'],
             ],
             [
                 'profession' => 'Doctor',
@@ -71,7 +71,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Accept award', 'stat_effects' => '+20 Reputation, +10 Ego', 'days_to_advance' => 0],
                     ['text' => 'Decline', 'stat_effects' => '+5 Morality, -5 Reputation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Doctor'],
             ],
             [
                 'profession' => 'Doctor',
@@ -89,7 +89,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Accept grant', 'stat_effects' => '+15 Wealth, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Decline', 'stat_effects' => '+5 Discipline, -5 Wealth', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Doctor'],
             ],
             [
                 'profession' => 'Doctor',
@@ -107,7 +107,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Publish discovery', 'stat_effects' => '+20 Reputation, +15 Ego, +10 Wealth', 'days_to_advance' => 0],
                     ['text' => 'Keep secret', 'stat_effects' => '+10 Ego, -10 Reputation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Doctor'],
             ],
             // Teacher Profession Events
             [
@@ -126,7 +126,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Continue inspiring', 'stat_effects' => '+10 Reputation, +5 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Return to normal', 'stat_effects' => '+3 Discipline, -2 Reputation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Teacher'],
             ],
             [
                 'profession' => 'Teacher',
@@ -144,7 +144,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Take control', 'stat_effects' => '+5 Discipline, -2 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Ignore it', 'stat_effects' => '-5 Discipline, -5 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Teacher'],
             ],
             [
                 'profession' => 'Teacher',
@@ -162,7 +162,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Celebrate success', 'stat_effects' => '+15 Reputation, +10 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Stay modest', 'stat_effects' => '+5 Morality, +3 Reputation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Teacher'],
             ],
             [
                 'profession' => 'Teacher',
@@ -180,7 +180,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Accept award', 'stat_effects' => '+15 Reputation, +10 Ego', 'days_to_advance' => 0],
                     ['text' => 'Decline', 'stat_effects' => '+5 Morality, -3 Reputation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Teacher'],
             ],
             // Scientist Profession Events
             [
@@ -199,7 +199,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Publish findings', 'stat_effects' => '+20 Reputation, +15 Ego, +10 Wealth', 'days_to_advance' => 0],
                     ['text' => 'Keep secret', 'stat_effects' => '+10 Ego, -10 Reputation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Scientist'],
             ],
             [
                 'profession' => 'Scientist',
@@ -217,7 +217,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Try again', 'stat_effects' => '+5 Discipline, -2 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Give up', 'stat_effects' => '-5 Reputation, +5 Burnout', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Scientist'],
             ],
             [
                 'profession' => 'Scientist',
@@ -235,7 +235,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Accept grant', 'stat_effects' => '+15 Wealth, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Decline', 'stat_effects' => '+5 Discipline, -5 Wealth', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Scientist'],
             ],
             // Engineer Profession Events
             [
@@ -254,7 +254,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Launch project', 'stat_effects' => '+15 Reputation, +10 Wealth', 'days_to_advance' => 0],
                     ['text' => 'Delay launch', 'stat_effects' => '-5 Wealth, +3 Discipline', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Engineer'],
             ],
             [
                 'profession' => 'Engineer',
@@ -272,7 +272,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Fix immediately', 'stat_effects' => '-10 Wealth, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Ignore it', 'stat_effects' => '+5 Wealth, -15 Reputation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Engineer'],
             ],
             [
                 'profession' => 'Engineer',
@@ -290,7 +290,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Accept award', 'stat_effects' => '+20 Reputation, +10 Ego', 'days_to_advance' => 0],
                     ['text' => 'Share credit', 'stat_effects' => '+10 Reputation, +5 Morality', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Engineer'],
             ],
 
             // Nurse Profession Events
@@ -310,7 +310,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Provide extra care', 'stat_effects' => '+15 Morality, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Follow routine', 'stat_effects' => '+3 Morality, +3 Discipline', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Nurse'],
             ],
             [
                 'profession' => 'Nurse',
@@ -328,7 +328,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Work overtime', 'stat_effects' => '+10 Morality, -10 Happiness, +5 Burnout', 'days_to_advance' => 0],
                     ['text' => 'Refuse extra hours', 'stat_effects' => '+5 Happiness, -5 Morality', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Nurse'],
             ],
             [
                 'profession' => 'Nurse',
@@ -346,7 +346,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Accept thanks', 'stat_effects' => '+10 Happiness, +5 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Stay humble', 'stat_effects' => '+5 Morality, +3 Reputation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Nurse'],
             ],
 
             // Soldier Profession Events
@@ -366,7 +366,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Complete mission', 'stat_effects' => '+20 Reputation, +10 Morality', 'days_to_advance' => 0],
                     ['text' => 'Play it safe', 'stat_effects' => '+5 Reputation, +3 Discipline', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Soldier'],
             ],
             [
                 'profession' => 'Soldier',
@@ -384,7 +384,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Accept deployment', 'stat_effects' => '+10 Morality, -10 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Request exemption', 'stat_effects' => '+5 Happiness, -10 Reputation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Soldier'],
             ],
             [
                 'profession' => 'Soldier',
@@ -402,7 +402,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Accept medal', 'stat_effects' => '+20 Reputation, +10 Ego', 'days_to_advance' => 0],
                     ['text' => 'Decline', 'stat_effects' => '+5 Morality, -5 Reputation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Soldier'],
             ],
 
             // Athlete Profession Events
@@ -422,7 +422,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Win championship', 'stat_effects' => '+20 Reputation, +15 Wealth', 'days_to_advance' => 0],
                     ['text' => 'Participate', 'stat_effects' => '+5 Reputation, +3 Wealth', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Athlete'],
             ],
             [
                 'profession' => 'Athlete',
@@ -440,7 +440,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Recover fully', 'stat_effects' => '+10 Health, +5 Discipline', 'days_to_advance' => 0],
                     ['text' => 'Rush back', 'stat_effects' => '-10 Health, +5 Ego', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Athlete'],
             ],
             [
                 'profession' => 'Athlete',
@@ -458,7 +458,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Accept deal', 'stat_effects' => '+15 Wealth, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Decline', 'stat_effects' => '+5 Morality, +3 Reputation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Athlete'],
             ],
 
             // Fisher Profession Events
@@ -478,7 +478,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Sell catch', 'stat_effects' => '+15 Wealth, +5 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Keep catch', 'stat_effects' => '+10 Happiness, +3 Health', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Fisher'],
             ],
             [
                 'profession' => 'Fisher',
@@ -496,7 +496,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Fight storm', 'stat_effects' => '+10 Strength, +5 Discipline', 'days_to_advance' => 0],
                     ['text' => 'Return to shore', 'stat_effects' => '-5 Wealth, +5 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Fisher'],
             ],
             [
                 'profession' => 'Fisher',
@@ -514,7 +514,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Buy boat', 'stat_effects' => '-20 Wealth, +15 Wealth', 'days_to_advance' => 0],
                     ['text' => 'Keep old boat', 'stat_effects' => '+5 Wealth, +3 Discipline', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Fisher'],
             ],
 
             // Artist Profession Events
@@ -534,7 +534,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Showcase art', 'stat_effects' => '+20 Reputation, +10 Creativity', 'days_to_advance' => 0],
                     ['text' => 'Skip exhibition', 'stat_effects' => '+5 Creativity, -5 Reputation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Artist'],
             ],
             [
                 'profession' => 'Artist',
@@ -552,7 +552,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Push through', 'stat_effects' => '+10 Creativity, +5 Discipline', 'days_to_advance' => 0],
                     ['text' => 'Take break', 'stat_effects' => '+10 Happiness, -5 Creativity', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Artist'],
             ],
             [
                 'profession' => 'Artist',
@@ -570,7 +570,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Sell artwork', 'stat_effects' => '+15 Wealth, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Keep artwork', 'stat_effects' => '+10 Creativity, +5 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Artist'],
             ],
 
             // Writer Profession Events
@@ -590,7 +590,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Publish book', 'stat_effects' => '+20 Reputation, +10 Wealth', 'days_to_advance' => 0],
                     ['text' => 'Self-publish', 'stat_effects' => '+10 Reputation, +5 Creativity', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Writer'],
             ],
             [
                 'profession' => 'Writer',
@@ -608,7 +608,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Power through', 'stat_effects' => '+10 Creativity, +5 Discipline', 'days_to_advance' => 0],
                     ['text' => 'Take vacation', 'stat_effects' => '+10 Happiness, -5 Creativity', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Writer'],
             ],
             [
                 'profession' => 'Writer',
@@ -626,7 +626,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Win award', 'stat_effects' => '+25 Reputation, +10 Ego', 'days_to_advance' => 0],
                     ['text' => 'Attend ceremony', 'stat_effects' => '+10 Reputation, +5 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Writer'],
             ],
 
             // Designer Profession Events
@@ -646,7 +646,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Complete project', 'stat_effects' => '+15 Reputation, +10 Wealth', 'days_to_advance' => 0],
                     ['text' => 'Delay project', 'stat_effects' => '-5 Reputation, +3 Creativity', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Designer'],
             ],
             [
                 'profession' => 'Designer',
@@ -664,7 +664,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Incorporate feedback', 'stat_effects' => '+10 Reputation, +5 Discipline', 'days_to_advance' => 0],
                     ['text' => 'Defend design', 'stat_effects' => '+5 Creativity, -5 Reputation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Designer'],
             ],
             [
                 'profession' => 'Designer',
@@ -682,7 +682,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Positive review', 'stat_effects' => '+15 Reputation, +10 Creativity', 'days_to_advance' => 0],
                     ['text' => 'Critical review', 'stat_effects' => '-5 Reputation, +5 Creativity', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Designer'],
             ],
 
             // Chef Profession Events
@@ -702,7 +702,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Great review', 'stat_effects' => '+20 Reputation, +15 Wealth', 'days_to_advance' => 0],
                     ['text' => 'Bad review', 'stat_effects' => '-10 Reputation, +5 Creativity', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Chef'],
             ],
             [
                 'profession' => 'Chef',
@@ -720,7 +720,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Add to menu', 'stat_effects' => '+10 Creativity, +5 Wealth', 'days_to_advance' => 0],
                     ['text' => 'Keep secret', 'stat_effects' => '+5 Creativity, +5 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Chef'],
             ],
             [
                 'profession' => 'Chef',
@@ -738,7 +738,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Fix quickly', 'stat_effects' => '-5 Wealth, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Close kitchen', 'stat_effects' => '-10 Wealth, +5 Morality', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Chef'],
             ],
 
             // Actor Profession Events
@@ -758,7 +758,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Get role', 'stat_effects' => '+20 Reputation, +15 Wealth', 'days_to_advance' => 0],
                     ['text' => 'Lose role', 'stat_effects' => '+5 Creativity, +3 Discipline', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Actor'],
             ],
             [
                 'profession' => 'Actor',
@@ -776,7 +776,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Attend premiere', 'stat_effects' => '+15 Reputation, +10 Ego', 'days_to_advance' => 0],
                     ['text' => 'Skip premiere', 'stat_effects' => '+5 Happiness, -5 Reputation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Actor'],
             ],
             [
                 'profession' => 'Actor',
@@ -794,7 +794,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Address scandal', 'stat_effects' => '-10 Reputation, +5 Morality', 'days_to_advance' => 0],
                     ['text' => 'Ignore it', 'stat_effects' => '-15 Reputation, +5 Ego', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Actor'],
             ],
 
             // Journalist Profession Events
@@ -814,7 +814,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Publish story', 'stat_effects' => '+20 Reputation, +10 Wealth', 'days_to_advance' => 0],
                     ['text' => 'Sit on story', 'stat_effects' => '-10 Reputation, +5 Morality', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Journalist'],
             ],
             [
                 'profession' => 'Journalist',
@@ -832,7 +832,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Great interview', 'stat_effects' => '+15 Reputation, +10 Creativity', 'days_to_advance' => 0],
                     ['text' => 'Awkward interview', 'stat_effects' => '-5 Reputation, +5 Creativity', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Journalist'],
             ],
             [
                 'profession' => 'Journalist',
@@ -850,7 +850,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Defend yourself', 'stat_effects' => '-10 Reputation, +10 Discipline', 'days_to_advance' => 0],
                     ['text' => 'Apologize', 'stat_effects' => '-15 Reputation, +5 Morality', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Journalist'],
             ],
 
             // Business Owner Profession Events
@@ -870,7 +870,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Expand business', 'stat_effects' => '+25 Wealth, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Stay small', 'stat_effects' => '+5 Wealth, +5 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Business Owner'],
             ],
             [
                 'profession' => 'Business Owner',
@@ -888,7 +888,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Compete aggressively', 'stat_effects' => '-10 Wealth, +15 Discipline', 'days_to_advance' => 0],
                     ['text' => 'Differentiate', 'stat_effects' => '+10 Reputation, +5 Creativity', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Business Owner'],
             ],
             [
                 'profession' => 'Business Owner',
@@ -906,7 +906,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Fire employee', 'stat_effects' => '-5 Morality, +10 Discipline', 'days_to_advance' => 0],
                     ['text' => 'Give warning', 'stat_effects' => '+5 Morality, -5 Discipline', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Business Owner'],
             ],
 
             // Investor Profession Events
@@ -926,7 +926,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Invest', 'stat_effects' => '+20 Wealth, +10 Luck', 'days_to_advance' => 0],
                     ['text' => 'Pass', 'stat_effects' => '+5 Wealth, +3 Discipline', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Investor'],
             ],
             [
                 'profession' => 'Investor',
@@ -944,7 +944,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Sell holdings', 'stat_effects' => '-15 Wealth, +5 Discipline', 'days_to_advance' => 0],
                     ['text' => 'Hold', 'stat_effects' => '-10 Wealth, +10 Luck', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Investor'],
             ],
             [
                 'profession' => 'Investor',
@@ -962,7 +962,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Celebrate', 'stat_effects' => '+25 Wealth, +10 Ego', 'days_to_advance' => 0],
                     ['text' => 'Reinvest', 'stat_effects' => '+15 Wealth, +5 Reputation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Investor'],
             ],
 
             // Politician Profession Events
@@ -982,7 +982,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Win election', 'stat_effects' => '+25 Reputation, +15 Ego', 'days_to_advance' => 0],
                     ['text' => 'Lose election', 'stat_effects' => '-10 Reputation, +5 Morality', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Politician'],
             ],
             [
                 'profession' => 'Politician',
@@ -1000,7 +1000,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Address scandal', 'stat_effects' => '-15 Reputation, +10 Morality', 'days_to_advance' => 0],
                     ['text' => 'Deny everything', 'stat_effects' => '-20 Reputation, +5 Ego', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Politician'],
             ],
             [
                 'profession' => 'Politician',
@@ -1018,7 +1018,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Celebrate win', 'stat_effects' => '+20 Reputation, +10 Ego', 'days_to_advance' => 0],
                     ['text' => 'Stay humble', 'stat_effects' => '+10 Reputation, +5 Morality', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Politician'],
             ],
 
             // Performer Profession Events
@@ -1038,7 +1038,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Great show', 'stat_effects' => '+20 Reputation, +15 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Poor show', 'stat_effects' => '-5 Reputation, +5 Creativity', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Performer'],
             ],
             [
                 'profession' => 'Performer',
@@ -1056,7 +1056,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Meet fan', 'stat_effects' => '+10 Reputation, +10 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Ignore fan', 'stat_effects' => '-5 Reputation, +5 Ego', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Performer'],
             ],
             [
                 'profession' => 'Performer',
@@ -1074,7 +1074,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Celebrate', 'stat_effects' => '+15 Reputation, +10 Ego', 'days_to_advance' => 0],
                     ['text' => 'Reflect', 'stat_effects' => '+10 Happiness, +5 Morality', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Performer'],
             ],
 
             // Salesperson Profession Events
@@ -1094,7 +1094,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Close deal', 'stat_effects' => '+20 Wealth, +15 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Negotiate more', 'stat_effects' => '+10 Wealth, +5 Discipline', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Salesperson'],
             ],
             [
                 'profession' => 'Salesperson',
@@ -1112,7 +1112,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Move on', 'stat_effects' => '+10 Discipline, +5 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Get discouraged', 'stat_effects' => '-10 Happiness, -5 Discipline', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Salesperson'],
             ],
             [
                 'profession' => 'Salesperson',
@@ -1130,7 +1130,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Accept promotion', 'stat_effects' => '+15 Wealth, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Decline', 'stat_effects' => '+5 Happiness, +3 Discipline', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Salesperson'],
             ],
 
             // Community Leader Profession Events
@@ -1150,7 +1150,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Lead project', 'stat_effects' => '+20 Reputation, +15 Morality', 'days_to_advance' => 0],
                     ['text' => 'Delegate', 'stat_effects' => '+10 Reputation, +5 Discipline', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Community Leader'],
             ],
             [
                 'profession' => 'Community Leader',
@@ -1168,7 +1168,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Mediate', 'stat_effects' => '+15 Reputation, +10 Morality', 'days_to_advance' => 0],
                     ['text' => 'Avoid conflict', 'stat_effects' => '-5 Reputation, +5 Discipline', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Community Leader'],
             ],
             [
                 'profession' => 'Community Leader',
@@ -1186,7 +1186,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Accept award', 'stat_effects' => '+20 Reputation, +10 Ego', 'days_to_advance' => 0],
                     ['text' => 'Share credit', 'stat_effects' => '+15 Reputation, +10 Morality', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Community Leader'],
             ],
 
             // Philosopher/Poet Profession Events
@@ -1206,7 +1206,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Publish work', 'stat_effects' => '+20 Reputation, +15 Creativity', 'days_to_advance' => 0],
                     ['text' => 'Keep private', 'stat_effects' => '+10 Creativity, +5 Isolation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Philosopher/Poet'],
             ],
             [
                 'profession' => 'Philosopher/Poet',
@@ -1224,7 +1224,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Win debate', 'stat_effects' => '+20 Reputation, +10 Intelligence', 'days_to_advance' => 0],
                     ['text' => 'Lose debate', 'stat_effects' => '-5 Reputation, +5 Creativity', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Philosopher/Poet'],
             ],
             [
                 'profession' => 'Philosopher/Poet',
@@ -1242,7 +1242,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Create work', 'stat_effects' => '+15 Creativity, +10 Intelligence', 'days_to_advance' => 0],
                     ['text' => 'Meditate', 'stat_effects' => '+10 Happiness, +5 Morality', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Philosopher/Poet'],
             ],
 
             // Gambler Profession Events
@@ -1262,7 +1262,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Win bet', 'stat_effects' => '+30 Wealth, +15 Luck', 'days_to_advance' => 0],
                     ['text' => 'Lose bet', 'stat_effects' => '-20 Wealth, +5 Discipline', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Gambler'],
             ],
             [
                 'profession' => 'Gambler',
@@ -1280,7 +1280,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Keep playing', 'stat_effects' => '+15 Wealth, +10 Luck', 'days_to_advance' => 0],
                     ['text' => 'Cash out', 'stat_effects' => '+20 Wealth, +5 Discipline', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Gambler'],
             ],
             [
                 'profession' => 'Gambler',
@@ -1298,7 +1298,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Chase losses', 'stat_effects' => '-25 Wealth, +10 Burnout', 'days_to_advance' => 0],
                     ['text' => 'Stop playing', 'stat_effects' => '-5 Wealth, +10 Discipline', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Gambler'],
             ],
 
             // Casino Owner Profession Events
@@ -1318,7 +1318,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Cater to VIP', 'stat_effects' => '+25 Wealth, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Treat equally', 'stat_effects' => '+10 Reputation, +5 Morality', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Casino Owner'],
             ],
             [
                 'profession' => 'Casino Owner',
@@ -1336,7 +1336,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Allow it', 'stat_effects' => '+20 Wealth, -15 Morality', 'days_to_advance' => 0],
                     ['text' => 'Shut it down', 'stat_effects' => '-10 Wealth, +15 Morality', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Casino Owner'],
             ],
             [
                 'profession' => 'Casino Owner',
@@ -1354,7 +1354,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Expand', 'stat_effects' => '+25 Wealth, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Stay same', 'stat_effects' => '+5 Wealth, +5 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Casino Owner'],
             ],
 
             // Priest/Religious Leader Profession Events
@@ -1374,7 +1374,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Inspire congregation', 'stat_effects' => '+20 Morality, +15 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Basic service', 'stat_effects' => '+5 Morality, +3 Discipline', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Priest/Religious Leader'],
             ],
             [
                 'profession' => 'Priest/Religious Leader',
@@ -1392,7 +1392,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Find answers', 'stat_effects' => '+15 Morality, +10 Intelligence', 'days_to_advance' => 0],
                     ['text' => 'Doubt', 'stat_effects' => '-10 Morality, +5 Isolation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Priest/Religious Leader'],
             ],
             [
                 'profession' => 'Priest/Religious Leader',
@@ -1410,7 +1410,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Help others', 'stat_effects' => '+15 Morality, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Focus internally', 'stat_effects' => '+5 Morality, +5 Isolation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Priest/Religious Leader'],
             ],
 
             // Entrepreneur Profession Events
@@ -1430,7 +1430,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Launch startup', 'stat_effects' => '+15 Wealth, +10 Creativity', 'days_to_advance' => 0],
                     ['text' => 'Delay launch', 'stat_effects' => '-5 Wealth, +5 Discipline', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Entrepreneur'],
             ],
             [
                 'profession' => 'Entrepreneur',
@@ -1448,7 +1448,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Accept funding', 'stat_effects' => '+20 Wealth, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Stay bootstrapped', 'stat_effects' => '+10 Creativity, +5 Discipline', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Entrepreneur'],
             ],
             [
                 'profession' => 'Entrepreneur',
@@ -1466,7 +1466,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Pivot business', 'stat_effects' => '+15 Creativity, +10 Discipline', 'days_to_advance' => 0],
                     ['text' => 'Stick to plan', 'stat_effects' => '-10 Wealth, +5 Discipline', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Entrepreneur'],
             ],
 
             // Musician Profession Events
@@ -1486,7 +1486,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Great performance', 'stat_effects' => '+20 Reputation, +15 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Mediocre performance', 'stat_effects' => '+5 Reputation, -5 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Musician'],
             ],
             [
                 'profession' => 'Musician',
@@ -1504,7 +1504,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Sign deal', 'stat_effects' => '+20 Wealth, +15 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Stay independent', 'stat_effects' => '+10 Creativity, +5 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Musician'],
             ],
             [
                 'profession' => 'Musician',
@@ -1522,7 +1522,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Find inspiration', 'stat_effects' => '+15 Creativity, +5 Discipline', 'days_to_advance' => 0],
                     ['text' => 'Take break', 'stat_effects' => '+10 Happiness, -5 Creativity', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Musician'],
             ],
 
             // Farmer Profession Events
@@ -1542,7 +1542,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Good harvest', 'stat_effects' => '+15 Wealth, +10 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Bad harvest', 'stat_effects' => '-10 Wealth, +5 Burnout', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Farmer'],
             ],
             [
                 'profession' => 'Farmer',
@@ -1560,7 +1560,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Use pesticides', 'stat_effects' => '-5 Wealth, +10 Health', 'days_to_advance' => 0],
                     ['text' => 'Go organic', 'stat_effects' => '-15 Wealth, +10 Morality', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Farmer'],
             ],
             [
                 'profession' => 'Farmer',
@@ -1578,7 +1578,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Expand farm', 'stat_effects' => '+20 Wealth, +5 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Stay small', 'stat_effects' => '+5 Happiness, +3 Discipline', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Farmer'],
             ],
 
             // Lawyer Profession Events
@@ -1598,7 +1598,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Celebrate victory', 'stat_effects' => '+15 Reputation, +10 Wealth', 'days_to_advance' => 0],
                     ['text' => 'Stay professional', 'stat_effects' => '+5 Reputation, +3 Wealth', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Lawyer'],
             ],
             [
                 'profession' => 'Lawyer',
@@ -1616,7 +1616,7 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Accept defeat', 'stat_effects' => '-10 Reputation, -5 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Appeal', 'stat_effects' => '-5 Wealth, +3 Discipline', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Lawyer'],
             ],
             [
                 'profession' => 'Lawyer',
@@ -1634,11 +1634,23 @@ class ProfessionPathEventSeeder extends Seeder
                     ['text' => 'Take the case', 'stat_effects' => '+10 Morality, +5 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Decline', 'stat_effects' => '+3 Wealth, -3 Morality', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['profession' => 'Lawyer'],
             ],
         ];
 
         foreach ($events as $event) {
+            // Use title as event_choice if not specified
+            if (!isset($event['event_choice']) && isset($event['title'])) {
+                $event['event_choice'] = $event['title'];
+            }
+            // Provide default outcome if not set
+            if (!isset($event['outcome'])) {
+                $event['outcome'] = $event['description'] ?? 'Profession event experienced.';
+            }
+            // Provide default stat_effects if not set
+            if (!isset($event['stat_effects'])) {
+                $event['stat_effects'] = '+5 Reputation';
+            }
             ProfessionPathEvent::firstOrCreate(
                 ['profession' => $event['profession'], 'title' => $event['title']],
                 $event

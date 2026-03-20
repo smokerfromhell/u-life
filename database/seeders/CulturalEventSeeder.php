@@ -35,7 +35,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Join parade and dance', 'stat_effects' => '+20 Happiness, +10 Morality', 'days_to_advance' => 0],
                     ['text' => 'Skip festival', 'stat_effects' => '+5 Isolation, -5 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['child', 'teen', 'adult', 'old']],
             ],
             // Ati-Atihan (Kalibo)
             [
@@ -53,7 +53,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Tribal costume street dancing', 'stat_effects' => '+15 Happiness, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Avoid crowds', 'stat_effects' => '+5 Isolation, -5 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['child', 'teen', 'adult', 'old']],
             ],
             // Dinagyang (Iloilo)
             [
@@ -71,7 +71,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Join street dance competition', 'stat_effects' => '+15 Happiness, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Skip festivities', 'stat_effects' => '+5 Isolation, -5 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['teen', 'adult']], // Requires energy for dancing
             ],
             // Panagbenga (Baguio)
             [
@@ -89,7 +89,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Flower parade participation', 'stat_effects' => '+10 Creativity, +15 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Miss parade', 'stat_effects' => '-5 Happiness, +5 Isolation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['child', 'teen', 'adult'], 'has_skill' => 'Creativity'],
             ],
             // Kadayawan (Davao)
             [
@@ -107,7 +107,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Harvest celebration, join street party', 'stat_effects' => '+10 Wealth, +15 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Skip harvest', 'stat_effects' => '-5 Happiness, -5 Morality', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['adult', 'old'], 'min_wealth' => 15], // Harvest celebration
             ],
             // Pahiyas (Lucban)
             [
@@ -125,7 +125,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Decorate house with harvest produce', 'stat_effects' => '+10 Creativity, +10 Happiness', 'days_to_advance' => 0],
                     ['text' => 'House undecorated', 'stat_effects' => '-5 Reputation, -5 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['adult', 'old'], 'has_skill' => 'Creativity'],
             ],
             // Moriones (Marinduque)
             [
@@ -143,7 +143,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Join biblical reenactment', 'stat_effects' => '+15 Morality, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Skip Holy Week tradition', 'stat_effects' => '-5 Morality, +5 Isolation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['teen', 'adult', 'old'], 'min_morality' => 30],
             ],
             // MassKara (Bacolod)
             [
@@ -161,7 +161,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Wear mask and join parade', 'stat_effects' => '+20 Happiness, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Skip festivities', 'stat_effects' => '-5 Happiness, +5 Isolation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['child', 'teen', 'adult', 'old']],
             ],
             // Flores de Mayo
             [
@@ -179,7 +179,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Offer flowers to Mary', 'stat_effects' => '+10 Morality, +10 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Skip devotion', 'stat_effects' => '-5 Morality, -5 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['child', 'teen', 'adult', 'old'], 'min_morality' => 25],
             ],
             // Santacruzan
             [
@@ -197,7 +197,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Join procession', 'stat_effects' => '+15 Morality, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Skip procession', 'stat_effects' => '-5 Morality, +5 Isolation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['teen', 'adult', 'old'], 'min_morality' => 30],
             ],
             // Higantes (Angono)
             [
@@ -215,7 +215,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Parade with giant puppets', 'stat_effects' => '+15 Creativity, +10 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Avoid crowds', 'stat_effects' => '+5 Isolation, -5 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['child', 'teen', 'adult']], // Fun for families
             ],
             // Pintados (Leyte)
             [
@@ -233,7 +233,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Body painting parade', 'stat_effects' => '+10 Creativity, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Skip parade', 'stat_effects' => '-5 Happiness, +5 Isolation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['teen', 'adult'], 'has_skill' => 'Creativity'],
             ],
             // Sandugo (Bohol)
             [
@@ -251,7 +251,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Reenact blood compact', 'stat_effects' => '+10 Morality, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Skip reenactment', 'stat_effects' => '-5 Morality, -5 Happiness', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['teen', 'adult', 'old'], 'min_morality' => 35],
             ],
             // Kaamulan (Bukidnon)
             [
@@ -269,7 +269,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Tribal unity celebration', 'stat_effects' => '+15 Morality, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Skip tribal rites', 'stat_effects' => '+5 Isolation, -5 Morality', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['teen', 'adult', 'old'], 'min_morality' => 30],
             ],
             // Giant Lantern (Pampanga)
             [
@@ -287,7 +287,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Lantern contest', 'stat_effects' => '+20 Creativity, +15 Reputation', 'days_to_advance' => 0],
                     ['text' => 'No lantern entry', 'stat_effects' => '-5 Creativity, -5 Reputation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['teen', 'adult', 'old'], 'has_skill' => 'Creativity'],
             ],
             // Hermosa (Zamboanga)
             [
@@ -305,7 +305,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Street parade', 'stat_effects' => '+15 Happiness, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Skip parade', 'stat_effects' => '-5 Happiness, +5 Isolation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['teen', 'adult']], // Parade event
             ],
             // Malasimbo (Puerto Galera)
             [
@@ -323,7 +323,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Attend concert', 'stat_effects' => '+20 Happiness, +10 Creativity', 'days_to_advance' => 0],
                     ['text' => 'Skip concert', 'stat_effects' => '-5 Happiness, +5 Isolation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['teen', 'adult', 'old'], 'has_skill' => 'Music'],
             ],
             // Tuna Festival (GenSan)
             [
@@ -341,7 +341,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Join fish parade', 'stat_effects' => '+10 Wealth, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Skip festival', 'stat_effects' => '-5 Happiness, +5 Isolation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['adult', 'old'], 'min_wealth' => 15],
             ],
             // Lanzones (Camiguin)
             [
@@ -359,7 +359,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Join fruit harvest', 'stat_effects' => '+10 Wealth, +10 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Skip harvest', 'stat_effects' => '-5 Happiness, -5 Morality', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['adult', 'old'], 'min_wealth' => 10],
             ],
             // Mango Festival (Zambales)
             [
@@ -377,7 +377,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Celebrate mango season', 'stat_effects' => '+10 Wealth, +10 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Skip festival', 'stat_effects' => '-5 Happiness, +5 Isolation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['adult', 'old'], 'min_wealth' => 10],
             ],
             // Coconut Festival (Quezon)
             [
@@ -395,7 +395,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Join parade', 'stat_effects' => '+10 Wealth, +10 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Skip parade', 'stat_effects' => '-5 Happiness, +5 Isolation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['adult', 'old'], 'min_wealth' => 10],
             ],
             // Bangus Festival (Dagupan)
             [
@@ -413,7 +413,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Celebrate milkfish harvest', 'stat_effects' => '+15 Wealth, +10 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Skip festival', 'stat_effects' => '-5 Happiness, -5 Morality', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['adult', 'old'], 'min_wealth' => 15],
             ],
             // Tabak Festival (Toledo)
             [
@@ -431,7 +431,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Join martial parade', 'stat_effects' => '+10 Strength, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Skip parade', 'stat_effects' => '-5 Happiness, +5 Isolation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['teen', 'adult'], 'min_strength' => 20],
             ],
             // Rodeo Masbateño (Masbate)
             [
@@ -449,7 +449,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Join rodeo', 'stat_effects' => '+15 Strength, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Skip rodeo', 'stat_effects' => '-5 Happiness, +5 Isolation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['teen', 'adult'], 'min_strength' => 25],
             ],
             // Surf Festival (La Union)
             [
@@ -467,7 +467,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Win surf competition', 'stat_effects' => '+10 Strength, +10 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Skip surf event', 'stat_effects' => '-5 Happiness, +5 Isolation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['teen', 'adult'], 'min_strength' => 20, 'has_skill' => 'Fitness'],
             ],
             // Pagoda Festival (Bulacan)
             [
@@ -485,7 +485,7 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Join river procession', 'stat_effects' => '+10 Morality, +10 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Skip procession', 'stat_effects' => '-5 Morality, +5 Isolation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['teen', 'adult', 'old'], 'min_morality' => 30],
             ],
             // Buyogan Festival (Leyte)
             [
@@ -503,11 +503,23 @@ class CulturalEventSeeder extends Seeder
                     ['text' => 'Bee dance competition', 'stat_effects' => '+10 Creativity, +10 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Skip festival', 'stat_effects' => '-5 Happiness, +5 Isolation', 'days_to_advance' => 0],
                 ],
-                'conditions' => null,
+                'conditions' => ['age_group' => ['child', 'teen', 'adult'], 'has_skill' => 'Creativity'],
             ],
         ];
 
         foreach ($events as $event) {
+            // Use title as event_choice if not specified
+            if (!isset($event['event_choice']) && isset($event['title'])) {
+                $event['event_choice'] = $event['title'];
+            }
+            // Provide default outcome if not set
+            if (!isset($event['outcome'])) {
+                $event['outcome'] = $event['description'] ?? 'Cultural event enjoyed.';
+            }
+            // Provide default stat_effects if not set
+            if (!isset($event['stat_effects'])) {
+                $event['stat_effects'] = '+5 Happiness';
+            }
             CulturalEvent::create($event);
         }
     }

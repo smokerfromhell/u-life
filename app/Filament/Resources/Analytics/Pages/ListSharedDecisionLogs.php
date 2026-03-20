@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Analytics\Pages;
 
 use App\Filament\Resources\Analytics\SharedDecisionLogResource;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 
@@ -18,7 +19,7 @@ class ListSharedDecisionLogs extends ListRecords
                 TextColumn::make('id')->sortable(),
                 TextColumn::make('anon_character_id')->label('Character ID')->sortable(),
                 TextColumn::make('user_name')->label('Player')->searchable(),
-                TextColumn::make('is_guest')->label('Guest')->boolean(),
+                IconColumn::make('is_guest')->label('Guest')->boolean(),
                 TextColumn::make('day')->label('Day')->badge()->sortable(),
                 TextColumn::make('event_type')->label('Event Type')->badge()->sortable(),
                 TextColumn::make('event_title')->label('Event')->searchable(),

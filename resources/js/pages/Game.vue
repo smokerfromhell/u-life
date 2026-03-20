@@ -38,6 +38,11 @@
                    <span class="day-counter">Age {{ character.age || character.currentDay }}</span>
                   <span class="meta-divider">|</span>
                   <span class="profession-badge">{{ character.profession || 'No Profession' }}</span>
+                  <span class="meta-divider">|</span>
+                  <span class="relationship-badge-header" :class="getRelationshipClass(character.relationshipStatus)">
+                    <v-icon size="14">{{ getRelationshipIcon(character.relationshipStatus) }}</v-icon>
+                    {{ formatRelationshipStatus(character.relationshipStatus) }}
+                  </span>
                 </div>
               </div>
               
@@ -161,6 +166,25 @@
                     <span v-if="!character.talents || character.talents.length === 0" class="no-talents">No talents yet</span>
                   </div>
                 </div>
+
+        
+
+                <!-- Social Connections -->
+                <div v-if="character.socialConnections && character.socialConnections.length > 0" class="badges-group mt-3">
+                  <h4 class="section-title">CONNECTIONS</h4>
+                  <div class="badge-list">
+                    <v-chip
+                      v-for="(conn, index) in character.socialConnections"
+                      :key="index"
+                      class="badge-chip connection-badge"
+                      size="small"
+                      :color="getConnectionColor(conn.type)"
+                    >
+                      <v-icon start size="12">{{ getConnectionIcon(conn.type) }}</v-icon>
+                      {{ conn.name }}
+                    </v-chip>
+                  </div>
+                </div>
               </div>
             </div>
           </v-expand-transition>
@@ -218,6 +242,15 @@
               Advance Age
             </v-btn>
             <v-spacer />
+            <v-btn
+              size="large"
+              class="achievements-btn action-btn"
+              color="amber"
+              prepend-icon="mdi-trophy"
+              @click="showAchievementsDialog = true"
+            >
+              Achievements
+            </v-btn>
             <v-btn
               size="large"
               class="suicide-btn action-btn"
@@ -594,7 +627,7 @@
                 variant="outlined"
                 size="large"
                 class="choice-btn"
-                @click="applyChoice(idx)"
+                @click="handleChoiceClick(idx)"
                 :disabled="applyingOutcome"
               >
                 <div class="choice-btn-content">
@@ -1138,6 +1171,21 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Achievements Dialog -->
+    <Achievements
+      v-model="showAchievementsDialog"
+      :character-id="character?.id"
+    />
+
+    <!-- Mini Game Dialog -->
+    <MiniGameWrapper
+      v-model="showMiniGameDialog"
+      :game-type="miniGameType"
+      :game-data="miniGameData"
+      :character-id="character?.id"
+      @complete="handleMiniGameComplete"
+    />
   </div>
 </template>
 
@@ -1147,6 +1195,8 @@
 <script setup>
 import { ref, onMounted, nextTick, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import MiniGameWrapper from '../components/MiniGames/MiniGameWrapper.vue'
+import Achievements from '../components/Achievements.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -1557,6 +1607,15 @@ const showProfessionChoiceDialog = ref(false)
 const professionChoices = ref([])
 const selectingProfession = ref(false)
 
+// Mini-game state
+const showMiniGameDialog = ref(false)
+const showAchievementsDialog = ref(false)
+const miniGameType = ref(null)
+const miniGameData = ref(null)
+const miniGameEventId = ref(null)
+const miniGameEventType = ref(null)
+const pendingChoiceApply = ref(null)
+
 // Enhanced riffle shuffle simulation
 const shuffleArray = (arr) => {
   for (let i = arr.length - 1; i > 0; i--) {
@@ -1701,6 +1760,8 @@ const fetchCharacter = async () => {
       healthStatus: data.health_status || 'healthy',
       healthPercentage: data.health_percentage || 100,
       profession: data.profession || null,
+      relationshipStatus: data.relationship_status || 'single',
+      socialConnections: data.social_connections || [],
       currentNarrative: data.current_narrative || null,
       activePaths: data.active_event_paths || [],
       characterState: data.character_state || {},
@@ -1814,6 +1875,112 @@ const onDialogClosed = () => {
 /**
  * Apply a choice outcome to the character
  */
+
+// Mini-game functions
+const triggerMiniGame = async (event, choice, choiceIndex) => {
+  const miniGameType = choice.mini_game || event.mini_game
+  if (!miniGameType) return null
+  
+  const difficulty = choice.mini_game_difficulty || event.mini_game_difficulty || 1
+  const category = choice.category || 'career'
+  
+  try {
+    const response = await fetch(`/api/characters/${character.value.id}/mini-game?game_type=${miniGameType}&difficulty=${difficulty}&category=${category}&event_id=${event.id}&event_type=${event.type}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    })
+    
+    if (!response.ok) throw new Error('Failed to get mini-game data')
+    
+    const data = await response.json()
+    
+    // Store pending choice to apply after game
+    pendingChoiceApply.value = { choiceIndex, choice, event }
+    
+    // Open mini-game dialog
+    miniGameType.value = miniGameType
+    miniGameData.value = data.game_data
+    miniGameEventId.value = event.id
+    miniGameEventType.value = event.type
+    showMiniGameDialog.value = true
+    
+    return true
+  } catch (error) {
+    console.error('Error triggering mini-game:', error)
+    return null
+  }
+}
+
+const handleMiniGameComplete = (result) => {
+  console.log('Mini-game result:', result)
+  
+  // Apply the pending choice with modified effects from mini-game
+  if (pendingChoiceApply.value) {
+    const { choiceIndex, choice, event } = pendingChoiceApply.value
+    
+    // Store the mini-game result effects to merge with choice effects
+    choice._miniGameEffects = result.effects
+    choice._miniGameMessage = result.message
+    choice._miniGameScore = result.score
+    
+    // Apply the choice with modified effects
+    applyChoiceWithEffects(choiceIndex, result.effects, result.message)
+    
+    pendingChoiceApply.value = null
+  }
+  
+  showMiniGameDialog.value = false
+  miniGameType.value = null
+  miniGameData.value = null
+}
+
+const applyChoiceWithEffects = async (choiceIndex, additionalEffects = {}, message = '') => {
+  // Similar to applyChoice but merges the additional effects
+  if (!selectedEvent.value) return
+  
+  // This is a simplified version - in reality you'd call the API with modified effects
+  // For now, we'll let the main applyChoice handle it but show the message
+  if (message) {
+    narrationHistory.value.push(`🎮 ${message}`)
+  }
+}
+
+/**
+ * Check if event/choice has mini-game
+ */
+const hasMiniGame = (event, choice) => {
+  return !!(choice?.mini_game || event?.mini_game)
+}
+
+/**
+ * Handle choice click - check for mini-game first
+ */
+const handleChoiceClick = async (choiceIndex) => {
+  if (!selectedEvent.value) return
+  
+  const choice = selectedEvent.value.choices[choiceIndex]
+  
+  // Check if this choice has a mini-game
+  const hasMiniGameNow = await checkAndTriggerMiniGame(selectedEvent.value, choice, choiceIndex)
+  
+  // If no mini-game triggered, apply choice directly
+  if (!hasMiniGameNow) {
+    applyChoice(choiceIndex)
+  }
+}
+
+/**
+ * Check if choice or event requires mini-game before applying
+ */
+const checkAndTriggerMiniGame = async (event, choice, choiceIndex) => {
+  if (hasMiniGame(event, choice)) {
+    return await triggerMiniGame(event, choice, choiceIndex)
+  }
+  return false
+}
+
 const applyChoice = async (choiceIndex) => {
   if (!selectedEvent.value) return
   
@@ -1866,6 +2033,13 @@ const applyChoice = async (choiceIndex) => {
       }
       if (data.talents) {
         character.value.talents = data.talents
+      }
+      // Update relationship status and social connections if changed
+      if (data.character?.relationship_status) {
+        character.value.relationshipStatus = data.character.relationship_status
+      }
+      if (data.character?.social_connections) {
+        character.value.socialConnections = data.character.social_connections
       }
       syncCharacterRuntime({
         ...(data.character || {}),
@@ -2274,6 +2448,94 @@ const getStatColor = (value) => {
   if (value > 70) return "success"
   if (value < 30) return "error"
   return "warning"
+}
+
+/**
+ * Format relationship status for display
+ */
+const formatRelationshipStatus = (status) => {
+  const labels = {
+    'single': 'Single',
+    'dating': 'Dating',
+    'engaged': 'Engaged',
+    'married': 'Married',
+    'divorced': 'Divorced',
+    'widowed': 'Widowed'
+  }
+  return labels[status] || status
+}
+
+/**
+ * Get color for relationship status
+ */
+const getRelationshipColor = (status) => {
+  const colors = {
+    'single': 'grey',
+    'dating': 'pink',
+    'engaged': 'purple',
+    'married': 'red',
+    'divorced': 'orange',
+    'widowed': 'blue-grey'
+  }
+  return colors[status] || 'grey'
+}
+
+/**
+ * Get icon for connection type
+ */
+const getConnectionIcon = (type) => {
+  const icons = {
+    'friend': 'mdi-account-group',
+    'family': 'mdi-home-heart',
+    'romantic': 'mdi-heart',
+    'colleague': 'mdi-briefcase',
+    'mentor': 'mdi-school'
+  }
+  return icons[type] || 'mdi-account'
+}
+
+/**
+ * Get color for connection type
+ */
+const getConnectionColor = (type) => {
+  const colors = {
+    'friend': 'blue',
+    'family': 'green',
+    'romantic': 'pink',
+    'colleague': 'orange',
+    'mentor': 'purple'
+  }
+  return colors[type] || 'grey'
+}
+
+/**
+ * Get icon for relationship status (header display)
+ */
+const getRelationshipIcon = (status) => {
+  const icons = {
+    'single': 'mdi-heart-off',
+    'dating': 'mdi-heart-half-full',
+    'engaged': 'mdi-ring',
+    'married': 'mdi-heart',
+    'divorced': 'mdi-heart-broken',
+    'widowed': 'mdi-candle'
+  }
+  return icons[status] || 'mdi-heart'
+}
+
+/**
+ * Get CSS class for relationship status (header display)
+ */
+const getRelationshipClass = (status) => {
+  const classes = {
+    'single': 'relationship-single',
+    'dating': 'relationship-dating',
+    'engaged': 'relationship-engaged',
+    'married': 'relationship-married',
+    'divorced': 'relationship-divorced',
+    'widowed': 'relationship-widowed'
+  }
+  return classes[status] || 'relationship-single'
 }
 
 /**
@@ -3377,6 +3639,66 @@ const startNewGame = () => {
   color: #000 !important;
   box-shadow: 0 0 16px rgba(245,158,11,0.7) !important;
   font-weight: 900 !important;
+}
+
+.relationship-badge {
+  background: linear-gradient(135deg, #ec4899, #be185d) !important;
+  border-color: #f472b6 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 12px rgba(236,72,153,0.6) !important;
+}
+
+.connection-badge {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
+  border-color: #60a5fa !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 12px rgba(59,130,246,0.6) !important;
+}
+
+.relationship-badge-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.relationship-single {
+  background: rgba(107, 114, 128, 0.3);
+  color: #9ca3af;
+  border: 1px solid rgba(107, 114, 128, 0.5);
+}
+
+.relationship-dating {
+  background: rgba(236, 72, 153, 0.3);
+  color: #f472b6;
+  border: 1px solid rgba(236, 72, 153, 0.5);
+}
+
+.relationship-engaged {
+  background: rgba(168, 85, 247, 0.3);
+  color: #d8b4fe;
+  border: 1px solid rgba(168, 85, 247, 0.5);
+}
+
+.relationship-married {
+  background: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.5);
+}
+
+.relationship-divorced {
+  background: rgba(249, 115, 22, 0.3);
+  color: #fdba74;
+  border: 1px solid rgba(249, 115, 22, 0.5);
+}
+
+.relationship-widowed {
+  background: rgba(71, 85, 105, 0.3);
+  color: #cbd5e1;
+  border: 1px solid rgba(71, 85, 105, 0.5);
 }
 
 /* ========================================

@@ -26,6 +26,9 @@ class GuestController extends Controller
             $user = User::find($userId);
             
             if ($user) {
+                // Properly authenticate the user so auth middleware works
+                Auth::login($user);
+                
                 // Update consent if provided
                 if (array_key_exists('share_consent', $validated)) {
                     $user->share_consent = $validated['share_consent'];
@@ -63,6 +66,9 @@ class GuestController extends Controller
 
         $user = User::create($createData);
 
+        // Properly authenticate the user so auth middleware works
+        Auth::login($user);
+
         // Store user ID in separate session key for game
         $request->session()->put($gameSessionKey, $user->id);
 
@@ -86,6 +92,11 @@ class GuestController extends Controller
         
         $userId = session()->get($gameSessionKey);
         $user = User::find($userId);
+        
+        // Properly authenticate the user so auth middleware works
+        if ($user) {
+            Auth::login($user);
+        }
         
         return response()->json([
             'user' => $user,

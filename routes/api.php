@@ -41,9 +41,22 @@ Route::middleware(['web'])->group(function () {
         Route::post('/characters/{character}/apply-event', [EventController::class, 'applyEventOutcome']);
         Route::post('/characters/{character}/end-day', [EventController::class, 'endDay']);
         Route::get('/characters/{character}/life-summary', [EventController::class, 'getLifeSummary']);
+        Route::post('/characters/{character}/reincarnate', [EventController::class, 'reincarnate']);
         Route::post('/characters/{character}/set-profession', [EventController::class, 'setProfession']);
         Route::post('/characters/{character}/redraw-events', [EventController::class, 'redrawEvents']);
         Route::post('/characters/{character}/redraw-event-type', [EventController::class, 'redrawEventType']);
+        
+        // Mini-game routes
+        Route::get('/characters/{character}/mini-game', [EventController::class, 'getMiniGame']);
+        Route::post('/characters/{character}/mini-game', [EventController::class, 'submitMiniGame']);
+        
+        // Luck/Random events routes
+        Route::get('/characters/{character}/luck-event', [EventController::class, 'getLuckEvent']);
+        Route::post('/characters/{character}/luck-event', [EventController::class, 'applyLuckEvent']);
+        
+        // Achievements routes
+        Route::get('/characters/{character}/achievements', [EventController::class, 'getAchievements']);
+        Route::post('/characters/{character}/achievements/check', [EventController::class, 'checkAchievements']);
         Route::get('/characters/{character}/decision-logs', [CharacterController::class, 'decisionLogs']);
 
         // Admin analytics (RBAC via role/permission)

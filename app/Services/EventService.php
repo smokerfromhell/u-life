@@ -27,12 +27,12 @@ class EventService
      * Health condition thresholds based on health percentage
      */
     const HEALTH_CONDITIONS = [
-        ['min' => 0, 'max' => 10, 'status' => 'dead'],
-        ['min' => 11, 'max' => 25, 'status' => 'critical'],
-        ['min' => 26, 'max' => 50, 'status' => 'unhealthy'],
-        ['min' => 51, 'max' => 75, 'status' => 'sick'],
-        ['min' => 76, 'max' => 90, 'status' => 'fever'],
-        ['min' => 91, 'max' => 100, 'status' => 'healthy'],
+        ['min' => 0, 'max' => 0, 'status' => 'dead'],
+        ['min' => 1, 'max' => 10, 'status' => 'critical'],
+        ['min' => 11, 'max' => 30, 'status' => 'sick'],
+        ['min' => 31, 'max' => 49, 'status' => 'unhealthy'],
+        ['min' => 50, 'max' => 69, 'status' => 'fever'],
+        ['min' => 70, 'max' => 100, 'status' => 'healthy'],
     ];
 
     /**
@@ -410,8 +410,8 @@ class EventService
             'married' => ['divorced' => 0.03, 'widowed' => 0.02],
         ],
         'health_condition' => [
-            'healthy' => ['ill' => 0.07],
-            'ill' => ['healthy' => 0.2],
+            'healthy' => ['sick' => 0.07],
+            'sick' => ['healthy' => 0.2],
         ],
     ];
 
@@ -469,7 +469,7 @@ Log::error('Error in getStatefulEvents', [
     {
         $query = DailyEvent::query();
         
-        if (isset($state['health_condition']) && $state['health_condition'] === 'ill') {
+        if (isset($state['health_condition']) && $state['health_condition'] === 'sick') {
             $query->where('title', 'like', '%Health%')->orWhere('title', 'like', '%hospital%');
         }
         
@@ -998,6 +998,119 @@ Log::error('Error in getStatefulEvents', [
             }
         }
 
+        // Check the conditions JSON field
+        if (!$this->checkEventConditions($event, $character)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Evaluate the conditions JSON field for an event
+     * Conditions can include: age_group, has_skill, min_wealth, relationship_status,
+     * min_burnout, profession_state, health_status, min_health
+     */
+    public function checkEventConditions($event, Character $character): bool
+    {
+        $conditions = $event->conditions ?? null;
+        
+        // If no conditions, event is available to all
+        if (empty($conditions)) {
+            return true;
+        }
+        
+        // Get character data
+        $characterState = $character->character_state ?? [];
+        $ageGroup = $character->age_group ?? $characterState['life_stage'] ?? 'adult';
+        $relationshipStatus = $characterState['relationship_status'] ?? $character->relationship_status ?? 'single';
+        $professionState = $characterState['profession_state'] ?? $character->career_level ?? 'unemployed';
+        $healthCondition = $characterState['health_condition'] ?? $this->getHealthStatus($character->health ?? 100);
+        $wealth = $character->finance ?? $character->wealth ?? 0;
+        $stats = $character->effective_stats ?? $character->stats ?? [];
+        $burnout = $stats['burnout'] ?? 0;
+        $health = $character->health ?? 100;
+        
+        // Get character's skills
+        $skills = [];
+        if ($character->relationLoaded('skills')) {
+            $skills = $character->skills->pluck('name')->toArray();
+        } else {
+            // Try to get from relationship
+            try {
+                $skills = $character->skills()->pluck('name')->toArray();
+            } catch (\Exception $e) {
+                $skills = $character->skills ?? [];
+            }
+        }
+        
+        // Check each condition
+        foreach ($conditions as $conditionKey => $conditionValue) {
+            switch ($conditionKey) {
+                case 'age_group':
+                    // age_group can be a string or array of valid values
+                    $validAgeGroups = is_array($conditionValue) ? $conditionValue : [$conditionValue];
+                    if (!in_array($ageGroup, $validAgeGroups)) {
+                        return false;
+                    }
+                    break;
+                    
+                case 'has_skill':
+                    // Character must have this skill
+                    if (!in_array($conditionValue, $skills)) {
+                        return false;
+                    }
+                    break;
+                    
+                case 'min_wealth':
+                    // Character must have at least this much wealth
+                    if ($wealth < $conditionValue) {
+                        return false;
+                    }
+                    break;
+                    
+                case 'relationship_status':
+                    // Character must have this relationship status
+                    $validStatuses = is_array($conditionValue) ? $conditionValue : [$conditionValue];
+                    if (!in_array($relationshipStatus, $validStatuses)) {
+                        return false;
+                    }
+                    break;
+                    
+                case 'min_burnout':
+                    // Character must have at least this burnout level
+                    if ($burnout < $conditionValue) {
+                        return false;
+                    }
+                    break;
+                    
+                case 'profession_state':
+                    // Character must have this profession state
+                    $validStates = is_array($conditionValue) ? $conditionValue : [$conditionValue];
+                    if (!in_array($professionState, $validStates)) {
+                        return false;
+                    }
+                    break;
+                    
+                case 'health_status':
+                    // Character must have this health status
+                    $validStatuses = is_array($conditionValue) ? $conditionValue : [$conditionValue];
+                    if (!in_array($healthCondition, $validStatuses)) {
+                        return false;
+                    }
+                    break;
+                    
+                case 'min_health':
+                    // Character must have at least this health percentage
+                    if ($health < $conditionValue) {
+                        return false;
+                    }
+                    break;
+                    
+                // Unknown condition keys are ignored
+            }
+        }
+        
         return true;
     }
 

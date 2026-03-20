@@ -537,7 +537,12 @@ export default {
     },
 
     increaseStat(stat) {
-      if (this.remainingPoints > 0 && this.character.stats[stat] < 20) {
+      if (this.character.stats[stat] >= 20) {
+        this.popupMessage = "⚠ MAX 20 allocation per stat!";
+        this.showPopup = true;
+        return;
+      }
+      if (this.remainingPoints > 0) {
         this.character.stats[stat]++;
         this.updateChart();
       }
