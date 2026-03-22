@@ -14,26 +14,52 @@ class LifeSummaryService
      */
     public function generateSummary(Character $character): array
     {
-        $decisions = DecisionLog::where('character_id', $character->id)
-            ->orderBy('day')
-            ->get();
+        try {
+            $decisions = DecisionLog::where('character_id', $character->id)
+                ->orderBy('day')
+                ->get();
+        } catch (\Exception $e) {
+            $decisions = collect([]);
+        }
 
-        $snapshots = LifeStatsSnapshot::where('anon_character_id', $character->anon_character_id)
-            ->orderBy('day')
-            ->get();
+        try {
+            $anonId = $character->anon_character_id ?? 'char-' . $character->id;
+            $snapshots = LifeStatsSnapshot::where('anon_character_id', $anonId)
+                ->orderBy('day')
+                ->get();
+        } catch (\Exception $e) {
+            $snapshots = collect([]);
+        }
 
-        return [
-            'character' => $this->getCharacterSummary($character),
-            'lifespan' => $this->getLifespanSummary($character, $decisions),
-            'statsAnalysis' => $this->analyzeStats($character, $snapshots),
-            'decisionsAnalysis' => $this->analyzeDecisions($decisions),
-            'milestones' => $this->extractMilestones($decisions),
-            'personality' => $this->analyzePersonality($character, $decisions),
-            'achievements' => $this->getUnlockedAchievements($character),
-            'lifeRating' => $this->calculateLifeRating($character, $decisions, $snapshots),
-            'keyMoments' => $this->findKeyMoments($decisions),
-            'advice' => $this->generateLifeAdvice($character, $decisions, $snapshots),
-        ];
+        try {
+            return [
+                'character' => $this->getCharacterSummary($character),
+                'lifespan' => $this->getLifespanSummary($character, $decisions),
+                'statsAnalysis' => $this->analyzeStats($character, $snapshots),
+                'decisionsAnalysis' => $this->analyzeDecisions($decisions),
+                'milestones' => $this->extractMilestones($decisions),
+                'personality' => $this->analyzePersonality($character, $decisions),
+                'achievements' => $this->getUnlockedAchievements($character),
+                'lifeRating' => $this->calculateLifeRating($character, $decisions, $snapshots),
+                'keyMoments' => $this->findKeyMoments($decisions),
+                'advice' => $this->generateLifeAdvice($character, $decisions, $snapshots),
+            ];
+        } catch (\Exception $e) {
+            // Return minimal response if any error occurs
+            return [
+                'character' => $this->getCharacterSummary($character),
+                'lifespan' => ['total_days' => $character->current_day ?? 1, 'total_years' => $character->current_day ?? 1],
+                'statsAnalysis' => [],
+                'decisionsAnalysis' => ['total' => $decisions->count()],
+                'milestones' => [],
+                'personality' => [],
+                'achievements' => [],
+                'lifeRating' => ['score' => 50, 'label' => 'Average'],
+                'keyMoments' => [],
+                'advice' => ['summary' => 'Your life journey has come to an end.'],
+                'error' => $e->getMessage(),
+            ];
+        }
     }
 
     /**
@@ -41,15 +67,18 @@ class LifeSummaryService
      */
     private function getCharacterSummary(Character $character): array
     {
+        // In this game, 1 day = 1 year
+        $age = $character->current_day ?? 1;
+        
         return [
             'name' => $character->name,
             'gender' => $character->gender,
             'profession' => $character->profession ?? 'Unemployed',
             'birth_date' => $character->created_at?->format('Y-m-d'),
             'death_date' => now()->format('Y-m-d'),
-            'lifespan_days' => $character->current_day,
-            'lifespan_years' => (int) ($character->current_day / 365),
-            'age_at_death' => (int) ($character->current_day / 365),
+            'lifespan_days' => $age,
+            'lifespan_years' => $age,
+            'age_at_death' => $age,
         ];
     }
 
@@ -58,8 +87,9 @@ class LifeSummaryService
      */
     private function getLifespanSummary(Character $character, $decisions): array
     {
+        // In this game, 1 day = 1 year
         $days = $character->current_day ?? 1;
-        $years = (int) ($days / 365);
+        $years = $days;
 
         // Age group breakdown
         $ageBreakdown = [];
@@ -78,7 +108,7 @@ class LifeSummaryService
             if ($daysInPeriod > 0 && $ageGroup['start'] < $days) {
                 $ageBreakdown[] = [
                     'period' => $ageGroup['name'],
-                    'years' => min($ageGroup['end'], $years) - (int) ($ageGroup['start'] / 365),
+                    'years' => $daysInPeriod,
                     'percentage' => round(($daysInPeriod / $days) * 100, 1),
                 ];
             }
@@ -211,6 +241,8 @@ class LifeSummaryService
             return [
                 'total' => 0,
                 'by_type' => [],
+                'story_decisions' => 0,
+                'daily_actions' => 0,
                 'risk_level' => 'moderate',
                 'most_common_choice_type' => 'balanced',
             ];
@@ -218,9 +250,25 @@ class LifeSummaryService
 
         // Count by event type
         $byType = [];
+        $storyDecisions = 0;
+        $dailyActions = 0;
+        
+        // Event types that are story events
+        $storyEventTypes = ['cultural', 'ageSpecific', 'profession', 'age_specific'];
+        
         foreach ($decisions as $decision) {
             $type = $decision->event_type ?? 'unknown';
             $byType[$type] = ($byType[$type] ?? 0) + 1;
+            
+            // Categorize as story or daily
+            if (in_array($type, $storyEventTypes)) {
+                $storyDecisions++;
+            } elseif ($type === 'daily') {
+                $dailyActions++;
+            } else {
+                // Unknown types count as story (conservative approach)
+                $storyDecisions++;
+            }
         }
 
         // Analyze risk level based on choices
@@ -250,6 +298,8 @@ class LifeSummaryService
         return [
             'total' => $total,
             'by_type' => $byType,
+            'story_decisions' => $storyDecisions,
+            'daily_actions' => $dailyActions,
             'risk_level' => $riskLevel,
             'risky_decisions' => $riskyChoices,
             'safe_decisions' => $safeChoices,
@@ -267,8 +317,8 @@ class LifeSummaryService
         foreach ($decisions as $decision) {
             $eventTitle = strtolower($decision->event_title ?? '');
             $choiceText = strtolower($decision->choice_text ?? '');
-            $day = $decision->day ?? 0;
-            $age = (int) ($day / 365);
+            $day = (int) ($decision->day ?? 0);
+            $age = $day;
 
             // Career milestones
             if (preg_match('/(promotion|promoted|new job|career)/', $eventTitle . $choiceText)) {
@@ -491,20 +541,39 @@ class LifeSummaryService
         // Map flags to achievement details
         $achievementService = app(AchievementService::class);
         $allAchievements = $achievementService->getAllAchievements();
+        
+        // Rekey to associative array by achievement ID for faster lookup
+        $achievementsById = [];
+        foreach ($allAchievements as $achievement) {
+            if (isset($achievement['id'])) {
+                $achievementsById[$achievement['id']] = $achievement;
+            }
+        }
 
         $unlocked = [];
         foreach ($flags as $flag) {
-            if (isset($allAchievements[$flag])) {
-                $unlocked[] = $allAchievements[$flag];
-            } else {
+            // Handle both string flags and array flags (stored as ['id' => '...', ...])
+            $flagId = is_array($flag) ? ($flag['id'] ?? null) : $flag;
+            
+            if ($flagId && isset($achievementsById[$flagId])) {
+                $achievement = $achievementsById[$flagId];
+                // Add unlock day/timestamp if available from the flag
+                if (is_array($flag)) {
+                    $achievement['unlocked_day'] = $flag['day'] ?? null;
+                    $achievement['unlocked_timestamp'] = $flag['timestamp'] ?? null;
+                }
+                $unlocked[] = $achievement;
+            } elseif ($flagId) {
                 // Generic achievement for unknown flags
                 $unlocked[] = [
-                    'id' => $flag,
-                    'name' => ucwords(str_replace('_', ' ', $flag)),
-                    'description' => 'Achievement unlocked!',
+                    'id' => $flagId,
+                    'name' => ucwords(str_replace('_', ' ', $flagId)),
+                    'description' => is_array($flag) ? ($flag['description'] ?? 'Achievement unlocked!') : 'Achievement unlocked!',
                     'icon' => '🏆',
                     'category' => 'special',
                     'rarity' => 'common',
+                    'unlocked_day' => is_array($flag) ? ($flag['day'] ?? null) : null,
+                    'unlocked_timestamp' => is_array($flag) ? ($flag['timestamp'] ?? null) : null,
                 ];
             }
         }
@@ -544,8 +613,22 @@ class LifeSummaryService
         $score += $relScore;
 
         // Career factor (15 points)
-        $career = $character->career_level ?? 1;
-        $score += min(($career / 10), 1) * 15;
+        $careerLevel = $character->career_level ?? 'unemployed';
+        $careerScore = match($careerLevel) {
+            'student' => 1,
+            'unemployed' => 1,
+            'entry' => 2,
+            'junior' => 3,
+            'mid-level' => 4,
+            'senior' => 5,
+            'manager' => 6,
+            'senior_manager' => 7,
+            'executive' => 8,
+            'entrepreneur' => 9,
+            'retired' => 5,
+            default => 1,
+        };
+        $score += min(($careerScore / 10), 1) * 15;
 
         $finalScore = round($score);
         $grade = match(true) {
@@ -580,7 +663,7 @@ class LifeSummaryService
     private function generateRatingSummary(int $score, Character $character): string
     {
         $name = $character->name;
-        $years = (int) (($character->current_day ?? 1) / 365);
+        $years = (int) ($character->current_day ?? 1);
         
         return match(true) {
             $score >= 90 => "What an incredible life, {$name}! At {$years} years, you achieved everything and more.",
@@ -613,8 +696,8 @@ class LifeSummaryService
                     $change = (int) $matches[1];
                     if (abs($change) >= 20) {
                         $moments[] = [
-                            'day' => $decision->day,
-                            'age' => (int) (($decision->day ?? 0) / 365),
+                            'day' => (int) ($decision->day ?? 0),
+                            'age' => (int) ($decision->day ?? 0),
                             'type' => 'major_change',
                             'title' => $decision->event_title ?? 'Major Event',
                             'description' => $decision->choice_text ?? '',
@@ -642,7 +725,7 @@ class LifeSummaryService
         $health = $character->health ?? 50;
         $happiness = $character->happiness ?? 50;
         $finance = $character->finance ?? 0;
-        $years = (int) (($character->current_day ?? 1) / 365);
+        $years = (int) ($character->current_day ?? 1);
 
         // Health advice
         if ($health < 30) {

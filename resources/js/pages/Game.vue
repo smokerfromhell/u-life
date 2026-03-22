@@ -238,8 +238,9 @@
               prepend-icon="mdi-weather-night"
               @click="endDay"
               :disabled="loading || selectedEvent"
+              block
             >
-              Advance Age
+              <span class="text-truncate">Advance Age</span>
             </v-btn>
             <v-spacer />
             <v-btn
@@ -248,17 +249,20 @@
               color="amber"
               prepend-icon="mdi-trophy"
               @click="showAchievementsDialog = true"
+              block
             >
-              Achievements
+              <span class="text-truncate">Achievements</span>
             </v-btn>
+            <v-spacer />
             <v-btn
               size="large"
               class="suicide-btn action-btn"
               color="error"
               prepend-icon="mdi-skull-crossbones"
               @click="suicide"
+              block
             >
-              Suicide
+              <span class="text-truncate">Suicide</span>
             </v-btn>
           </div>
         </div>
@@ -669,7 +673,7 @@
               {{ lifeSummary.ending_title }} — {{ lifeSummary.ending_description }}
             </p>
             <p class="text-body2 mb-6 text-center">
-              Lived {{ lifeSummary.lifespan_years }} years • Total decisions: {{ lifeSummary.total_decisions }}
+              Lived {{ lifeSummary.lifespan_years }} years • Story: {{ lifeSummary.story_decisions || 0 }} • Daily Actions: {{ lifeSummary.daily_actions || 0 }}
             </p>
 
             <div v-if="lifeSummary.milestones && lifeSummary.milestones.length > 0" class="mb-6">
@@ -2112,7 +2116,11 @@ const continueGame = async () => {
 }
 
 const loadLifeSummary = async () => {
-  if (!character.value?.id) return
+  if (!character.value?.id) {
+    console.warn('No character ID available for life summary')
+    lifeSummaryError.value = 'No character ID available'
+    return
+  }
 
   try {
     lifeSummaryLoading.value = true
@@ -2122,11 +2130,16 @@ const loadLifeSummary = async () => {
       headers: { 'Accept': 'application/json' },
       credentials: 'include'
     })
-    if (!response.ok) throw new Error('Failed to load life summary')
-    lifeSummary.value = await response.json()
+    
+    const data = await response.json()
+    if (!response.ok) {
+      console.error('Life summary API error:', response.status, data)
+      throw new Error(data.message || data.error || `HTTP ${response.status}: Failed to load life summary`)
+    }
+    lifeSummary.value = data
   } catch (error) {
     console.error('Error loading life summary:', error)
-    lifeSummaryError.value = error?.message || 'Error loading life summary.'
+    lifeSummaryError.value = error?.message || error?.toString() || 'Error loading life summary.'
   } finally {
     lifeSummaryLoading.value = false
   }
@@ -6558,7 +6571,55 @@ const startNewGame = () => {
 
 .action-btn {
   flex: 1;
-  max-width: 220px;
+  min-width: 120px !important;
+  max-width: 150px !important;
+  font-weight: 600 !important;
+  font-size: 0.65rem !important;
+  letter-spacing: 0.3px !important;
+  text-transform: uppercase !important;
+  border-radius: 8px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  padding: 0 4px !important;
+  height: 44px !important;
+}
+
+.action-btn:hover:not(:disabled) {
+  transform: translateY(-3px) scale(1.02) !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35) !important;
+}
+
+.action-btn:active:not(:disabled) {
+  transform: translateY(-1px) scale(1.01) !important;
+}
+
+.end-day-btn {
+  background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
+  border: 2px solid #818cf8 !important;
+}
+
+.end-day-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #818cf8, #6366f1) !important;
+  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.45) !important;
+}
+
+.achievements-btn {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  border: 2px solid #fbbf24 !important;
+}
+
+.achievements-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b) !important;
+  box-shadow: 0 8px 30px rgba(245, 158, 11, 0.45) !important;
+}
+
+.suicide-btn {
+  background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+  border: 2px solid #ef4444 !important;
+}
+
+.suicide-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  box-shadow: 0 8px 30px rgba(239, 68, 68, 0.45) !important;
 }
 
 /* Enhanced Retro Pixel Suicide Dialog */

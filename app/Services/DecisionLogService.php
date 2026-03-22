@@ -103,7 +103,14 @@ class DecisionLogService
             // Get event details
             $eventType = $event['type'] ?? 'unknown';
             $eventId = $event['id'] ?? null;
-            $statEffects = $event['statEffects'] ?? [];
+            $rawStatEffects = $event['statEffects'] ?? [];
+            // Parse statEffects string to array if needed (fixes type error in calculateEnhancedMBTI)
+            $statEffects = [];
+            if (is_string($rawStatEffects) && !empty($rawStatEffects)) {
+                $statEffects = app(\App\Services\EventService::class)->parseStatEffects($rawStatEffects);
+            } elseif (is_array($rawStatEffects)) {
+                $statEffects = $rawStatEffects;
+            }
             
             // Process choice consequences for branching system
             $eventService = app(\App\Services\EventService::class);

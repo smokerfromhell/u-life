@@ -1410,25 +1410,6 @@ class DailyActionSeeder extends Seeder
                     'weather' => 'clear',
                 ],
             ],
-
-            // Time control - always available
-            [
-                'title' => 'Advance Age',
-                'description' => 'Let time pass. You grow older and new events appear.',
-                'image' => '/css/images/milestone.jpg',
-                'type' => 'system',
-                'deck_label' => 'Action',
-                'repeatable' => true,
-                'weight' => 0,
-                'auto_resolve' => false,
-                'days_to_advance' => 0,
-                'display_order' => 90,
-                'choices' => [
-                    ['text' => 'Advance 1 year', 'stat_effects' => null, 'days_to_advance' => 1],
-                    ['text' => 'Fast-forward 5 years', 'stat_effects' => '+5 Burnout, -3 Health, -2 Happiness', 'days_to_advance' => 5],
-                ],
-                'conditions' => null,
-            ],
         ];
 
         foreach ($actions as $action) {

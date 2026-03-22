@@ -255,7 +255,7 @@ import axios from 'axios';
 export default {
   data() {
     return {
-      totalPoints: 30,
+      totalPoints: 50,
       isSaving: false,
       character: {
         name: "",
@@ -267,19 +267,21 @@ export default {
           Charisma: 0,
           Creativity: 0,
           Wealth: 0,
-          Luck: 0
+          Luck: 0,
+          Social: 0,
+          Empathy: 0
         },
         hiddenStats: {
           Debt: 0,
-          Health: 0,
+          Health: 78,
           Addiction: 0,
-          Burnout: 0,
-          Morality: 0,
-          Happiness: 0,
-          Reputation: 0,
-          Discipline: 0,
-          Isolation: 0,
-          Ego: 0,
+          Burnout: 5,
+          Morality: 45,
+          Happiness: 72,
+          Reputation: 35,
+          Discipline: 40,
+          Isolation: 6,
+          Ego: 10,
         },
         skills: [],
         talents: []
@@ -498,16 +500,16 @@ export default {
       this.genderBonus = {};
       switch (this.character.gender) {
         case "male":
-          this.genderBonus = { Strength: 2 };
+          this.genderBonus = { Strength: 8, Wealth: 3 };
           break;
         case "female":
-          this.genderBonus = { Intelligence: 2 };
+          this.genderBonus = { Intelligence: 5, Charisma: 5 };
           break;
         case "non-binary":
-          this.genderBonus = { Creativity: 1, Luck: 1 };
+          this.genderBonus = { Creativity: 8, Luck: 5 };
           break;
         case "transgender":
-          this.genderBonus = { Charisma: 1, Luck: 1 };
+          this.genderBonus = { Charisma: 8, Intelligence: 5 };
           break;
         default:
           this.genderBonus = {};
@@ -519,16 +521,20 @@ export default {
       this.ageBonus = {};
       switch (this.character.ageGroup) {
         case "child":
-          this.ageBonus = { Luck: 1, Creativity: 1 };
+          // Young children have high potential - bonus to learning stats
+          this.ageBonus = { Luck: 8, Creativity: 8, Intelligence: 5 };
           break;
         case "teenager":
-          this.ageBonus = { Strength: 2, Intelligence: 1 };
+          // Teenagers are developing physically and mentally
+          this.ageBonus = { Strength: 8, Intelligence: 8, Charisma: 5 };
           break;
         case "adult":
-          this.ageBonus = { Strength: 4, Intelligence: 3 };
+          // Adults are in their prime - balanced strength
+          this.ageBonus = { Strength: 10, Intelligence: 8, Wealth: 5 };
           break;
         case "old":
-          this.ageBonus = { Strength: -2, Intelligence: 6 };
+          // Elderly have wisdom but declining physical stats
+          this.ageBonus = { Intelligence: 15, Charisma: 8, Strength: -8 };
           break;
         default:
           this.ageBonus = {};
@@ -537,8 +543,8 @@ export default {
     },
 
     increaseStat(stat) {
-      if (this.character.stats[stat] >= 20) {
-        this.popupMessage = "⚠ MAX 20 allocation per stat!";
+      if (this.character.stats[stat] >= 30) {
+        this.popupMessage = "⚠ MAX 30 allocation per stat!";
         this.showPopup = true;
         return;
       }

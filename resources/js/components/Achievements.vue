@@ -1,59 +1,61 @@
 <template>
   <v-dialog v-model="dialogVisible" max-width="800" scrollable>
-    <v-card class="achievements-dialog">
-      <v-card-title class="achievements-header">
-        <v-icon size="28" class="mr-2">mdi-trophy</v-icon>
-        Achievements
+    <v-card class="achievements-dialog" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);">
+      <v-card-title class="achievements-header" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white;">
+        <v-icon size="28" class="mr-2" color="white">mdi-trophy</v-icon>
+        <span style="font-weight: bold; font-size: 1.3rem;">ACHIEVEMENTS</span>
         <v-spacer></v-spacer>
-        <v-chip color="amber" variant="flat" size="small">
+        <v-chip color="white" variant="flat" size="small" style="font-weight: bold;">
           {{ unlockedCount }}/{{ totalCount }}
         </v-chip>
       </v-card-title>
       
       <v-card-text class="achievements-content">
         <!-- Category Tabs -->
-        <v-tabs v-model="activeCategory" color="primary" class="mb-4">
+        <v-tabs v-model="activeCategory" class="mb-4 achievements-tabs">
           <v-tab value="all">All</v-tab>
           <v-tab value="career">Career</v-tab>
-          <v-tab value="wealth">Wealth</v-tab>
           <v-tab value="health">Health</v-tab>
           <v-tab value="relationship">Relationship</v-tab>
           <v-tab value="skills">Skills</v-tab>
           <v-tab value="lifespan">Lifespan</v-tab>
+          <v-tab value="social">Social</v-tab>
+          <v-tab value="luck">Luck</v-tab>
           <v-tab value="special">Special</v-tab>
+          <v-tab value="milestone">Milestone</v-tab>
         </v-tabs>
 
         <!-- Achievement Stats -->
         <v-row class="mb-4">
           <v-col cols="6" sm="3">
-            <v-card variant="tonal" color="grey">
+            <v-card variant="tonal" color="grey" style="background: rgba(158, 158, 158, 0.15);">
               <v-card-text class="text-center">
-                <div class="text-h4 font-weight-bold">{{ stats.common }}</div>
-                <div class="text-caption">Common</div>
+                <div class="text-h4 font-weight-bold" style="color: #9e9e9e;">{{ stats.common }}</div>
+                <div class="text-caption" style="color: #9e9e9e;">Common</div>
               </v-card-text>
             </v-card>
           </v-col>
           <v-col cols="6" sm="3">
-            <v-card variant="tonal" color="success">
+            <v-card variant="tonal" color="success" style="background: rgba(76, 175, 80, 0.15);">
               <v-card-text class="text-center">
-                <div class="text-h4 font-weight-bold">{{ stats.uncommon }}</div>
-                <div class="text-caption">Uncommon</div>
+                <div class="text-h4 font-weight-bold" style="color: #4caf50;">{{ stats.uncommon }}</div>
+                <div class="text-caption" style="color: #4caf50;">Uncommon</div>
               </v-card-text>
             </v-card>
           </v-col>
           <v-col cols="6" sm="3">
-            <v-card variant="tonal" color="info">
+            <v-card variant="tonal" color="info" style="background: rgba(33, 150, 243, 0.15);">
               <v-card-text class="text-center">
-                <div class="text-h4 font-weight-bold">{{ stats.rare }}</div>
-                <div class="text-caption">Rare</div>
+                <div class="text-h4 font-weight-bold" style="color: #2196f3;">{{ stats.rare }}</div>
+                <div class="text-caption" style="color: #2196f3;">Rare</div>
               </v-card-text>
             </v-card>
           </v-col>
           <v-col cols="6" sm="3">
-            <v-card variant="tonal" color="purple">
+            <v-card variant="tonal" color="purple" style="background: rgba(156, 39, 176, 0.15);">
               <v-card-text class="text-center">
-                <div class="text-h4 font-weight-bold">{{ stats.epic }}</div>
-                <div class="text-caption">Epic</div>
+                <div class="text-h4 font-weight-bold" style="color: #9c27b0;">{{ stats.epic }}</div>
+                <div class="text-caption" style="color: #9c27b0;">Epic</div>
               </v-card-text>
             </v-card>
           </v-col>
@@ -115,12 +117,12 @@
       </v-card-actions>
     </v-card>
 
-    <!-- Achievement Detail Dialog -->
-    <v-dialog v-model="detailDialog" max-width="500">
-      <v-card v-if="selectedAchievement">
-        <v-card-title class="d-flex align-center" :class="`bg-${getRarityColor(selectedAchievement.rarity)}`">
+    <!-- Achievement Detail Dialog - RETRO PIXEL EDITION -->
+    <v-dialog v-model="detailDialog" max-width="500" persistent rounded="0" content-class="achievement-detail-dialog">
+      <v-card v-if="selectedAchievement" class="achievement-detail-card">
+        <v-card-title class="achievement-detail-header" :class="`rarity-${selectedAchievement.rarity}`">
           <v-icon size="32" class="mr-2">{{ selectedAchievement.icon || 'mdi-trophy' }}</v-icon>
-          {{ selectedAchievement.name }}
+          <span class="achievement-detail-title">{{ selectedAchievement.name }}</span>
         </v-card-title>
         <v-card-text class="pt-4">
           <div class="text-body-1 mb-4">{{ selectedAchievement.description }}</div>
@@ -194,52 +196,52 @@ const loading = ref(false)
 // Achievement data with all achievements
 const allAchievementsData = [
   // Career achievements
-  { id: 'first_job', name: 'First Steps', description: 'Start your first job', icon: 'mdi-briefcase', category: 'career', rarity: 'common' },
-  { id: 'career_master', name: 'Career Master', description: 'Reach career level 10', icon: 'mdi-star', category: 'career', rarity: 'rare' },
-  { id: 'jack_of_all_trades', name: 'Jack of All Trades', description: 'Try 5 different professions', icon: 'mdi-shape', category: 'career', rarity: 'uncommon' },
+  { id: 'first_job', name: 'Career Beginnings', description: 'Start your professional journey', icon: 'mdi-briefcase', category: 'career', rarity: 'common' },
+  { id: 'career_master', name: 'Career Master', description: 'Reach career level 5', icon: 'mdi-star', category: 'career', rarity: 'rare' },
+  { id: 'career_promotion', name: 'Promotion!', description: 'Get promoted to next career level', icon: 'mdi-arrow-up-bold', category: 'career', rarity: 'common' },
+  { id: 'jack_of_all_trades', name: 'Jack of All Trades', description: 'Try 3 different professions', icon: 'mdi-shape', category: 'career', rarity: 'uncommon' },
   { id: 'entrepreneur', name: 'Entrepreneur', description: 'Start your own business', icon: 'mdi-store', category: 'career', rarity: 'epic' },
-  { id: 'workaholic', name: 'Workaholic', description: 'Work for 50+ days without a break', icon: 'mdi-clock', category: 'career', rarity: 'rare' },
+  { id: 'workaholic', name: 'Workaholic', description: 'Work for 20+ days in a row', icon: 'mdi-clock', category: 'career', rarity: 'uncommon' },
   
-  // Wealth achievements
-  { id: 'savings_start', name: 'Savings Start', description: 'Save your first $10,000', icon: 'mdi-piggy-bank', category: 'wealth', rarity: 'common' },
-  { id: 'millionaire', name: 'Millionaire', description: 'Accumulate $1,000,000', icon: 'mdi-cash', category: 'wealth', rarity: 'epic' },
-  { id: 'multi_millionaire', name: 'Multi-Millionaire', description: 'Accumulate $5,000,000', icon: 'mdi-cash-multiple', category: 'wealth', rarity: 'legendary' },
-  { id: 'comfortable_retirement', name: 'Comfortable Retirement', description: 'Retire with $500,000+', icon: 'mdi-beach', category: 'wealth', rarity: 'rare' },
-  { id: 'big_spender', name: 'Big Spender', description: 'Spend $100,000 in one go', icon: 'mdi-cart', category: 'wealth', rarity: 'uncommon' },
   
-  // Health achievements
-  { id: 'fitness_fanatic', name: 'Fitness Fanatic', description: 'Maintain 80+ health for 20 days', icon: 'mdi-heart', category: 'health', rarity: 'uncommon' },
+  
+  
+  
+  
+  
+  
+  
+  // Health achievements - Made easier
+  { id: 'fitness_fanatic', name: 'Fitness Fanatic', description: 'Maintain 70+ health for 10 days', icon: 'mdi-heart', category: 'health', rarity: 'common' },
   { id: 'marathon_runner', name: 'Marathon Runner', description: 'Complete a fitness event', icon: 'mdi-run', category: 'health', rarity: 'rare' },
-  { id: 'healthy_living', name: 'Healthy Living', description: 'Live to age 70 with 50+ health', icon: 'mdi-apple', category: 'health', rarity: 'epic' },
-  { id: 'survivor', name: 'Survivor', description: 'Recover from critical health', icon: 'mdi-hospital', category: 'health', rarity: 'rare' },
-  { id: 'longevity', name: 'Longevity', description: 'Live to age 80+', icon: 'mdi-clock-check', category: 'health', rarity: 'epic' },
+  { id: 'survivor', name: 'Survivor', description: 'Recover from low health', icon: 'mdi-hospital', category: 'health', rarity: 'uncommon' },
   
   // Relationship achievements
   { id: 'first_love', name: 'First Love', description: 'Enter your first relationship', icon: 'mdi-heart', category: 'relationship', rarity: 'common' },
   { id: 'tie_the_knot', name: 'Tie the Knot', description: 'Get married', icon: 'mdi-ring', category: 'relationship', rarity: 'uncommon' },
-  { id: 'family_planner', name: 'Family Planner', description: 'Have 3 children', icon: 'mdi-account-group', category: 'relationship', rarity: 'rare' },
-  { id: 'granny', name: 'Granny/Grandpa', description: 'Have a grandchild', icon: 'mdi-human', category: 'relationship', rarity: 'epic' },
-  { id: 'social_butterfly', name: 'Social Butterfly', description: 'Have 10+ social connections', icon: 'mdi-account-multiple', category: 'relationship', rarity: 'uncommon' },
+  { id: 'family_planner', name: 'Family Planner', description: 'Have 2 children', icon: 'mdi-account-group', category: 'relationship', rarity: 'rare' },
+  { id: 'social_butterfly', name: 'Social Butterfly', description: 'Have 5+ social connections', icon: 'mdi-account-multiple', category: 'relationship', rarity: 'uncommon' },
+  { id: 'popular', name: 'Popular', description: 'Have 10+ social connections', icon: 'mdi-star', category: 'relationship', rarity: 'epic' },
   
-  // Skills achievements
-  { id: 'eager_learner', name: 'Eager Learner', description: 'Complete 10 education events', icon: 'mdi-school', category: 'skills', rarity: 'common' },
-  { id: 'polymath', name: 'Polymath', description: 'Master 5 different skills', icon: 'mdi-brain', category: 'skills', rarity: 'rare' },
-  { id: 'master_of_skills', name: 'Master of Skills', description: 'Reach level 5 in any skill', icon: 'mdi-star-circle', category: 'skills', rarity: 'epic' },
+  // Skills achievements - Made easier
+  { id: 'eager_learner', name: 'Eager Learner', description: 'Complete 5 education events', icon: 'mdi-school', category: 'skills', rarity: 'common' },
+  { id: 'polymath', name: 'Polymath', description: 'Master 3 different skills', icon: 'mdi-brain', category: 'skills', rarity: 'rare' },
+  { id: 'master_of_skills', name: 'Master of Skills', description: 'Reach level 3 in any skill', icon: 'mdi-star-circle', category: 'skills', rarity: 'epic' },
   { id: 'talent_spotted', name: 'Talent Spotted', description: 'Discover a hidden talent', icon: 'mdi-lightbulb', category: 'skills', rarity: 'uncommon' },
-  { id: 'gifted', name: 'Gifted', description: 'Have all stats above 70', icon: 'mdi-diamond', category: 'skills', rarity: 'legendary' },
+  { id: 'gifted', name: 'Gifted', description: 'Have all stats above 60', icon: 'mdi-diamond', category: 'skills', rarity: 'rare' },
   
-  // Lifespan achievements
-  { id: 'teenager', name: 'Teenager', description: 'Reach age 13', icon: 'mdi-human-child', category: 'lifespan', rarity: 'common' },
+  // Lifespan achievements - Made easier
+  { id: 'baby_steps', name: 'Baby Steps', description: 'Reach age 5', icon: 'mdi-baby-carriage', category: 'lifespan', rarity: 'common' },
+  { id: 'childhood', name: 'Childhood Complete', description: 'Reach age 12', icon: 'mdi-human-child', category: 'lifespan', rarity: 'common' },
+  { id: 'teenager', name: 'Teenager', description: 'Reach age 13', icon: 'mdi-account', category: 'lifespan', rarity: 'common' },
   { id: 'adulthood', name: 'Adulthood', description: 'Reach age 18', icon: 'mdi-human', category: 'lifespan', rarity: 'common' },
-  { id: 'full_life', name: 'Full Life', description: 'Reach age 70', icon: 'mdi-clock-check', category: 'lifespan', rarity: 'rare' },
   
-  // Special achievements
-  { id: 'lucky_star', name: 'Lucky Star', description: 'Have 80+ luck', icon: 'mdi-star', category: 'special', rarity: 'rare' },
-  { id: 'karma_wheel', name: 'Karma Wheel', description: 'Reach 1000 karma', icon: 'mdi-dharmachakra', category: 'special', rarity: 'epic' },
-  { id: 'story_master', name: 'Story Master', description: 'Complete 10 story events', icon: 'mdi-book', category: 'special', rarity: 'uncommon' },
-  { id: 'perfect_day', name: 'Perfect Day', description: 'Have all stats above 90 in one day', icon: 'mdi-weather-sunny', category: 'special', rarity: 'epic' },
-  { id: 'comeback_kid', name: 'Comeback Kid', description: 'Recover from near-death', icon: 'mdi-hospital-box', category: 'special', rarity: 'rare' },
-  { id: 'game_master', name: 'Game Master', description: 'Unlock all other achievements', icon: 'mdi-crown', category: 'special', rarity: 'legendary' },
+  // Special achievements - Made easier
+  { id: 'lucky_star', name: 'Lucky Star', description: 'Have 60+ luck', icon: 'mdi-star', category: 'special', rarity: 'uncommon' },
+  { id: 'story_master', name: 'Story Master', description: 'Complete 5 story events', icon: 'mdi-book', category: 'special', rarity: 'uncommon' },
+  { id: 'perfect_day', name: 'Perfect Day', description: 'Have all stats above 80 in one day', icon: 'mdi-weather-sunny', category: 'special', rarity: 'rare' },
+  { id: 'comeback_kid', name: 'Comeback Kid', description: 'Recover from low health', icon: 'mdi-hospital-box', category: 'special', rarity: 'uncommon' },
+  { id: 'game_master', name: 'Game Master', description: 'Unlock 20 achievements', icon: 'mdi-crown', category: 'special', rarity: 'legendary' },
 ]
 
 // Get rarity color
@@ -256,10 +258,18 @@ const getRarityColor = (rarity) => {
 
 // Compute filtered achievements
 const filteredAchievements = computed(() => {
-  let filtered = allAchievementsData.map(achievement => {
-    const unlocked = achievements.value.includes(achievement.id)
-    return { ...achievement, unlocked }
-  })
+  // Use API data if available (it has unlocked status), otherwise fallback to hardcoded data
+  let filtered
+  if (achievements.value.length > 0 && achievements.value[0]?.hasOwnProperty('unlocked')) {
+    // API returns all achievements with unlocked status
+    filtered = achievements.value
+  } else {
+    // Fallback to hardcoded data with ID mapping
+    filtered = allAchievementsData.map(achievement => {
+      const unlocked = achievements.value.includes(achievement.id)
+      return { ...achievement, unlocked }
+    })
+  }
   
   if (activeCategory.value !== 'all') {
     filtered = filtered.filter(a => a.category === activeCategory.value)
@@ -304,8 +314,12 @@ const loadAchievements = async () => {
     })
     const data = await response.json()
     if (data.achievements) {
-      // API returns achievement objects, extract IDs
-      achievements.value = data.achievements.map(a => a.id || a)
+      // API returns all achievements with unlocked status
+      achievements.value = data.achievements
+    }
+    // Also load stats if available
+    if (data.stats) {
+      stats.value = data.stats
     }
   } catch (error) {
     console.error('Error loading achievements:', error)
@@ -331,106 +345,434 @@ watch(() => props.modelValue, (newVal) => {
 </script>
 
 <style scoped>
+/* Import pixel font */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+
+/* Achievement Tabs - White Text */
+.achievements-tabs {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border-bottom: 2px solid #3d3d5c;
+}
+
+.achievements-tabs .v-tab {
+  color: #fff !important;
+  font-family: 'VT323', monospace !important;
+  font-size: 16px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+  opacity: 0.7;
+  transition: all 0.2s ease;
+}
+
+.achievements-tabs .v-tab:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.achievements-tabs .v-tab--selected {
+  opacity: 1 !important;
+  color: #ffd43b !important;
+  background: rgba(255, 212, 59, 0.15) !important;
+  text-shadow: 0 0 10px rgba(255, 212, 59, 0.5);
+}
+
+/* CRT Screen Effect */
 .achievements-dialog {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: linear-gradient(180deg, #0a0a12 0%, #1a1a2e 50%, #0d0d1a 100%) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Scanline overlay */
+.achievements-dialog::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.15),
+    rgba(0, 0, 0, 0.15) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* CRT glow effect */
+.achievements-dialog::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
+  pointer-events: none;
+  z-index: 2;
 }
 
 .achievements-header {
-  background: linear-gradient(90deg, #1e3a5f 0%, #0d47a1 100%);
-  color: white;
-  display: flex;
-  align-items: center;
+  background: linear-gradient(180deg, #ff6b6b 0%, #c92a2a 50%, #862e2e 100%) !important;
+  color: #fff !important;
+  font-family: 'Press Start 2P', 'VT323', monospace !important;
+  font-size: 14px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 2px !important;
+  padding: 20px !important;
+  border-bottom: 4px solid #ffd43b !important;
+  text-shadow: 3px 3px 0 #000, -1px -1px 0 #000 !important;
+  position: relative;
+}
+
+/* Pixel art header icon */
+.achievements-header::before {
+  content: '🏆';
+  font-size: 24px;
+  margin-right: 12px;
+  filter: drop-shadow(2px 2px 0 #000);
 }
 
 .achievements-content {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(0, 0, 0, 0.4) !important;
+  position: relative;
+  z-index: 3;
+}
+
+/* Pixelated tabs */
+.achievements-content :deep(.v-tab) {
+  font-family: 'VT323', monospace !important;
+  font-size: 18px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+  border: 2px solid transparent !important;
+  transition: all 0.2s !important;
+}
+
+.achievements-content :deep(.v-tab--selected) {
+  background: rgba(255, 212, 59, 0.2) !important;
+  border-color: #ffd43b !important;
+  color: #ffd43b !important;
+  text-shadow: 0 0 10px #ffd43b !important;
 }
 
 .achievements-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  padding: 16px;
 }
 
+/* Retro Pixel Achievement Cards */
 .achievement-card {
   display: flex;
   align-items: center;
-  padding: 12px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
+  padding: 16px;
+  margin-bottom: 0;
+  border: 4px solid #2d2d44 !important;
+  border-radius: 0 !important;
+  background: linear-gradient(135deg, #1e1e32 0%, #14142a 100%) !important;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s steps(3) !important;
   position: relative;
-  border: 2px solid transparent;
+  image-rendering: pixelated;
 }
 
+/* Pixel hover effect */
 .achievement-card:hover {
-  transform: translateY(-2px);
-  background: rgba(255, 255, 255, 0.1);
+  transform: translate(-4px, -4px);
+  box-shadow: 8px 8px 0 #000 !important;
+  border-color: #ffd43b !important;
 }
 
+.achievement-card:active {
+  transform: translate(0, 0);
+  box-shadow: 4px 4px 0 #000 !important;
+}
+
+/* Locked state */
 .achievement-card.locked {
-  opacity: 0.6;
+  opacity: 0.5;
+  filter: grayscale(80%);
 }
 
 .achievement-card.locked .achievement-icon {
-  filter: grayscale(100%);
+  filter: grayscale(100%) brightness(0.5);
 }
 
-/* Rarity borders */
-.achievement-card.rarity-common { border-color: #9e9e9e; }
-.achievement-card.rarity-uncommon { border-color: #4caf50; }
-.achievement-card.rarity-rare { border-color: #2196f3; }
-.achievement-card.rarity-epic { border-color: #9c27b0; }
-.achievement-card.rarity-legendary { border-color: #ffc107; }
+/* Rarity pixel borders */
+.achievement-card.rarity-common { 
+  border-color: #868e96 !important; 
+}
+.achievement-card.rarity-common:hover {
+  border-color: #ffd43b !important;
+}
 
+.achievement-card.rarity-uncommon { 
+  border-color: #51cf66 !important;
+  box-shadow: inset 0 0 0 2px rgba(81, 207, 102, 0.3);
+}
+.achievement-card.rarity-uncommon:hover {
+  border-color: #ffd43b !important;
+  box-shadow: 0 0 15px rgba(81, 207, 102, 0.5), 8px 8px 0 #000 !important;
+}
+
+.achievement-card.rarity-rare { 
+  border-color: #339af0 !important;
+  box-shadow: inset 0 0 0 2px rgba(51, 154, 240, 0.3);
+}
+.achievement-card.rarity-rare:hover {
+  border-color: #ffd43b !important;
+  box-shadow: 0 0 20px rgba(51, 154, 240, 0.6), 8px 8px 0 #000 !important;
+}
+
+.achievement-card.rarity-epic { 
+  border-color: #cc5de8 !important;
+  box-shadow: inset 0 0 0 2px rgba(204, 93, 232, 0.3);
+}
+.achievement-card.rarity-epic:hover {
+  border-color: #ffd43b !important;
+  box-shadow: 0 0 25px rgba(204, 93, 232, 0.7), 8px 8px 0 #000 !important;
+}
+
+.achievement-card.rarity-legendary { 
+  border-color: #ffd43b !important;
+  box-shadow: inset 0 0 0 2px rgba(255, 212, 59, 0.4), 0 0 20px rgba(255, 212, 59, 0.3);
+}
+.achievement-card.rarity-legendary:hover {
+  border-color: #ffd43b !important;
+  box-shadow: 0 0 30px rgba(255, 212, 59, 0.8), 8px 8px 0 #000 !important;
+}
+
+/* Pixel Icon Box */
 .achievement-icon {
   flex-shrink: 0;
-  width: 50px;
-  height: 50px;
+  width: 56px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 50%;
-  margin-right: 12px;
+  background: linear-gradient(135deg, #2d2d44 0%, #1a1a2e 100%) !important;
+  border: 3px solid #3d3d5c !important;
+  border-radius: 0 !important;
+  margin-right: 14px;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,0.1), inset -2px -2px 0 rgba(0,0,0,0.3);
 }
 
+.achievement-icon :deep(.v-icon) {
+  font-size: 28px !important;
+  filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.5));
+}
+
+/* Achievement Info */
 .achievement-info {
   flex: 1;
   min-width: 0;
 }
 
 .achievement-name {
-  font-weight: 600;
-  font-size: 14px;
-  color: white;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-family: 'VT323', monospace !important;
+  font-size: 20px !important;
+  font-weight: 400 !important;
+  color: #fff !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+  text-shadow: 2px 2px 0 #000 !important;
+  margin-bottom: 4px;
 }
 
 .achievement-description {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  font-family: 'VT323', monospace !important;
+  font-size: 16px !important;
+  color: #adb5bd !important;
+  line-height: 1.4;
 }
 
+/* Rarity chip */
+.achievement-card .v-chip {
+  font-family: 'VT323', monospace !important;
+  font-size: 14px !important;
+  text-transform: uppercase !important;
+  border: 2px solid !important;
+  border-radius: 0 !important;
+}
+
+/* Check icon */
 .check-icon {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 6px;
+  right: 6px;
+  font-size: 16px !important;
+}
+
+/* Retro Pixel Achievement Detail Dialog */
+.achievement-detail-dialog {
+  animation: achievement-popup 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+@keyframes achievement-popup {
+  0% { transform: scale(0.5); opacity: 0; }
+  70% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.achievement-detail-card {
+  background: linear-gradient(180deg, #1a1a2e 0%, #0a0a12 100%) !important;
+  border: 4px solid #ffd43b !important;
+  border-radius: 0 !important;
+  box-shadow: 
+    0 0 0 4px #000,
+    0 0 40px rgba(255, 212, 59, 0.4),
+    inset 0 0 30px rgba(0, 0, 0, 0.5) !important;
+  position: relative;
+}
+
+/* Pixel corner decorations */
+.achievement-detail-card::before,
+.achievement-detail-card::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 3px solid #ffd43b;
+}
+
+.achievement-detail-card::before {
+  top: -8px;
+  left: -8px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.achievement-detail-card::after {
+  bottom: -8px;
+  right: -8px;
+  border-left: none;
+  border-top: none;
+}
+
+.achievement-detail-header {
+  padding: 20px 24px !important;
+  font-family: 'Press Start 2P', 'VT323', monospace !important;
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 2px !important;
+  display: flex !important;
+  align-items: center !important;
+  border-bottom: 4px solid #000 !important;
+  text-shadow: 2px 2px 0 rgba(0,0,0,0.5) !important;
+}
+
+/* Rarity-based header colors */
+.achievement-detail-header.rarity-common {
+  background: linear-gradient(180deg, #bdbdbd 0%, #9e9e9e 50%, #757575 100%) !important;
+  color: #000 !important;
+}
+
+.achievement-detail-header.rarity-uncommon {
+  background: linear-gradient(180deg, #69db7c 0%, #51cf66 50%, #2f9e44 100%) !important;
+  color: #000 !important;
+}
+
+.achievement-detail-header.rarity-rare {
+  background: linear-gradient(180deg, #74c0fc 0%, #339af0 50%, #1971c2 100%) !important;
+  color: #000 !important;
+}
+
+.achievement-detail-header.rarity-epic {
+  background: linear-gradient(180deg, #da77f2 0%, #cc5de8 50%, #9c36c5 100%) !important;
+  color: #fff !important;
+}
+
+.achievement-detail-header.rarity-legendary {
+  background: linear-gradient(180deg, #ffe066 0%, #ffd43b 50%, #f59f00 100%) !important;
+  color: #000 !important;
+  animation: legendary-glow 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes legendary-glow {
+  0% { box-shadow: 0 0 20px rgba(255, 212, 59, 0.5); }
+  100% { box-shadow: 0 0 40px rgba(255, 212, 59, 0.8), 0 0 60px rgba(255, 212, 59, 0.4); }
+}
+
+.achievement-detail-title {
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.achievement-detail-card .v-card-text {
+  background: rgba(0, 0, 0, 0.5) !important;
+  padding: 24px !important;
+  font-family: 'VT323', monospace !important;
+}
+
+.achievement-detail-card .v-chip {
+  font-family: 'VT323', monospace !important;
+  font-size: 18px !important;
+  border: 2px solid !important;
+  border-radius: 0 !important;
+}
+
+.achievement-detail-card .v-btn {
+  font-family: 'VT323', monospace !important;
+  font-size: 18px !important;
+  text-transform: uppercase !important;
+  border: 3px solid !important;
+  border-radius: 0 !important;
+}
+
+/* Empty state */
+.achievements-empty {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.achievements-empty .v-icon {
+  font-size: 80px !important;
+  opacity: 0.3;
+  filter: grayscale(100%);
+}
+
+.achievements-empty .text-h6 {
+  font-family: 'VT323', monospace !important;
+  font-size: 24px !important;
+  color: #868e96 !important;
 }
 
 /* Rarity backgrounds */
 .achievement-card.rarity-legendary {
-  background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 152, 0, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(255, 212, 59, 0.15) 0%, rgba(255, 152, 0, 0.15) 100%) !important;
 }
 
 .achievement-card.rarity-epic {
-  background: linear-gradient(135deg, rgba(156, 39, 176, 0.1) 0%, rgba(103, 58, 183, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(204, 93, 232, 0.15) 0%, rgba(103, 58, 183, 0.15) 100%) !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .achievements-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 12px;
+  }
+  
+  .achievement-card {
+    padding: 12px;
+  }
+  
+  .achievement-icon {
+    width: 44px;
+    height: 44px;
+  }
+  
+  .achievement-name {
+    font-size: 16px !important;
+  }
+  
+  .achievement-description {
+    font-size: 14px !important;
+  }
 }
 </style>

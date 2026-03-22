@@ -45,8 +45,15 @@ class EventController extends Controller
     // Days per year for age calculation
     const DAYS_PER_YEAR = 1; // 1 day = 1 year for game simplicity
 
-    // Maximum days in game
-    const MAX_DAYS = 50;
+    // Default maximum days in game (fallback)
+    const DEFAULT_MAX_DAYS = 50;
+
+    // Get max days based on character's starting age group
+    private function getMaxDays(Character $character): int
+    {
+        $state = is_array($character->character_state) ? $character->character_state : [];
+        return $state['max_age'] ?? self::DEFAULT_MAX_DAYS;
+    }
 
     public function __construct(EventService $eventService, AdaptiveNarrativeService $adaptiveNarrativeService, MiniGameService $miniGameService, LuckService $luckService, AchievementService $achievementService)
     {
@@ -107,7 +114,7 @@ class EventController extends Controller
             $gameOver = false;
             $endingType = null;
 
-            if ($character->current_day >= self::MAX_DAYS) {
+            if ($character->current_day >= $this->getMaxDays($character)) {
                 $gameOver = true;
                 $endingType = $this->determineEndingType($character, 'old_age');
             }
@@ -147,7 +154,9 @@ class EventController extends Controller
     public function getLifeSummary(Character $character)
     {
         try {
-            if ($character->user_id !== Auth::id()) {
+            // Allow if user owns character OR character has no user_id (guest character)
+            $userId = Auth::id();
+            if ($character->user_id && $userId && $character->user_id !== $userId) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
 
@@ -157,7 +166,7 @@ class EventController extends Controller
 
             // Get ending details
             $endingType = $this->determineEndingType($character, 
-                ($character->current_day >= self::MAX_DAYS) ? 'old_age' : 'death');
+                ($character->current_day >= $this->getMaxDays($character)) ? 'old_age' : 'death');
             $endingDetails = $this->getEndingDetails($endingType, $character);
 
             return response()->json([
@@ -168,10 +177,14 @@ class EventController extends Controller
                 'character' => $comprehensiveSummary['character'],
                 // Lifespan analysis
                 'lifespan' => $comprehensiveSummary['lifespan'],
+                'lifespan_years' => $comprehensiveSummary['lifespan']['total_years'] ?? ($comprehensiveSummary['character']['lifespan_years'] ?? ($character->current_day ?? 1)),
                 // Stats analysis
                 'stats_analysis' => $comprehensiveSummary['statsAnalysis'],
                 // Decisions analysis
                 'decisions_analysis' => $comprehensiveSummary['decisionsAnalysis'],
+                'total_decisions' => $comprehensiveSummary['decisionsAnalysis']['total'] ?? 0,
+                'story_decisions' => $comprehensiveSummary['decisionsAnalysis']['story_decisions'] ?? 0,
+                'daily_actions' => $comprehensiveSummary['decisionsAnalysis']['daily_actions'] ?? 0,
                 // Milestones
                 'milestones' => $comprehensiveSummary['milestones'],
                 // Personality analysis
@@ -180,6 +193,7 @@ class EventController extends Controller
                 'life_rating' => $comprehensiveSummary['lifeRating'],
                 // Key moments
                 'key_moments' => $comprehensiveSummary['keyMoments'],
+                'timeline' => $comprehensiveSummary['keyMoments'] ?? [],
                 // Life advice
                 'advice' => $comprehensiveSummary['advice'],
                 // Ending
@@ -189,7 +203,9 @@ class EventController extends Controller
                 // Unlocked achievements
                 'achievements' => $comprehensiveSummary['achievements'],
                 // Comparison data
-                'comparison' => $summaryService->getComparisonData($character),
+                'comparison' => method_exists($summaryService, 'getComparisonData') 
+                    ? $summaryService->getComparisonData($character) 
+                    : [],
             ]);
         } catch (\Exception $e) {
             Log::error('Error in getLifeSummary: ' . $e->getMessage());
@@ -257,7 +273,7 @@ class EventController extends Controller
                 ], 403);
             }
 
-            if ($this->eventService->isDead($character) || ($character->current_day ?? 1) >= self::MAX_DAYS) {
+            if ($this->eventService->isDead($character) || ($character->current_day ?? 1) >= $this->getMaxDays($character)) {
                 return response()->json($this->buildTerminalStatePayload($character));
             }
 
@@ -548,13 +564,14 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
     }
 
     /**
-     * Check if there's a milestone event (age transition)
+     * Check if there's a milestone event (age transition or career milestone)
      */
     private function checkMilestone(Character $character): ?array
     {
         $previousAgeGroup = $character->previous_age_group ?? $character->age_group;
         $currentAgeGroup = $character->age_group;
         
+        // Check for age transition milestones
         if ($previousAgeGroup !== $currentAgeGroup) {
             $milestoneMessages = [
                 'child_to_teenager' => [
@@ -564,8 +581,9 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 ],
                 'teenager_to_adult' => [
                     'title' => 'Becoming an Adult!',
-                    'description' => 'You have transitioned into adulthood! Time to face new challenges and opportunities.',
-                    'is_milestone' => true
+                    'description' => 'You have transitioned into adulthood! It is time to find a profession and build your career.',
+                    'is_milestone' => true,
+                    'is_profession_milestone' => true
                 ],
                 'adult_to_old' => [
                     'title' => 'Golden Years!',
@@ -577,11 +595,46 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
             $key = $previousAgeGroup . '_to_' . $currentAgeGroup;
             $milestone = $milestoneMessages[$key] ?? null;
 
+            // If transitioning to adulthood and character has no profession, add career choices
+            if ($key === 'teenager_to_adult' && empty($character->profession)) {
+                $professionChoices = $this->getAvailableProfessions($character);
+                if (!empty($professionChoices)) {
+                    $milestone['profession_choices'] = $professionChoices;
+                    $milestone['title'] = 'Career Time!';
+                    $milestone['description'] = 'You have become an adult! Now it is time to choose your career path. Select a profession to begin your working life.';
+                }
+            }
+
             // Ensure the milestone is only shown once.
             $character->previous_age_group = $currentAgeGroup;
             $character->save();
 
             return $milestone;
+        }
+        
+        // Check for career milestone if character is adult but has no profession
+        // This handles the case where a character becomes adult but the milestone wasn't shown
+        if ($currentAgeGroup === 'adult' && empty($character->profession)) {
+            // Check if we've already shown career milestone
+            $shownEventIds = $character->shown_event_ids ?? [];
+            if (!in_array('career_milestone_shown', $shownEventIds)) {
+                $professionChoices = $this->getAvailableProfessions($character);
+                if (!empty($professionChoices)) {
+                    $milestone = [
+                        'title' => 'Career Time!',
+                        'description' => 'It is time to choose your career path! Select a profession to begin your working life.',
+                        'is_milestone' => true,
+                        'is_profession_milestone' => true,
+                        'profession_choices' => $professionChoices,
+                    ];
+                    
+                    // Mark career milestone as shown
+                    $character->shown_event_ids = array_merge($shownEventIds, ['career_milestone_shown']);
+                    $character->save();
+                    
+                    return $milestone;
+                }
+            }
         }
         
         return null;
@@ -590,6 +643,10 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
     /**
      * Get available professions for the character (for choice selection)
      * Returns array of profession options instead of auto-assigning
+     * 
+     * Priority:
+     * 1. Stat-based professions (if character meets requirements)
+     * 2. Fallback entry-level professions (always available for adults without profession)
      */
     private function getAvailableProfessions(Character $character): array
     {
@@ -601,9 +658,10 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
             return [];
         }
 
+        // First, try to get stat-based professions
         $unlockedProfessions = $this->eventService->checkProfessionUnlock($character);
         
-        // Format profession choices as event cards (same interaction model as life actions)
+        // Format profession choices as event cards
         $choices = [];
         foreach ($unlockedProfessions as $profession) {
             if (!$profession instanceof ProfessionTrigger) {
@@ -612,7 +670,106 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
             $choices[] = $this->formatProfessionChoiceEvent($profession);
         }
         
+        // If no stat-based professions found, return fallback entry-level jobs
+        // This ensures players can always find work when they reach adulthood
+        if (empty($choices)) {
+            $choices = $this->getFallbackProfessions();
+        }
+        
         return $choices;
+    }
+
+    /**
+     * Get fallback entry-level professions that are always available for adults
+     * These provide a basic career path when the character doesn't meet stat requirements
+     */
+    private function getFallbackProfessions(): array
+    {
+        $fallbackProfessions = [
+            [
+                'profession' => 'Retail Worker',
+                'description' => 'Work in a store or supermarket. A great starting point!',
+                'stat_effects' => '+3 Discipline, +2 Charisma, +1 Wealth',
+                'unlock_condition' => 'None (entry level)',
+            ],
+            [
+                'profession' => 'Food Service',
+                'description' => 'Work at a restaurant or cafe. Build customer service skills!',
+                'stat_effects' => '+3 Discipline, +2 Happiness, +1 Wealth',
+                'unlock_condition' => 'None (entry level)',
+            ],
+            [
+                'profession' => 'Delivery Driver',
+                'description' => 'Deliver packages or food. Flexible hours and good exercise!',
+                'stat_effects' => '+3 Strength, +2 Luck, +1 Wealth',
+                'unlock_condition' => 'None (entry level)',
+            ],
+            [
+                'profession' => 'Office Assistant',
+                'description' => 'Help with administrative tasks in an office. Learn business basics!',
+                'stat_effects' => '+3 Intelligence, +2 Discipline, +1 Reputation',
+                'unlock_condition' => 'None (entry level)',
+            ],
+            [
+                'profession' => 'Warehouse Worker',
+                'description' => 'Work in a warehouse moving goods. Physical work with steady pay!',
+                'stat_effects' => '+4 Strength, +2 Discipline, +1 Wealth',
+                'unlock_condition' => 'None (entry level)',
+            ],
+            [
+                'profession' => 'Intern',
+                'description' => 'Gain experience in your field of interest. Unpaid but educational!',
+                'stat_effects' => '+3 Intelligence, +2 Reputation, +1 Discipline',
+                'unlock_condition' => 'None (entry level)',
+            ],
+        ];
+
+        $choices = [];
+        foreach ($fallbackProfessions as $profession) {
+            $choices[] = $this->formatFallbackProfessionChoice($profession);
+        }
+
+        return $choices;
+    }
+
+    /**
+     * Format a fallback profession choice (without needing a ProfessionTrigger record)
+     */
+    private function formatFallbackProfessionChoice(array $profession): array
+    {
+        $professionName = $profession['profession'];
+        $titleSlug = strtolower(preg_replace('/[^a-zA-Z0-9]/', '-', $professionName));
+        $image = "/css/images/profession/{$titleSlug}.jpg";
+
+        return [
+            'id' => 0, // Indicates fallback profession
+            'type' => 'profession_choice',
+            'deck_label' => 'Career',
+            'repeatable' => false,
+            'title' => $professionName,
+            'description' => $profession['description'],
+            'image' => $image,
+            'outcome' => $profession['description'],
+            'choices' => [
+                [
+                    'text' => 'Accept this job',
+                    'set_profession' => true,
+                    'stat_effects' => $profession['stat_effects'],
+                    'days_to_advance' => 0,
+                ],
+                [
+                    'text' => 'Look for other options',
+                    'set_profession' => false,
+                    'stat_effects' => null,
+                    'days_to_advance' => 0,
+                ],
+            ],
+            'auto_resolve' => false,
+            'days_to_advance' => 0,
+            'profession' => $professionName,
+            'unlock_condition' => $profession['unlock_condition'],
+            'is_fallback' => true, // Flag to identify fallback professions
+        ];
     }
 
     private function formatProfessionChoiceEvent(ProfessionTrigger $profession): array
@@ -682,6 +839,55 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
         }
 
         return empty($parts) ? null : implode(', ', $parts);
+    }
+
+    /**
+     * Parse stat effects from text format (e.g., "+3 Discipline, +2 Charisma, +1 Wealth")
+     * Used for fallback professions that don't exist in the database
+     */
+    private function parseStatEffectsFromText(string $text): array
+    {
+        $effects = [];
+        // Match patterns like "+3 Discipline", "-2 Happiness", "+10 Intelligence"
+        preg_match_all('/([+-]?\d+)\s+(\w+)/', $text, $matches, PREG_SET_ORDER);
+        
+        foreach ($matches as $match) {
+            $value = (int) $match[1];
+            $stat = ucfirst(strtolower($match[2])); // Normalize stat name
+            $effects[$stat] = $value;
+        }
+        
+        return $effects;
+    }
+
+    /**
+     * Apply stat effects to character
+     * Used for both database and fallback professions
+     */
+    private function applyStatEffectsToCharacter(Character $character, array $statEffects): void
+    {
+        if (empty($statEffects)) {
+            return;
+        }
+        
+        // Apply stat effects to character base stats
+        $currentStats = $character->stats ?? [];
+        foreach ($statEffects as $stat => $value) {
+            $currentStats[$stat] = ($currentStats[$stat] ?? 0) + $value;
+        }
+        $character->stats = $currentStats;
+        
+        // Update effective_stats by merging base + hidden stats
+        $hiddenStats = $character->hidden_stats ?? [];
+        $lifeStatsKeys = ['health', 'happiness', 'finance', 'relationship_status', 'career_level'];
+        $filteredHiddenStats = array_diff_key($hiddenStats, array_flip($lifeStatsKeys));
+        $effectiveStats = array_merge($filteredHiddenStats, $currentStats);
+        
+        // Clamp values between 0-100
+        foreach ($effectiveStats as $key => $value) {
+            $effectiveStats[$key] = max(0, min(100, $value));
+        }
+        $character->effective_stats = $effectiveStats;
     }
 
     /**
@@ -1166,42 +1372,47 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
 
             $profession = $validated['profession'];
 
-            // Verify the profession is valid (exists in profession_triggers)
+            // Verify the profession is valid (exists in profession_triggers OR is a fallback profession)
             $availableProfessions = $this->getAvailableProfessions($character);
             $validProfessions = array_column($availableProfessions, 'profession');
             
-            if (!empty($availableProfessions) && !in_array($profession, $validProfessions)) {
+            // Check if this is a fallback profession
+            $isFallback = false;
+            $statEffects = [];
+            foreach ($availableProfessions as $prof) {
+                if (($prof['profession'] ?? '') === $profession && ($prof['is_fallback'] ?? false) === true) {
+                    $isFallback = true;
+                    // Get stat effects from the fallback profession data
+                    if (!empty($prof['choices'])) {
+                        foreach ($prof['choices'] as $choice) {
+                            if (($choice['set_profession'] ?? false) === true && !empty($choice['stat_effects'])) {
+                                // Parse stat effects from text format (e.g., "+3 Discipline, +2 Charisma")
+                                $statEffects = $this->parseStatEffectsFromText($choice['stat_effects']);
+                                $this->applyStatEffectsToCharacter($character, $statEffects);
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+            
+            // For non-fallback professions, validate against database
+            if (!$isFallback && !empty($availableProfessions) && !in_array($profession, $validProfessions)) {
                 return response()->json([
                     'message' => 'Invalid profession choice',
                 ], 400);
             }
 
-            // Get the profession trigger to apply stat effects
-            $professionTrigger = \App\Models\ProfessionTrigger::where('profession', $profession)->first();
-            
-            // Apply stat effects from profession choice
-            $statEffects = [];
-            if ($professionTrigger && !empty($professionTrigger->stat_effects)) {
-                $statEffects = $professionTrigger->getStatEffectsArray();
+            // Get the profession trigger to apply stat effects (for non-fallback professions)
+            if (!$isFallback) {
+                $professionTrigger = \App\Models\ProfessionTrigger::where('profession', $profession)->first();
                 
-                // Apply stat effects to character base stats
-                $currentStats = $character->stats ?? [];
-                foreach ($statEffects as $stat => $value) {
-                    $currentStats[$stat] = ($currentStats[$stat] ?? 0) + $value;
+                // Apply stat effects from profession choice
+                $statEffects = [];
+                if ($professionTrigger && !empty($professionTrigger->stat_effects)) {
+                    $statEffects = $professionTrigger->getStatEffectsArray();
+                    $this->applyStatEffectsToCharacter($character, $statEffects);
                 }
-                $character->stats = $currentStats;
-                
-                // Update effective_stats by merging base + hidden stats
-                $hiddenStats = $character->hidden_stats ?? [];
-                $lifeStatsKeys = ['health', 'happiness', 'finance', 'relationship_status', 'career_level'];
-                $filteredHiddenStats = array_diff_key($hiddenStats, array_flip($lifeStatsKeys));
-                $effectiveStats = array_merge($filteredHiddenStats, $currentStats);
-                
-                // Clamp values between 0-100
-                foreach ($effectiveStats as $key => $value) {
-                    $effectiveStats[$key] = max(0, min(100, $value));
-                }
-                $character->effective_stats = $effectiveStats;
             }
 
             // Set the profession and career level
@@ -1564,7 +1775,9 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
             // Game-over evaluation happens after time advancement + consequences.
 
             // Feature 3: Support days_to_advance - determine how many days to skip
-            $daysToAdvance = (int) ($choice['days_to_advance'] ?? ($event->days_to_advance ?? 0));
+            $explicitDays = $choice['days_to_advance'] ?? $event->days_to_advance ?? null;
+            // If not set or 0, default to 1. Otherwise use the explicit value (like 5).
+            $daysToAdvance = ($explicitDays === null || $explicitDays == 0) ? 1 : (int) $explicitDays;
             
             // Feature 2: Only advance day if daysToAdvance > 0, otherwise stay on same day for multiple choices
             if ($daysToAdvance > 0) {
@@ -1636,7 +1849,7 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 ]);
                 $gameOver = true;
                 $endingType = $this->determineEndingType($character, $deathCause);
-            } elseif ($currentDay >= self::MAX_DAYS) {
+            } elseif ($currentDay >= $this->getMaxDays($character)) {
                 $gameOver = true;
                 $endingType = $this->determineEndingType($character, 'old_age');
             } else {
@@ -2535,8 +2748,9 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
             if (is_array($decoded) && count($decoded) > 0) {
                 // Ensure each choice has days_to_advance
                 foreach ($decoded as &$choice) {
-                    if (!isset($choice['days_to_advance'])) {
-                        $choice['days_to_advance'] = 0;
+                    // If explicitly set to > 0, preserve it. Otherwise default to 1.
+                    if (!isset($choice['days_to_advance']) || $choice['days_to_advance'] == 0) {
+                        $choice['days_to_advance'] = 1;
                     }
                     $choice['text'] = $this->normalizeChoiceText($choice['text'] ?? null);
                 }
@@ -3213,7 +3427,8 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
      */
     public function getAchievements(Character $character)
     {
-        $achievements = $this->achievementService->getCharacterAchievements($character);
+        // Get all achievements with their unlocked status
+        $achievements = $this->achievementService->getAllAchievementsWithStatus($character);
         $stats = $this->achievementService->getAchievementStats($character);
         
         return response()->json([

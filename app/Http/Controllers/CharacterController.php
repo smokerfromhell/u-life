@@ -35,6 +35,22 @@ class CharacterController extends Controller
         'Ego' => 10,
     ];
 
+    // Starting age (day) based on age group
+    private const START_AGE = [
+        'child' => 1,
+        'teenager' => 15,
+        'adult' => 25,
+        'old' => 55,
+    ];
+
+    // Maximum age (day) based on starting age group
+    private const MAX_AGE = [
+        'child' => 50,
+        'teenager' => 60,
+        'adult' => 65,
+        'old' => 75,
+    ];
+
     private const AGE_BONUSES = [
         'child' => ['Luck' => 2, 'Creativity' => 2, 'Happiness' => 4],
         'teenager' => ['Strength' => 2, 'Intelligence' => 1, 'Charisma' => 1],
@@ -150,7 +166,7 @@ class CharacterController extends Controller
                 'name' => $validated['name'],
                 'age_group' => $validated['age_group'],
                 'gender' => $validated['gender'],
-                'current_day' => $request->input('start_day', 1),
+                'current_day' => self::START_AGE[$validated['age_group']] ?? 1,
                 'stats' => $statState['stats'],
                 'hidden_stats' => $statState['hidden_stats'],
                 'effective_stats' => $statState['effective_stats'],
@@ -246,6 +262,8 @@ class CharacterController extends Controller
                 'relationship_status' => 'single',
                 'health_condition' => app(\App\Services\EventService::class)->getHealthStatus((int) ($effectiveStats['Health'] ?? 78)),
                 'is_dead' => false,
+                'max_age' => self::MAX_AGE[$validated['age_group']] ?? 50,
+                'starting_age_group' => $validated['age_group'],
             ],
         ];
     }

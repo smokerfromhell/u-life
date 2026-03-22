@@ -235,10 +235,27 @@ class CharacterChoiceConsequence extends Model
         
         $appliedEffects = [];
         
+        // Get current effective_stats array (following EventService pattern)
+        $effectiveStats = is_array($character->effective_stats) 
+            ? $character->effective_stats 
+            : [];
+        
         foreach ($this->random_outcome_effects as $stat => $value) {
-            $character->incrementStat($stat, $value);
+            // Initialize stat if it doesn't exist
+            if (!isset($effectiveStats[$stat])) {
+                $effectiveStats[$stat] = 0;
+            }
+            
+            // Add the value and clamp between 0-100
+            $effectiveStats[$stat] += $value;
+            $effectiveStats[$stat] = max(0, min(100, $effectiveStats[$stat]));
+            
             $appliedEffects[$stat] = $value;
         }
+        
+        // Save the updated effective_stats
+        $character->effective_stats = $effectiveStats;
+        $character->save();
         
         return $appliedEffects;
     }

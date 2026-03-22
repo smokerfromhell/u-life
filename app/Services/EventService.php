@@ -279,7 +279,7 @@ class EventService
         }
 
         if (($flags['burnout_cycle'] ?? false) === true) {
-            $burnoutDelta = 2 * $daysAdvanced;
+            $burnoutDelta = 1 * $daysAdvanced;
             $healthDelta = 1 * $daysAdvanced;
             $effectiveStats['Burnout'] = min(100, (int) ($effectiveStats['Burnout'] ?? 0) + $burnoutDelta);
             $effectiveStats['Health'] = max(0, (int) ($effectiveStats['Health'] ?? 50) - $healthDelta);
@@ -1044,6 +1044,19 @@ Log::error('Error in getStatefulEvents', [
             }
         }
         
+        // Get character's talents
+        $talents = [];
+        if ($character->relationLoaded('talents')) {
+            $talents = $character->talents->pluck('name')->toArray();
+        } else {
+            // Try to get from relationship
+            try {
+                $talents = $character->talents()->pluck('name')->toArray();
+            } catch (\Exception $e) {
+                $talents = $character->talents ?? [];
+            }
+        }
+        
         // Check each condition
         foreach ($conditions as $conditionKey => $conditionValue) {
             switch ($conditionKey) {
@@ -1104,6 +1117,36 @@ Log::error('Error in getStatefulEvents', [
                     // Character must have at least this health percentage
                     if ($health < $conditionValue) {
                         return false;
+                    }
+                    break;
+                    
+                case 'lacks_skill':
+                    // Character must NOT have this skill
+                    $forbiddenSkills = is_array($conditionValue) ? $conditionValue : [$conditionValue];
+                    foreach ($forbiddenSkills as $forbiddenSkill) {
+                        if (in_array($forbiddenSkill, $skills, true)) {
+                            return false;
+                        }
+                    }
+                    break;
+                    
+                case 'has_talent':
+                    // Character must have this talent
+                    $requiredTalents = is_array($conditionValue) ? $conditionValue : [$conditionValue];
+                    foreach ($requiredTalents as $requiredTalent) {
+                        if (!in_array($requiredTalent, $talents, true)) {
+                            return false;
+                        }
+                    }
+                    break;
+                    
+                case 'lacks_talent':
+                    // Character must NOT have this talent
+                    $forbiddenTalents = is_array($conditionValue) ? $conditionValue : [$conditionValue];
+                    foreach ($forbiddenTalents as $forbiddenTalent) {
+                        if (in_array($forbiddenTalent, $talents, true)) {
+                            return false;
+                        }
                     }
                     break;
                     
@@ -1200,8 +1243,9 @@ $character->current_narrative = $narrative . (($outcomeType === 'positive') ? '_
             $character->completed_event_chains = $completedChains;
         }
         
-        $outcomeKey = $category . '_outcome';
-        $character->$outcomeKey = $outcomeType;
+        // Note: Removed dynamic outcome columns - they don't exist in DB
+        // $outcomeKey = $category . '_outcome';
+        // $character->$outcomeKey = $outcomeType;
         
         if (isset(self::CATEGORIES[$category])) {
             $nextCategory = self::CATEGORIES[$category]['next'];

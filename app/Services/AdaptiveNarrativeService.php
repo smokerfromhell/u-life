@@ -168,9 +168,17 @@ class AdaptiveNarrativeService
         $profile['consequences']['burnout_cycle'] = $this->shiftCounter(
             (int) ($profile['consequences']['burnout_cycle'] ?? 0),
             match (true) {
+                // Aggressive recovery when doing health/family activities
+                in_array($archetype, ['health', 'family'], true) && in_array($approach, ['commit', 'balanced'], true) => -3,
+                // Moderate recovery for social/culture activities
+                in_array($archetype, ['social', 'culture'], true) && $approach === 'balanced' => -2,
+                // Avoid approach reduces burnout slightly
+                $approach === 'avoid' && $archetype !== 'generic' => -1,
+                // Main burnout triggers
                 in_array($archetype, ['study', 'work', 'competition'], true) && in_array($approach, ['commit', 'risky'], true) => 2 + max(0, (int) floor($burnoutChange / 4)),
-                $archetype === 'health' && in_array($approach, ['commit', 'balanced'], true) => -2,
-                $healthChange > 0 && $burnoutChange < 0 => -1,
+                // Health improvement with no burnout = recovery
+                $healthChange > 0 && $burnoutChange < 0 => -2,
+                // Default: only add if burnout actually increased
                 default => max(0, (int) floor($burnoutChange / 6)),
             }
         );
@@ -178,9 +186,12 @@ class AdaptiveNarrativeService
         $profile['consequences']['relationship_strain'] = $this->shiftCounter(
             (int) ($profile['consequences']['relationship_strain'] ?? 0),
             match (true) {
+                // Recovery through positive social/family activities
+                in_array($archetype, ['family', 'social'], true) && in_array($approach, ['commit', 'balanced'], true) => -3,
+                in_array($archetype, ['family', 'social'], true) && $tier === 'great' => -2,
+                // Damage from avoidance
                 in_array($archetype, ['family', 'social'], true) && $approach === 'avoid' => 2,
                 in_array($archetype, ['family', 'social'], true) && $tier === 'setback' => 1,
-                in_array($archetype, ['family', 'social'], true) && $approach === 'commit' && $tier === 'great' => -3,
                 $isolationChange > 0 => 1,
                 default => 0,
             }
@@ -210,9 +221,12 @@ class AdaptiveNarrativeService
         $profile['consequences']['financial_fragility'] = $this->shiftCounter(
             (int) ($profile['consequences']['financial_fragility'] ?? 0),
             match (true) {
+                // Recovery through positive money/work choices
+                in_array($archetype, ['money', 'work'], true) && in_array($approach, ['balanced', 'commit'], true) && $tier === 'great' => -3,
+                in_array($archetype, ['money', 'work'], true) && in_array($approach, ['balanced', 'commit'], true) && $debtChange < 0 => -2,
+                // Damage from debt and risky choices
                 $debtChange > 0 => 2,
                 in_array($archetype, ['money', 'work'], true) && $approach === 'risky' && $tier === 'setback' => 2,
-                in_array($archetype, ['money', 'work'], true) && in_array($approach, ['balanced', 'commit'], true) && $debtChange < 0 => -2,
                 default => 0,
             }
         );
@@ -241,13 +255,13 @@ class AdaptiveNarrativeService
         $profile['flags']['social_anchor'] = ($profile['archetypes']['family'] ?? 0) >= 5 || ($profile['archetypes']['social'] ?? 0) >= 5;
         $profile['flags']['overextended'] = ($profile['stress']['burnout_pressure'] ?? 0) >= 8;
         $profile['flags']['financially_strained'] = ($profile['stress']['financial_pressure'] ?? 0) >= 6;
-        $profile['flags']['study_habit'] = ($profile['consequences']['study_habit'] ?? 0) >= 6;
-        $profile['flags']['burnout_cycle'] = ($profile['consequences']['burnout_cycle'] ?? 0) >= 6;
-        $profile['flags']['relationship_strain'] = ($profile['consequences']['relationship_strain'] ?? 0) >= 6;
-        $profile['flags']['scandal_marked'] = ($profile['consequences']['scandal_pressure'] ?? 0) >= 5;
-        $profile['flags']['dependency_flag'] = ($profile['consequences']['dependency_risk'] ?? 0) >= 5;
-        $profile['flags']['financial_trap'] = ($profile['consequences']['financial_fragility'] ?? 0) >= 6;
-        $profile['flags']['recovery_arc'] = ($profile['consequences']['recovery_momentum'] ?? 0) >= 4;
+        $profile['flags']['study_habit'] = ($profile['consequences']['study_habit'] ?? 0) >= 10;
+        $profile['flags']['burnout_cycle'] = ($profile['consequences']['burnout_cycle'] ?? 0) >= 10;
+        $profile['flags']['relationship_strain'] = ($profile['consequences']['relationship_strain'] ?? 0) >= 10;
+        $profile['flags']['scandal_marked'] = ($profile['consequences']['scandal_pressure'] ?? 0) >= 10;
+        $profile['flags']['dependency_flag'] = ($profile['consequences']['dependency_risk'] ?? 0) >= 10;
+        $profile['flags']['financial_trap'] = ($profile['consequences']['financial_fragility'] ?? 0) >= 10;
+        $profile['flags']['recovery_arc'] = ($profile['consequences']['recovery_momentum'] ?? 0) >= 6;
 
         $state['decision_profile'] = $profile;
         $state['last_choice_context'] = [
