@@ -13,12 +13,25 @@
     <!-- Nebula Clouds -->
     <div class="nebula pointer-events-none fixed inset-0 z-5"></div>
     
+    <!-- Energy Particles -->
+    <div class="energy-particles pointer-events-none fixed inset-0 z-8">
+      <div v-for="n in 15" :key="'energy-'+n" class="energy-orb" :style="getEnergyOrbStyle(n)"></div>
+    </div>
+    
+    <!-- Shooting Stars -->
+    <div class="shooting-stars pointer-events-none fixed inset-0 z-6">
+      <div v-for="n in 5" :key="'shooting-'+n" class="shooting-star" :style="getShootingStarStyle(n)"></div>
+    </div>
+    
     <!-- Grid Lines -->
     <div class="grid-lines pointer-events-none fixed inset-0 z-10"></div>
     
     <!-- Scanlines -->
     <div class="scanlines pointer-events-none fixed inset-0 z-25"></div>
-
+    
+    <!-- Vignette Overlay -->
+    <div class="vignette pointer-events-none fixed inset-0 z-15"></div>
+    
     <!-- Main Container -->
     <div class="creation-container relative z-20">
       <!-- Game Title -->
@@ -36,32 +49,56 @@
       <div class="creation-layout">
         <!-- Left Panel -->
         <div class="left-panel">
-          <!-- Character Info -->
-          <div class="form-group">
-            <label class="form-label">Character Name</label>
-            <input type="text" v-model="character.name" placeholder="Enter name" class="form-input" />
-          </div>
+          <!-- Character Card Frame -->
+          <div class="character-card">
+            <!-- Decorative Corners -->
+            <div class="card-corner card-corner--tl"></div>
+            <div class="card-corner card-corner--tr"></div>
+            <div class="card-corner card-corner--bl"></div>
+            <div class="card-corner card-corner--br"></div>
 
-          <div class="form-group">
-            <label class="form-label">Choose Age Group</label>
-            <select v-model="character.ageGroup" @change="applyAgeBonus" class="form-select">
-              <option value="None">None</option>
-              <option value="child">Child</option>
-              <option value="teenager">Teenager</option>
-              <option value="adult">Adult</option>
-              <option value="old">Old</option>
-            </select>
-          </div>
+            <!-- Character Info -->
+            <div class="form-group character-form-group">
+              <label class="form-label">
+                <span class="label-icon">🎭</span> Character Name
+              </label>
+              <div class="input-wrapper">
+                <span class="input-prefix">✦</span>
+                <input type="text" v-model="character.name" placeholder="Enter your character's name" class="form-input" />
+              </div>
+            </div>
 
-          <div class="form-group">
-            <label class="form-label">Choose Gender</label>
-            <select v-model="character.gender" @change="applyGenderBonus" class="form-select">
-              <option value="None">None</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="non-binary">Non-Binary</option>
-              <option value="transgender">Transgender</option>
-            </select>
+            <div class="form-group character-form-group">
+              <label class="form-label">
+                <span class="label-icon">📅</span> Choose Age Group
+              </label>
+              <div class="select-wrapper">
+                <span class="input-prefix">✦</span>
+                <select v-model="character.ageGroup" @change="applyAgeBonus" class="form-select">
+                  <option value="None">None</option>
+                  <option value="child">Child</option>
+                  <option value="teenager">Teenager</option>
+                  <option value="adult">Adult</option>
+                  <option value="old">Old</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group character-form-group">
+              <label class="form-label">
+                <span class="label-icon">⚥</span> Choose Gender
+              </label>
+              <div class="select-wrapper">
+                <span class="input-prefix">✦</span>
+                <select v-model="character.gender" @change="applyGenderBonus" class="form-select">
+                  <option value="None">None</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="non-binary">Non-Binary</option>
+                  <option value="transgender">Transgender</option>
+                </select>
+              </div>
+            </div>
           </div>
 
           <!-- Stat Allocation -->
@@ -75,11 +112,17 @@
 
             <div class="stats-grid">
               <div v-for="(value, stat) in character.stats" :key="stat" class="stat-row">
-                <label class="stat-label">{{ stat }}</label>
+                <label class="stat-label">
+                  <span class="stat-icon">{{ getStatIcon(stat) }}</span>{{ stat }}
+                </label>
                 <div class="stat-controls">
-                  <button class="stat-btn" @click="decreaseStat(stat)">−</button>
+                  <button class="stat-btn stat-btn--minus" @click="decreaseStat(stat)">
+                    <span class="btn-glow"></span>−
+                  </button>
                   <span class="stat-value">{{ effectiveStats.visible[stat] }}</span>
-                  <button class="stat-btn" @click="increaseStat(stat)">+</button>
+                  <button class="stat-btn stat-btn--plus" @click="increaseStat(stat)">
+                    <span class="btn-glow"></span>+
+                  </button>
                 </div>
               </div>
             </div>
@@ -88,12 +131,18 @@
 
         <!-- Right Panel -->
         <div class="right-panel">
+          <!-- Tip Message -->
+          <div class="tip-banner">
+            <span class="tip-icon">💡</span>
+            <span class="tip-text">You can choose more than one skill and talent!</span>
+          </div>
+
           <!-- Skills Carousel -->
           <div class="skills-container">
             <h3 class="carousel-title glitch-title" data-text="✧ CHOOSE SKILLS ✧">
               ✧ CHOOSE SKILLS ✧
             </h3>
-            <div class="card-carousel">
+            <div class="card-carousel" @mouseenter="pauseCarousels" @mouseleave="resumeCarousels">
               <button class="arrow-button" @click="prevSkillCard">
                 <v-icon size="22">mdi-chevron-left</v-icon>
               </button>
@@ -127,7 +176,7 @@
             <h3 class="carousel-title glitch-title" data-text="✧ CHOOSE TALENTS ✧">
               ✧ CHOOSE TALENTS ✧
             </h3>
-            <div class="card-carousel">
+            <div class="card-carousel" @mouseenter="pauseCarousels" @mouseleave="resumeCarousels">
               <button class="arrow-button" @click="prevTalentCard">
                 <v-icon size="22">mdi-chevron-left</v-icon>
               </button>
@@ -204,7 +253,26 @@
       <!-- Modal Popup -->
       <div v-if="showDiagram" class="modal-overlay" @click.self="toggleDiagram">
         <div class="modal-content">
-          <div class="chart-container"> <canvas ref="statChart"></canvas> </div>
+          <!-- Animated rotating rings -->
+          <div class="ring-effect"></div>
+          <div class="ring-effect"></div>
+          
+          <!-- Chart Container -->
+          <div class="chart-container">
+            <canvas ref="statChart"></canvas>
+          </div>
+          
+          <!-- Constellation Legend -->
+          <div class="constellation-legend" v-if="Object.keys(genderBonus).length > 0 || Object.keys(ageBonus).length > 0">
+            <div class="constellation-legend-item" v-if="Object.keys(genderBonus).length > 0">
+              <span class="marker gender"></span>
+              <span>Gender Bonus</span>
+            </div>
+            <div class="constellation-legend-item" v-if="Object.keys(ageBonus).length > 0">
+              <span class="marker age"></span>
+              <span>Age Bonus</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -386,7 +454,9 @@ export default {
       talentIndex: 0,
       itemsPerPage: 5,
       showPopup: false,
-      popupMessage: ""
+      popupMessage: "",
+      carouselInterval: null,
+      isCarouselPaused: false
     };
   },
   computed: {
@@ -451,7 +521,45 @@ export default {
       return looped.slice(this.talentIndex, this.talentIndex + this.itemsPerPage);
     }
   },
+  mounted() {
+    // Start carousel auto-play (3 second interval)
+    this.carouselInterval = setInterval(() => {
+      if (!this.isCarouselPaused) {
+        this.nextSkillCard();
+        this.nextTalentCard();
+      }
+    }, 3000);
+  },
+  beforeDestroy() {
+    // Clean up carousel interval
+    if (this.carouselInterval) {
+      clearInterval(this.carouselInterval);
+    }
+  },
   methods: {
+    // Carousel auto-play controls
+    pauseCarousels() {
+      this.isCarouselPaused = true;
+    },
+    resumeCarousels() {
+      this.isCarouselPaused = false;
+    },
+    // Get stat icon mapping
+    getStatIcon(stat) {
+      const icons = {
+        'Intelligence': '🧠',
+        'Strength': '💪',
+        'Charisma': '💬',
+        'Creativity': '🎨',
+        'Wealth': '💰',
+        'Luck': '🍀',
+        'Health': '❤️',
+        'Morality': '⚖️',
+        'Discipline': '🎯'
+      };
+      return icons[stat] || '⭐';
+    },
+
     // Generate galaxy star positions with varied colors
     getStarStyle(n) {
       const colors = [
@@ -472,6 +580,35 @@ export default {
       const delay = Math.random() * 4
       const opacity = Math.random() * 0.5 + 0.3
       return `left: ${left}%; top: ${top}%; width: ${size}px; height: ${size}px; background: ${color}; box-shadow: 0 0 ${size * 2}px ${color}; opacity: ${opacity}; animation-duration: ${duration}s; animation-delay: ${delay}s;`
+    },
+
+    getEnergyOrbStyle(n) {
+      const colors = [
+        'rgba(0, 255, 204, 0.6)',
+        'rgba(255, 0, 255, 0.5)',
+        'rgba(138, 43, 226, 0.5)',
+        'rgba(0, 206, 209, 0.6)',
+      ];
+      const color = colors[n % colors.length];
+      const left = Math.random() * 100;
+      const top = Math.random() * 100;
+      const size = Math.random() * 12 + 6;
+      const duration = Math.random() * 8 + 6;
+      const delay = Math.random() * 6;
+      const xMove = Math.random() * 100 - 50;
+      const yMove = Math.random() * 100 - 50;
+      return `left: ${left}%; top: ${top}%; width: ${size}px; height: ${size}px; background: ${color}; box-shadow: 0 0 ${size}px ${color}, 0 0 ${size * 2}px ${color}; animation: float-orb ${duration}s ease-in-out infinite, orb-glow ${duration * 0.5}s ease-in-out infinite; animation-delay: ${delay}s, ${delay}s; --x-move: ${xMove}px; --y-move: ${yMove}px;`;
+    },
+
+    getShootingStarStyle(n) {
+      const colors = ['#00ffcc', '#ff00ff', '#ffffff', '#00ccff'];
+      const color = colors[n % colors.length];
+      const left = Math.random() * 80 + 10;
+      const top = Math.random() * 60;
+      const duration = Math.random() * 3 + 2;
+      const delay = Math.random() * 15 + (n * 3);
+      const length = Math.random() * 150 + 100;
+      return `left: ${left}%; top: ${top}%; background: linear-gradient(90deg, ${color}, transparent); width: ${length}px; height: 2px; animation: shoot ${duration}s linear infinite; animation-delay: ${delay}s; box-shadow: 0 0 10px ${color};`;
     },
 
     getParticleStyle(n) {
@@ -603,6 +740,50 @@ export default {
         '#ec4899',   // Luck - Hot Pink
       ];
 
+      // Get current effective stats including bonuses
+      const stats = Object.values(this.effectiveStats.visible);
+      const labels = Object.keys(this.character.stats);
+
+      // Create outer animated rings data (shows max possible with bonuses)
+      const maxStats = stats.map(s => Math.min(100, s + 20));
+
+      // Create gender/age bonus markers
+      const bonusMarkers = [];
+      if (Object.keys(this.genderBonus).length > 0) {
+        labels.forEach((label, i) => {
+          if (this.genderBonus[label]) {
+            bonusMarkers.push({ index: i, value: stats[i] + this.genderBonus[label], type: 'gender' });
+          }
+        });
+      }
+      if (Object.keys(this.ageBonus).length > 0) {
+        labels.forEach((label, i) => {
+          if (this.ageBonus[label]) {
+            bonusMarkers.push({ index: i, value: stats[i] + this.ageBonus[label], type: 'age' });
+          }
+        });
+      }
+
+      // Create hexagon grid background effect
+      const hexagonBackground = {
+        datasets: []
+      };
+
+      // Add hexagon ring levels (25%, 50%, 75%, 100%)
+      for (let level = 1; level <= 4; level++) {
+        hexagonBackground.datasets.push({
+          label: '',
+          data: Array(8).fill(level * 25),
+          backgroundColor: 'transparent',
+          borderColor: level === 4 ? 'rgba(0, 255, 204, 0.15)' : 'rgba(0, 255, 204, 0.08)',
+          borderWidth: level === 4 ? 2 : 1,
+          borderDash: level < 4 ? [2, 4] : [],
+          pointRadius: 0,
+          fill: false,
+          tension: 0,
+        });
+      }
+
       // Create multiple layered gradients for the fill
       const gradientOuter = ctx.createRadialGradient(
         canvas.width / 2, canvas.height / 2, 0,
@@ -613,14 +794,67 @@ export default {
       gradientOuter.addColorStop(0.7, 'rgba(34, 197, 94, 0.1)');
       gradientOuter.addColorStop(1, 'rgba(34, 197, 94, 0.02)');
 
+      // Add subtle gradient for inner glow
+      const gradientInner = ctx.createRadialGradient(
+        canvas.width / 2, canvas.height / 2, 0,
+        canvas.width / 2, canvas.height / 2, canvas.width / 3
+      );
+      gradientInner.addColorStop(0, 'rgba(0, 255, 204, 0.08)');
+      gradientInner.addColorStop(1, 'transparent');
+
       this.chart = new Chart(ctx, {
         type: "radar",
         data: {
-          labels: Object.keys(this.character.stats),
+          labels: labels,
           datasets: [
+            // Hexagon grid background rings
+            {
+              label: '',
+              data: [25, 25, 25, 25, 25, 25, 25, 25],
+              backgroundColor: 'transparent',
+              borderColor: 'rgba(0, 255, 204, 0.06)',
+              borderWidth: 1,
+              borderDash: [3, 6],
+              pointRadius: 0,
+              fill: false,
+              tension: 0,
+            },
+            {
+              label: '',
+              data: [50, 50, 50, 50, 50, 50, 50, 50],
+              backgroundColor: 'transparent',
+              borderColor: 'rgba(0, 255, 204, 0.08)',
+              borderWidth: 1,
+              borderDash: [3, 6],
+              pointRadius: 0,
+              fill: false,
+              tension: 0,
+            },
+            {
+              label: '',
+              data: [75, 75, 75, 75, 75, 75, 75, 75],
+              backgroundColor: 'transparent',
+              borderColor: 'rgba(0, 255, 204, 0.1)',
+              borderWidth: 1,
+              borderDash: [3, 6],
+              pointRadius: 0,
+              fill: false,
+              tension: 0,
+            },
+            {
+              label: '',
+              data: [100, 100, 100, 100, 100, 100, 100, 100],
+              backgroundColor: 'transparent',
+              borderColor: 'rgba(0, 255, 204, 0.2)',
+              borderWidth: 2,
+              pointRadius: 0,
+              fill: false,
+              tension: 0,
+            },
+            // Main stats polygon with gradient fill
             {
               label: "Your Stats",
-              data: Object.values(this.effectiveStats.visible),
+              data: stats,
               backgroundColor: gradientOuter,
               borderColor: "#22c55e",
               borderWidth: 4,
@@ -633,7 +867,29 @@ export default {
               pointHoverRadius: 15,
               pointStyle: 'circle',
               tension: 0.3,
-            }
+            },
+            // Constellation bonus markers - gender (diamond shape)
+            ...(bonusMarkers.filter(m => m.type === 'gender').map(m => ({
+              label: 'Gender Bonus',
+              data: labels.map((_, i) => i === m.index ? m.value : null),
+              pointBackgroundColor: '#ff00ff',
+              pointBorderColor: '#ff66ff',
+              pointBorderWidth: 2,
+              pointRadius: 8,
+              pointStyle: 'diamond',
+              showLine: false,
+            }))),
+            // Constellation bonus markers - age (star shape)
+            ...(bonusMarkers.filter(m => m.type === 'age').map(m => ({
+              label: 'Age Bonus',
+              data: labels.map((_, i) => i === m.index ? m.value : null),
+              pointBackgroundColor: '#00ccff',
+              pointBorderColor: '#66ddff',
+              pointBorderWidth: 2,
+              pointRadius: 8,
+              pointStyle: 'star',
+              showLine: false,
+            }))),
           ]
         },
         options: {
@@ -655,6 +911,10 @@ export default {
                 padding: 20,
                 usePointStyle: true,
                 pointStyle: 'circle',
+                filter: function(item) {
+                  // Only show main stats label, hide grid lines
+                  return item.text === 'Your Stats' || item.text === 'Gender Bonus' || item.text === 'Age Bonus';
+                }
               }
             },
             tooltip: { 
@@ -670,9 +930,23 @@ export default {
               bodyFont: { size: 14, family: 'Instrument Sans' },
               displayColors: true,
               boxPadding: 8,
+              filter: function(tooltipItem) {
+                // Only show tooltip for main stats dataset (index 4 after grid lines)
+                return tooltipItem.datasetIndex === 4;
+              },
               callbacks: {
                 label: function(context) {
-                  return ' ' + context.raw + ' pts';
+                  const value = context.raw;
+                  let bonus = '';
+                  // Check if there are gender/age bonuses for this stat
+                  const statName = context.label;
+                  if (this._chart.data.datasets[5]) {
+                    const genderBonus = this._chart.data.datasets[5].data[context.dataIndex];
+                    if (genderBonus && genderBonus !== value) {
+                      bonus = ' (Gender: +' + (genderBonus - value) + ')';
+                    }
+                  }
+                  return ' ' + value + ' pts' + bonus;
                 }
               }
             }
@@ -681,6 +955,7 @@ export default {
             r: {
               beginAtZero: true,
               max: 100,
+              min: 0,
               ticks: { 
                 display: true,
                 color: "rgba(148, 163, 184, 1)",
@@ -692,16 +967,37 @@ export default {
                 backdropPadding: 4,
               },
               grid: { 
-                color: "rgba(34, 197, 94, 0.2)",
+                color: function(context) {
+                  // Different opacity for each grid level
+                  if (context.tick?.value === 25) return "rgba(34, 197, 94, 0.08)";
+                  if (context.tick?.value === 50) return "rgba(34, 197, 94, 0.12)";
+                  if (context.tick?.value === 75) return "rgba(34, 197, 94, 0.16)";
+                  if (context.tick?.value === 100) return "rgba(34, 197, 94, 0.25)";
+                  return "rgba(34, 197, 94, 0.05)";
+                },
                 lineWidth: 1,
               },
               angleLines: { 
-                color: "rgba(34, 197, 94, 0.3)",
-                lineWidth: 2,
+                color: "rgba(34, 197, 94, 0.15)",
+                lineWidth: 1,
               },
               pointLabels: {
                 color: "#f0fdf4",
-                font: { size: 15, weight: '800', family: 'Instrument Sans' },
+                font: { size: 14, weight: '800', family: 'Instrument Sans' },
+                callback: function(label) {
+                  // Add icons to labels
+                  const icons = {
+                    'Intelligence': '🧠',
+                    'Strength': '💪',
+                    'Charisma': '🗣️',
+                    'Creativity': '🎨',
+                    'Wealth': '💰',
+                    'Luck': '🍀',
+                    'Social': '👥',
+                    'Empathy': '❤️'
+                  };
+                  return icons[label] ? icons[label] + ' ' + label : label;
+                }
               }
             }
           }
@@ -867,12 +1163,98 @@ export default {
     linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
     linear-gradient(0deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
   background-size: 60px 60px;
-  animation: grid-scroll 20s linear infinite;
+  animation: grid-scroll 20s linear infinite, grid-pulse 8s ease-in-out infinite;
 }
 
 @keyframes grid-scroll {
   0% { background-position: 0 0; }
   100% { background-position: 60px 60px; }
+}
+
+@keyframes grid-pulse {
+  0%, 100% { 
+    opacity: 0.3;
+    background-size: 60px 60px;
+  }
+  50% { 
+    opacity: 0.6;
+    background-size: 58px 58px;
+  }
+}
+
+/* ============================================
+   ENERGY PARTICLES - Floating Orbs
+   ============================================ */
+.energy-particles {
+  overflow: hidden;
+}
+
+.energy-orb {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(1px);
+}
+
+@keyframes float-orb {
+  0%, 100% { 
+    transform: translate(0, 0) scale(1);
+    opacity: 0.6;
+  }
+  25% { 
+    transform: translate(calc(var(--x-move) * 0.3), calc(var(--y-move) * -0.3)) scale(1.1);
+    opacity: 0.9;
+  }
+  50% { 
+    transform: translate(calc(var(--x-move) * 0.6), calc(var(--y-move) * 0.4)) scale(0.9);
+    opacity: 0.7;
+  }
+  75% { 
+    transform: translate(calc(var(--x-move) * 0.4), calc(var(--y-move) * -0.2)) scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+@keyframes orb-glow {
+  0%, 100% { 
+    filter: blur(1px) brightness(1);
+  }
+  50% { 
+    filter: blur(2px) brightness(1.5);
+  }
+}
+
+/* ============================================
+   SHOOTING STARS
+   ============================================ */
+.shooting-stars {
+  overflow: hidden;
+}
+
+.shooting-star {
+  position: absolute;
+  transform: rotate(-25deg);
+  border-radius: 50%;
+  opacity: 0;
+}
+
+@keyframes shoot {
+  0% {
+    opacity: 0;
+    transform: translateX(0) rotate(-25deg) scale(0.5);
+  }
+  5% {
+    opacity: 1;
+    transform: translateX(50px) rotate(-25deg) scale(1);
+  }
+  15% {
+    opacity: 0;
+    transform: translateX(300px) rotate(-25deg) scale(0.3);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(300px) rotate(-25deg) scale(0.3);
+  }
 }
 
 .scanlines {
@@ -883,6 +1265,24 @@ export default {
     transparent 1px,
     transparent 3px
   );
+}
+
+/* ============================================
+   VIGNETTE EFFECT
+   ============================================ */
+.vignette {
+  background: radial-gradient(
+    ellipse at center,
+    transparent 40%,
+    rgba(0, 0, 0, 0.4) 80%,
+    rgba(0, 0, 0, 0.7) 100%
+  );
+  animation: vignette-pulse 10s ease-in-out infinite;
+}
+
+@keyframes vignette-pulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
 }
 
 /* ============================================
@@ -1052,9 +1452,231 @@ export default {
   max-width: 900px;
 }
 
+/* Tip Banner */
+.tip-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: linear-gradient(
+    90deg,
+    rgba(138, 43, 226, 0.15),
+    rgba(0, 255, 204, 0.1),
+    rgba(138, 43, 226, 0.15)
+  );
+  border: 1px solid rgba(0, 255, 204, 0.4);
+  border-radius: 12px;
+  animation: tip-pulse 3s ease-in-out infinite;
+}
+
+@keyframes tip-pulse {
+  0%, 100% { border-color: rgba(0, 255, 204, 0.3); box-shadow: 0 0 5px rgba(0, 255, 204, 0.1); }
+  50% { border-color: rgba(0, 255, 204, 0.6); box-shadow: 0 0 15px rgba(0, 255, 204, 0.3); }
+}
+
+.tip-icon {
+  font-size: 20px;
+  animation: tip-bounce 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 5px rgba(0, 255, 204, 0.8));
+}
+
+@keyframes tip-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.tip-text {
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  color: #00ffcc;
+  text-shadow: 0 0 10px rgba(0, 255, 204, 0.8);
+}
+
 /* ========================================
    FORM ELEMENTS - Galaxy Theme
    ======================================== */
+/* ============================================
+   CHARACTER CARD - Game-style Panel
+   ============================================ */
+.character-card {
+  position: relative;
+  background: linear-gradient(
+    180deg,
+    rgba(20, 20, 45, 0.7) 0%,
+    rgba(10, 10, 30, 0.9) 100%
+  );
+  border: 1px solid rgba(138, 43, 226, 0.5);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+  overflow: hidden;
+  box-shadow: 
+    0 4px 30px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.character-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(138, 43, 226, 0.08) 0%,
+    transparent 40%,
+    rgba(0, 255, 204, 0.05) 100%
+  );
+  pointer-events: none;
+}
+
+.character-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 20px;
+  right: 20px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 255, 204, 0.5),
+    transparent
+  );
+}
+
+/* Decorative Corners */
+.card-corner {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border: 2px solid #00ffcc;
+  pointer-events: none;
+}
+
+.card-corner--tl {
+  top: -1px;
+  left: -1px;
+  border-right: none;
+  border-bottom: none;
+  border-radius: 16px 0 0 0;
+  box-shadow: 
+    -3px -3px 10px rgba(0, 255, 204, 0.4),
+    inset -2px -2px 5px rgba(0, 255, 204, 0.2);
+}
+
+.card-corner--tr {
+  top: -1px;
+  right: -1px;
+  border-left: none;
+  border-bottom: none;
+  border-radius: 0 16px 0 0;
+  box-shadow: 
+    3px -3px 10px rgba(0, 255, 204, 0.4),
+    inset 2px -2px 5px rgba(0, 255, 204, 0.2);
+}
+
+.card-corner--bl {
+  bottom: -1px;
+  left: -1px;
+  border-right: none;
+  border-top: none;
+  border-radius: 0 0 0 16px;
+  box-shadow: 
+    -3px 3px 10px rgba(0, 255, 204, 0.4),
+    inset -2px 2px 5px rgba(0, 255, 204, 0.2);
+}
+
+.card-corner--br {
+  bottom: -1px;
+  right: -1px;
+  border-left: none;
+  border-top: none;
+  border-radius: 0 0 16px 0;
+  box-shadow: 
+    3px 3px 10px rgba(0, 255, 204, 0.4),
+    inset 2px 2px 5px rgba(0, 255, 204, 0.2);
+}
+
+/* Character Form Group - Enhanced Input Boxes */
+.character-form-group {
+  margin-bottom: 18px;
+}
+
+.character-form-group:last-child {
+  margin-bottom: 0;
+}
+
+.input-wrapper,
+.select-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-prefix {
+  position: absolute;
+  left: 14px;
+  color: #00ffcc;
+  font-size: 14px;
+  z-index: 1;
+  text-shadow: 0 0 10px rgba(0, 255, 204, 0.8);
+  animation: prefix-glow 2s ease-in-out infinite;
+}
+
+@keyframes prefix-glow {
+  0%, 100% { opacity: 0.6; text-shadow: 0 0 5px rgba(0, 255, 204, 0.5); }
+  50% { opacity: 1; text-shadow: 0 0 15px rgba(0, 255, 204, 1); }
+}
+
+.form-input,
+.form-select {
+  width: 100%;
+  padding: 14px 16px 14px 38px !important;
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(15, 15, 35, 0.9) 0%,
+    rgba(25, 25, 50, 0.7) 100%
+  ) !important;
+  color: #e0e0e0 !important;
+  border: 1px solid rgba(138, 43, 226, 0.5) !important;
+  border-radius: 12px !important;
+  transition: all 0.3s ease;
+  box-shadow: 
+    inset 0 2px 4px rgba(0, 0, 0, 0.3),
+    0 0 0 transparent;
+}
+
+.form-input::placeholder {
+  color: #666688 !important;
+}
+
+.form-input:focus,
+.form-select:focus {
+  outline: none;
+  border-color: #00ffcc !important;
+  box-shadow: 
+    0 0 25px rgba(0, 255, 204, 0.4),
+    inset 0 0 15px rgba(0, 255, 204, 0.1),
+    inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.form-select {
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2300ffcc' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 40px !important;
+}
+
+.form-select option {
+  background: #1a1a2e;
+  color: #e0e0e0;
+  padding: 10px;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
@@ -1068,6 +1690,14 @@ export default {
   color: #8888aa;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.label-icon {
+  font-size: 18px;
+  filter: drop-shadow(0 0 3px rgba(0, 255, 204, 0.5));
 }
 
 .form-input,
@@ -1165,6 +1795,12 @@ export default {
   background: rgba(10, 10, 25, 0.5);
   border-radius: 10px;
   border-left: 3px solid #00ffcc;
+  transition: all 0.3s ease;
+}
+
+.stat-row:hover {
+  background: rgba(138, 43, 226, 0.15);
+  border-left-color: #ff00ff;
 }
 
 .stat-label {
@@ -1173,6 +1809,19 @@ export default {
   font-size: 14px;
   font-weight: 500;
   flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stat-icon {
+  font-size: 16px;
+  filter: drop-shadow(0 0 3px rgba(0, 255, 204, 0.5));
+  transition: transform 0.3s ease;
+}
+
+.stat-label:hover .stat-icon {
+  transform: scale(1.2);
 }
 
 .stat-controls {
@@ -1196,6 +1845,40 @@ export default {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-btn .btn-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(0, 255, 204, 0.3) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.stat-btn:hover .btn-glow {
+  opacity: 1;
+}
+
+.stat-btn--minus {
+  border-color: rgba(255, 100, 100, 0.4);
+  color: #ff6464;
+}
+
+.stat-btn--minus:hover {
+  background: rgba(255, 100, 100, 0.3);
+  box-shadow: 0 0 15px rgba(255, 100, 100, 0.4);
+}
+
+.stat-btn--plus {
+  border-color: rgba(0, 255, 204, 0.4);
+  color: #00ffcc;
+}
+
+.stat-btn--plus:hover {
+  background: rgba(0, 255, 204, 0.2);
+  box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
 }
 
 .stat-btn:hover {
@@ -1408,8 +2091,30 @@ export default {
   gap: 6px;
   overflow: hidden;
   position: relative;
-  min-height: 180px;
-  padding: 0 4px;
+  min-height: 220px;
+  padding: 20px 4px;
+  /* 3D Carousel Perspective */
+  perspective: 1000px;
+  transform-style: preserve-3d;
+}
+
+/* Carousel Stage - Creates the circular track illusion */
+.card-carousel::before {
+  content: '';
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70%;
+  height: 60px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 255, 204, 0.15) 0%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
 }
 
 .card-track {
@@ -1417,70 +2122,128 @@ export default {
   padding-bottom: 20px;
   height: 220px;
   display: flex;
-  gap: 10px;
+  gap: 8px;
   transition: transform 0.5s ease;
   width: 100%;
   justify-content: center;
   flex-wrap: nowrap;
   margin-top: 15px;
+  /* 3D transforms */
+  transform-style: preserve-3d;
+  position: relative;
 }
 
 
 .talent-card {
   flex: 0 0 110px;  
   margin: 0 2px;
-  border: 2px solid rgba(0, 255, 204, 0.3);
-  border-radius: 8px;
-  background: linear-gradient(155deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
-  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  border: 2px solid rgba(0, 255, 204, 0.2);
+  border-radius: 12px;
+  background: linear-gradient(
+    155deg, 
+    rgba(30, 41, 59, 0.9) 0%,
+    rgba(15, 23, 42, 0.95) 50%,
+    rgba(10, 15, 30, 0.98) 100%
+  );
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   box-shadow: 
-    0 4px 6px rgba(0, 0, 0, 0.3),
-    0 1px 3px rgba(0, 0, 0, 0.2);
+    0 4px 8px rgba(0, 0, 0, 0.4),
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
   cursor: pointer;
   position: relative;
   z-index: 1;
+  /* 3D Effect */
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
 }
 
 .skill-card {
   flex: 0 0 110px;
   margin: 0 2px;
-  border: 2px solid rgba(0, 255, 204, 0.3);
-  border-radius: 8px;
-  background: linear-gradient(155deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
-  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  border: 2px solid rgba(0, 255, 204, 0.2);
+  border-radius: 12px;
+  background: linear-gradient(
+    155deg, 
+    rgba(30, 41, 59, 0.9) 0%,
+    rgba(15, 23, 42, 0.95) 50%,
+    rgba(10, 15, 30, 0.98) 100%
+  );
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   box-shadow: 
-    0 4px 6px rgba(0, 0, 0, 0.3),
-    0 1px 3px rgba(0, 0, 0, 0.2);
+    0 4px 8px rgba(0, 0, 0, 0.4),
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
   cursor: pointer;
   position: relative;
   z-index: 1;
+  /* 3D Effect */
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
 }
 
 
 .skill-card:hover,
 .talent-card:hover {
   border-color: #00ffcc;
-  transform: translateY(-6px) scale(1.02) rotateX(5deg);
+  transform: translateY(-10px) scale(1.05) rotateX(8deg);
   box-shadow: 
-    0 12px 24px rgba(0, 255, 204, 0.25),
-    0 6px 12px rgba(0, 0, 0, 0.4);
+    0 20px 40px rgba(0, 255, 204, 0.3),
+    0 10px 20px rgba(0, 0, 0, 0.5),
+    inset 0 0 20px rgba(0, 255, 204, 0.1);
+}
+
+.skill-card:hover::after,
+.talent-card:hover::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(0, 255, 204, 0.3), transparent);
+  z-index: -1;
+  animation: card-glow-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes card-glow-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
 }
 
 .skill-card.selected,
 .talent-card.selected {
   border-color: #00ffcc;
   box-shadow: 
-    0 0 25px rgba(0, 255, 204, 0.5),
-    0 8px 16px rgba(0, 0, 0, 0.4);
+    0 0 30px rgba(0, 255, 204, 0.6),
+    0 15px 30px rgba(0, 0, 0, 0.5),
+    inset 0 0 30px rgba(0, 255, 204, 0.15);
 }
 
 .center-card {
-  transform: scale(1.08);
+  transform: scale(1.12) translateZ(20px);
   border-color: #ff00ff;
   box-shadow: 
-    0 0 25px rgba(255, 0, 255, 0.4),
-    0 10px 20px rgba(0, 0, 0, 0.5);
-  z-index: 5;
+    0 0 40px rgba(255, 0, 255, 0.6),
+    0 20px 40px rgba(0, 0, 0, 0.6),
+    inset 0 0 30px rgba(255, 0, 255, 0.1);
+  z-index: 10;
+}
+
+.center-card::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 8px;
+  background: radial-gradient(ellipse, rgba(255, 0, 255, 0.5), transparent);
+  border-radius: 50%;
+  animation: center-glow 2s ease-in-out infinite;
+}
+
+@keyframes center-glow {
+  0%, 100% { opacity: 0.5; transform: translateX(-50%) scale(1); }
+  50% { opacity: 1; transform: translateX(-50%) scale(1.2); }
 }
 
 .center-card::before,
@@ -1593,29 +2356,53 @@ export default {
 }
 
 /* ========================================
-   ARROW BUTTONS
+   ARROW BUTTONS - Carousel Controls
    ======================================== */
 .arrow-button {
   flex-shrink: 0;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(138, 43, 226, 0.3), rgba(138, 43, 226, 0.1));
+  background: linear-gradient(135deg, rgba(138, 43, 226, 0.4), rgba(138, 43, 226, 0.15));
   color: #00ffcc;
   border: 2px solid rgba(0, 255, 204, 0.5);
-  border-radius: 6px;
+  border-radius: 50%;
   cursor: pointer;
   transition: all 0.3s ease;
   z-index: 10;
+  position: relative;
+  overflow: hidden;
+}
+
+.arrow-button::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 255, 204, 0.3), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .arrow-button:hover {
-  background: linear-gradient(135deg, rgba(138, 43, 226, 0.5), rgba(138, 43, 226, 0.2));
+  background: linear-gradient(135deg, rgba(138, 43, 226, 0.6), rgba(138, 43, 226, 0.3));
   border-color: #00ffcc;
-  transform: scale(1.1);
-  box-shadow: 0 0 20px rgba(0, 255, 204, 0.5);
+  transform: scale(1.15);
+  box-shadow: 
+    0 0 25px rgba(0, 255, 204, 0.6),
+    0 0 50px rgba(0, 255, 204, 0.3);
+}
+
+.arrow-button:hover::before {
+  opacity: 1;
+  animation: button-pulse 1s ease-in-out infinite;
+}
+
+@keyframes button-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 1; }
 }
 
 .arrow-button:active {
@@ -1656,6 +2443,63 @@ export default {
   animation: diagram-appear 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
   position: relative;
   overflow: hidden;
+  z-index: 100;
+}
+
+/* Enhanced hexagon grid background */
+.modal-content::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 200%;
+  height: 200%;
+  transform: translate(-50%, -50%);
+  background-image: 
+    radial-gradient(circle, rgba(0, 255, 204, 0.03) 1px, transparent 1px);
+  background-size: 30px 30px;
+  animation: hexagon-pulse 4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Animated rotating ring effect */
+.modal-content .ring-effect {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 90%;
+  height: 90%;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(0, 255, 204, 0.15);
+  border-radius: 50%;
+  animation: ring-rotate 20s linear infinite;
+  pointer-events: none;
+}
+
+.modal-content .ring-effect::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  background: #00ffcc;
+  border-radius: 50%;
+  box-shadow: 0 0 15px #00ffcc, 0 0 30px #00ffcc;
+}
+
+.modal-content .ring-effect:nth-child(2) {
+  width: 70%;
+  height: 70%;
+  border-color: rgba(255, 0, 255, 0.1);
+  animation-duration: 25s;
+  animation-direction: reverse;
+}
+
+.modal-content .ring-effect:nth-child(2)::before {
+  background: #ff00ff;
+  box-shadow: 0 0 15px #ff00ff, 0 0 30px #ff00ff;
 }
 
 .modal-content::before {
@@ -1686,18 +2530,88 @@ export default {
   50% { opacity: 1; transform: scale(1.05); }
 }
 
+@keyframes hexagon-pulse {
+  0%, 100% { 
+    opacity: 0.5;
+    background-size: 30px 30px;
+  }
+  50% { 
+    opacity: 0.8;
+    background-size: 32px 32px;
+  }
+}
+
+@keyframes ring-rotate {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Constellation marker legend */
+.constellation-legend {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 16px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 255, 204, 0.2);
+}
+
+.constellation-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+  color: #8888aa;
+}
+
+.constellation-legend-item .marker {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.constellation-legend-item .marker.gender {
+  background: #ff00ff;
+  box-shadow: 0 0 8px #ff00ff;
+  transform: rotate(45deg);
+}
+
+.constellation-legend-item .marker.age {
+  background: #00ccff;
+  box-shadow: 0 0 8px #00ccff;
+}
+
 .modal-content .chart-container {
   width: 100%;
   aspect-ratio: 1 / 1;
   max-height: 600px;
   position: relative;
-  z-index: 1;
+  z-index: 10;
 }
 
 .modal-content canvas {
   width: 100% !important;
   height: 100% !important;
   filter: drop-shadow(0 0 10px rgba(0, 255, 204, 0.3));
+  position: relative;
+  z-index: 10;
+}
+
+.modal-content .ring-effect {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 90%;
+  height: 90%;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(0, 255, 204, 0.15);
+  border-radius: 50%;
+  animation: ring-rotate 20s linear infinite;
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* ========================================

@@ -90,8 +90,8 @@ class NarrativeService
         $characterState = $character->character_state ?? [];
         $relationshipStatus = $characterState['relationship_status'] ?? $character->relationship_status ?? 'single';
         $professionState = $characterState['profession_state'] ?? $character->career_level ?? 'unemployed';
-        $health = $character->health ?? 100;
-        $wealth = $character->finance ?? $character->wealth ?? 0;
+        $health = $character->health ?? 78;
+        $wealth = $character->finance ?? $character->wealth ?? 20;
 
         // Education path - based on age and int stat
         if (($character->ageGroup ?? $characterState['life_stage'] ?? 'adult') !== 'child') {
@@ -199,7 +199,8 @@ class NarrativeService
      */
     protected function getAgeSpecificEventsWithNarrative(Character $character, array $activePaths, string $ageGroup, array $shownEventIds): array
     {
-        $events = AgeSpecificEvent::where('age_group', $ageGroup)->get();
+        $normalizedAgeGroup = $this->normalizeAgeGroup($ageGroup);
+        $events = AgeSpecificEvent::where('age_group', $normalizedAgeGroup)->get();
         
         // Filter out shown events
         $events = $events->filter(function ($event) use ($shownEventIds) {

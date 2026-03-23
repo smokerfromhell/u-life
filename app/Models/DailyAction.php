@@ -56,8 +56,8 @@ class DailyAction extends Model
         $state = is_array($character->character_state) ? $character->character_state : [];
         $ageGroup = $character->age_group ?? 'adult';
 
-        $health = (int) ($effectiveStats['Health'] ?? ($character->health ?? 100));
-        $wealth = (int) ($effectiveStats['Wealth'] ?? 50);
+        $health = (int) ($effectiveStats['Health'] ?? ($character->health ?? 78));
+        $wealth = (int) ($effectiveStats['Wealth'] ?? 20);
         $burnout = (int) ($effectiveStats['Burnout'] ?? 0);
         $debt = (int) ($effectiveStats['Debt'] ?? 0);
 
@@ -353,17 +353,22 @@ class DailyAction extends Model
 
     /**
      * Get health status based on health value.
+     * Matches EventService::getHealthStatus() thresholds.
      */
     private function getHealthStatus(int $health): string
     {
-        if ($health >= 80) {
+        if ($health >= 70) {
             return 'healthy';
         } elseif ($health >= 50) {
-            return 'fair';
-        } elseif ($health >= 20) {
-            return 'poor';
-        } else {
+            return 'fever';
+        } elseif ($health >= 31) {
+            return 'unhealthy';
+        } elseif ($health >= 11) {
+            return 'sick';
+        } elseif ($health >= 1) {
             return 'critical';
+        } else {
+            return 'dead';
         }
     }
 

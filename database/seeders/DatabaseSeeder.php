@@ -43,5 +43,8 @@ class DatabaseSeeder extends Seeder
         
         // 7. Seed sample decision logs (examples for users to view)
         $this->call(SampleDecisionLogSeeder::class);
+        
+        // 8. Seed achievements (database-backed achievements)
+        $this->call(AchievementSeeder::class);
     }
 }

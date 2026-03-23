@@ -35,20 +35,20 @@ class CharacterController extends Controller
         'Ego' => 10,
     ];
 
-    // Starting age (day) based on age group
+    // Starting age (day) based on age group - unified with EventService
     private const START_AGE = [
         'child' => 1,
-        'teenager' => 15,
-        'adult' => 25,
-        'old' => 55,
+        'teenager' => 10,
+        'adult' => 18,
+        'old' => 60,
     ];
 
     // Maximum age (day) based on starting age group
     private const MAX_AGE = [
-        'child' => 50,
-        'teenager' => 60,
-        'adult' => 65,
-        'old' => 75,
+        'child' => 10,
+        'teenager' => 18,
+        'adult' => 60,
+        'old' => 100,
     ];
 
     private const AGE_BONUSES = [
@@ -176,6 +176,9 @@ class CharacterController extends Controller
                 'finance' => $statState['finance'],
                 'image' => $defaultImage,
             ]);
+
+            // Create initial personality profile based on stats
+            $this->createInitialPersonalityProfile($character, $statState['stats'], $statState['hidden_stats']);
 
             Log::info('Character created with start_day', [
                 'id' => $character->id,
@@ -323,6 +326,69 @@ class CharacterController extends Controller
         }
     }
 
+    /**
+     * Create initial personality profile based on character stats
+     */
+    private function createInitialPersonalityProfile(Character $character, array $stats, array $hiddenStats): void
+    {
+        // Calculate MBTI dimensions from stats (0-100 scale)
+        // E/I: Charisma + Social -> higher = Extraverted
+        $energyOrientation = (($stats['Charisma'] ?? 25) + ($stats['Social'] ?? 50)) / 2;
+        
+        // N/S: Intelligence + Creativity -> higher = Intuitive  
+        $informationGathering = (($stats['Intelligence'] ?? 25) + ($stats['Creativity'] ?? 25)) / 2;
+        
+        // T/F: Empathy + Morality -> higher = Feeling
+        $decisionForming = (($stats['Empathy'] ?? 50) + ($hiddenStats['Morality'] ?? 45)) / 2;
+        
+        // J/P: Discipline + Happiness -> higher = Judging
+        $lifestyleApproach = (($hiddenStats['Discipline'] ?? 40) + ($hiddenStats['Happiness'] ?? 72)) / 2;
+        
+        // Calculate Big Five traits
+        $openness = ($stats['Creativity'] ?? 25) + ($stats['Intelligence'] ?? 25);
+        $conscientiousness = ($hiddenStats['Discipline'] ?? 40) + ($hiddenStats['Ego'] ?? 10);
+        $extraversion = ($stats['Charisma'] ?? 25) + ($stats['Social'] ?? 50);
+        $agreeableness = ($stats['Empathy'] ?? 50) + ($hiddenStats['Morality'] ?? 45);
+        $neuroticism = ($hiddenStats['Addiction'] ?? 0) + ($hiddenStats['Burnout'] ?? 5);
+        
+        // Determine MBTI type
+        $mbti = '';
+        $mbti .= $energyOrientation >= 50 ? 'E' : 'I';
+        $mbti .= $informationGathering >= 50 ? 'N' : 'S';
+        $mbti .= $decisionForming >= 50 ? 'T' : 'F';
+        $mbti .= $lifestyleApproach >= 50 ? 'J' : 'P';
+        
+        \App\Models\PersonalityProfile::create([
+            'character_id' => $character->id,
+            'energy_orientation' => (int) $energyOrientation,
+            'information_gathering' => (int) $informationGathering,
+            'decision_forming' => (int) $decisionForming,
+            'lifestyle_approach' => (int) $lifestyleApproach,
+            'openness' => min(100, (int) $openness),
+            'conscientiousness' => min(100, (int) $conscientiousness),
+            'extraversion' => min(100, (int) $extraversion),
+            'agreeableness' => min(100, (int) $agreeableness),
+            'neuroticism' => min(100, (int) $neuroticism),
+            'social_boldness_score' => (int) $extraversion,
+            'emotional_stability_score' => 100 - min(100, (int) $neuroticism),
+            'agreeableness_score' => (int) $agreeableness,
+            'conscientiousness_score' => min(100, (int) $conscientiousness),
+            'openness_score' => min(100, (int) $openness),
+            'current_mbti' => $mbti,
+            'mbti_confidence' => 30, // Initial confidence is low
+            'decision_patterns' => [],
+            'recent_social_decisions' => [],
+            'recent_career_decisions' => [],
+            'recent_relationship_decisions' => [],
+            'recent_moral_decisions' => [],
+        ]);
+        
+        Log::info('Personality profile created', [
+            'character_id' => $character->id,
+            'mbti' => $mbti,
+        ]);
+    }
+
     private function clampStat(int $value): int
     {
         return max(0, min(100, $value));
@@ -467,5 +533,225 @@ class CharacterController extends Controller
         });
 
         return response()->json($formattedLogs);
+    }
+
+    /**
+     * Get player analytics/stats overview
+     */
+    public function analytics(Character $character)
+    {
+        if ($character->user_id !== Auth::id()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        return response()->json([
+            'life_stats' => $this->getLifeStatsHistory($character),
+            'career' => $this->getCareerProgression($character),
+            'relationships' => $this->getRelationshipTimeline($character),
+            'skills' => $this->getSkillsProgression($character),
+            'decisions' => $this->getDecisionStats($character),
+            'summary' => $this->getStatsSummary($character),
+            'personality' => $this->getPersonalityProfile($character),
+            'timeline' => $this->getLifeTimeline($character),
+        ]);
+    }
+
+    /**
+     * Get personality profile for player
+     */
+    private function getPersonalityProfile(Character $character): ?array
+    {
+        $profile = \App\Models\PersonalityProfile::where('character_id', $character->id)->first();
+        
+        if (!$profile) {
+            return null;
+        }
+
+        return [
+            'mbti' => $profile->current_mbti,
+            'big_five' => [
+                'openness' => $profile->openness,
+                'conscientiousness' => $profile->conscientiousness,
+                'extraversion' => $profile->extraversion,
+                'agreeableness' => $profile->agreeableness,
+                'neuroticism' => $profile->neuroticism,
+            ],
+            'dimensions' => [
+                'energy_orientation' => $profile->energy_orientation,
+                'information_gathering' => $profile->information_gathering,
+                'decision_forming' => $profile->decision_forming,
+                'lifestyle_approach' => $profile->lifestyle_approach,
+            ],
+            'confidence' => $profile->mbti_confidence,
+        ];
+    }
+
+    /**
+     * Get life events timeline
+     */
+    private function getLifeTimeline(Character $character): array
+    {
+        $events = \App\Models\DecisionLog::where('character_id', $character->id)
+            ->orderBy('day', 'desc')
+            ->limit(20)
+            ->get(['day', 'event_title', 'choice_text', 'category', 'outcome']);
+
+        return $events->map(fn($e) => [
+            'day' => $e->day,
+            'title' => $e->event_title,
+            'choice' => $e->choice_text,
+            'category' => $e->category,
+            'outcome' => $e->outcome,
+        ]);
+    }
+
+    /**
+     * Get life stats history over time
+     */
+    private function getLifeStatsHistory(Character $character): array
+    {
+        $snapshots = \App\Models\LifeStatsSnapshot::where('anon_character_id', $character->anon_character_id)
+            ->orderBy('day', 'asc')
+            ->get(['day', 'health', 'happiness', 'finance', 'career_level', 'profession']);
+
+        return [
+            'current' => [
+                'day' => $character->current_day,
+                'health' => $character->health,
+                'happiness' => $character->happiness,
+                'finance' => $character->finance,
+                'career_level' => $character->career_level,
+                'profession' => $character->profession,
+            ],
+            'history' => $snapshots->map(fn($s) => [
+                'day' => $s->day,
+                'health' => $s->health,
+                'happiness' => $s->happiness,
+                'finance' => $s->finance,
+                'career_level' => $s->career_level,
+            ]),
+            'averages' => [
+                'health' => round($snapshots->avg('health') ?? $character->health, 1),
+                'happiness' => round($snapshots->avg('happiness') ?? $character->happiness, 1),
+                'finance' => round($snapshots->avg('finance') ?? $character->finance, 1),
+            ],
+        ];
+    }
+
+    /**
+     * Get career progression timeline
+     */
+    private function getCareerProgression(Character $character): array
+    {
+        // Get career changes from decision logs
+        $careerLogs = \App\Models\DecisionLog::where('character_id', $character->id)
+            ->whereNotNull('after_profession')
+            ->orderBy('day', 'asc')
+            ->get(['day', 'before_profession', 'after_profession', 'event_title']);
+
+        return [
+            'current' => [
+                'profession' => $character->profession,
+                'level' => $character->career_level,
+            ],
+            'history' => $careerLogs->map(fn($log) => [
+                'day' => $log->day,
+                'from' => $log->before_profession,
+                'to' => $log->after_profession,
+                'event' => $log->event_title,
+            ]),
+            'total_jobs' => $careerLogs->count(),
+        ];
+    }
+
+    /**
+     * Get relationship timeline
+     */
+    private function getRelationshipTimeline(Character $character): array
+    {
+        // Get relationship changes from decision logs
+        $relationshipLogs = \App\Models\DecisionLog::where('character_id', $character->id)
+            ->whereNotNull('after_relationship_status')
+            ->orderBy('day', 'asc')
+            ->get(['day', 'before_relationship_status', 'after_relationship_status', 'event_title']);
+
+        return [
+            'current' => [
+                'status' => $character->relationship_status,
+            ],
+            'history' => $relationshipLogs->map(fn($log) => [
+                'day' => $log->day,
+                'from' => $log->before_relationship_status,
+                'to' => $log->after_relationship_status,
+                'event' => $log->event_title,
+            ]),
+            'total_relationships' => $relationshipLogs->count(),
+        ];
+    }
+
+    /**
+     * Get skills progression
+     */
+    private function getSkillsProgression(Character $character): array
+    {
+        $skills = $character->skills()->get();
+        
+        return [
+            'current' => $skills->pluck('name'),
+            'count' => $skills->count(),
+            'by_category' => $skills->groupBy('category')->map(fn($g) => $g->pluck('name')),
+        ];
+    }
+
+    /**
+     * Get decision statistics
+     */
+    private function getDecisionStats(Character $character): array
+    {
+        $logs = \App\Models\DecisionLog::where('character_id', $character->id)->get();
+        
+        return [
+            'total' => $logs->count(),
+            'by_type' => $logs->groupBy('decision_type')->map(fn($g) => $g->count()),
+            'by_category' => $logs->groupBy('category')->map(fn($g) => $g->count()),
+        ];
+    }
+
+    /**
+     * Get overall stats summary
+     */
+    private function getStatsSummary(Character $character): array
+    {
+        $achievementService = app(\App\Services\AchievementService::class);
+        
+        // Get achievements - database or fallback
+        if ($achievementService->hasDatabaseAchievements()) {
+            $achievements = $achievementService->getAchievementProgressFromDatabase($character);
+        } else {
+            $achievements = $achievementService->getAchievementProgress($character);
+        }
+
+        return [
+            'character' => [
+                'name' => $character->name,
+                'age' => $character->current_day, // In this game, day = age
+                'age_group' => $character->age_group,
+                'gender' => $character->gender,
+                'days_played' => $character->current_day,
+            ],
+            'achievements' => [
+                'total' => $achievements['total'] ?? 0,
+                'unlocked' => $achievements['unlocked'] ?? 0,
+                'percentage' => $achievements['percentage'] ?? 0,
+                'points' => $achievements['points'] ?? 0,
+            ],
+            'stats' => [
+                'health' => $character->health,
+                'happiness' => $character->happiness,
+                'finance' => $character->finance,
+            ],
+            'visible_stats' => $character->stats,
+            'hidden_stats' => $character->hidden_stats,
+        ];
     }
 }

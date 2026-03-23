@@ -184,23 +184,23 @@ class DecisionLogService
                 'outcome' => $outcomeType,
                 'effects' => json_encode($statEffects),
                 // Before
-                'before_health' => $beforeLifeStats['health'] ?? 100,
-                'before_happiness' => $beforeLifeStats['happiness'] ?? 100,
-                'before_finance' => $beforeLifeStats['finance'] ?? 0,
+                'before_health' => $beforeLifeStats['health'] ?? 78,
+                'before_happiness' => $beforeLifeStats['happiness'] ?? 72,
+                'before_finance' => $beforeLifeStats['finance'] ?? 20,
                 'before_relationship_status' => $beforeLifeStats['relationship_status'] ?? 'single',
                 'before_profession' => $beforeLifeStats['profession'] ?? ($character->profession ?? null),
                 'before_career_level' => $beforeLifeStats['career_level'] ?? 'unemployed',
                 // After  
-                'after_health' => $afterLifeStats['health'] ?? 100,
-                'after_happiness' => $afterLifeStats['happiness'] ?? 100,
-                'after_finance' => $afterLifeStats['finance'] ?? 0,
+                'after_health' => $afterLifeStats['health'] ?? 78,
+                'after_happiness' => $afterLifeStats['happiness'] ?? 72,
+                'after_finance' => $afterLifeStats['finance'] ?? 20,
                 'after_relationship_status' => $afterLifeStats['relationship_status'] ?? 'single',
                 'after_profession' => $afterLifeStats['profession'] ?? ($character->profession ?? null),
                 'after_career_level' => $afterLifeStats['career_level'] ?? 'unemployed',
                 // Changes
-                'health_change' => ($afterLifeStats['health'] ?? 100) - ($beforeLifeStats['health'] ?? 100),
-                'happiness_change' => ($afterLifeStats['happiness'] ?? 100) - ($beforeLifeStats['happiness'] ?? 100),
-                'finance_change' => ($afterLifeStats['finance'] ?? 0) - ($beforeLifeStats['finance'] ?? 0),
+                'health_change' => ($afterLifeStats['health'] ?? 78) - ($beforeLifeStats['health'] ?? 78),
+                'happiness_change' => ($afterLifeStats['happiness'] ?? 72) - ($beforeLifeStats['happiness'] ?? 72),
+                'finance_change' => ($afterLifeStats['finance'] ?? 20) - ($beforeLifeStats['finance'] ?? 20),
                 // MBTI
                 'mbti' => $mbtiType,
                 'data' => array_merge($event, [

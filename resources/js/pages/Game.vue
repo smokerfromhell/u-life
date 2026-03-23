@@ -23,29 +23,68 @@
       <div class="game-header">
         <div class="character-panel">
           <div class="character-card-enhanced">
-            <div class="avatar-wrapper">
-              <v-img :src="character.image" alt="player portrait" class="character-avatar" />
-              <div class="avatar-ring"></div>
+            <div class="corner-bl"></div>
+            <div class="corner-br"></div>
+            
+            <!-- LEFT COLUMN: Avatar -->
+            <div class="character-card-left">
+              <div class="avatar-wrapper">
+                <v-img :src="character.image" alt="player portrait" class="character-avatar" />
+                <div class="avatar-ring"></div>
+              </div>
+              
+              <!-- Action Buttons Below Avatar -->
+              <div class="avatar-actions">
+                <v-btn
+                  size="x-small"
+                  class="retro-btn"
+                  prepend-icon="mdi-pencil"
+                  @click="editProfile"
+                >
+                  Edit
+                </v-btn>
+                <v-btn
+                  size="x-small"
+                  class="retro-btn"
+                  color="warning"
+                  prepend-icon="mdi-floppy"
+                  @click="saveGame"
+                  :loading="isSavingGame"
+                >
+                  Save
+                </v-btn>
+                <v-btn
+                  size="x-small"
+                  class="retro-btn"
+                  color="error"
+                  prepend-icon="mdi-power"
+                  @click="logout"
+                >
+                  Exit
+                </v-btn>
+              </div>
             </div>
             
-            <div class="character-main-info">
-              <div class="character-info">
-                <h2 class="character-name">{{ character.name }}</h2>
-                <div class="character-meta">
-                <span class="meta-badge">{{ character.ageGroup }}</span>
-                <span class="meta-badge gender-badge">{{ character.gender }}</span>
-                   <span class="meta-divider">|</span>
-                   <span class="day-counter">Age {{ character.age || character.currentDay }}</span>
-                  <span class="meta-divider">|</span>
-                  <span class="profession-badge">{{ character.profession || 'No Profession' }}</span>
-                  <span class="meta-divider">|</span>
-                  <span class="relationship-badge-header" :class="getRelationshipClass(character.relationshipStatus)">
-                    <v-icon size="14">{{ getRelationshipIcon(character.relationshipStatus) }}</v-icon>
-                    {{ formatRelationshipStatus(character.relationshipStatus) }}
-                  </span>
+            <!-- RIGHT COLUMN: Info -->
+            <div class="character-card-right">
+              <!-- NAME AND META ROW -->
+              <div class="character-header-row">
+                <div class="character-info">
+                  <h2 class="character-name">{{ character.name }}</h2>
+                  <div class="character-meta">
+                    <span class="meta-badge">{{ character.ageGroup }}</span>
+                    <span class="meta-badge gender-badge">{{ character.gender }}</span>
+                    <span class="day-counter">Age {{ character.age || character.currentDay }}</span>
+                    <span class="profession-badge">{{ character.profession || 'No Profession' }}</span>
+                    <span class="relationship-badge-header" :class="getRelationshipClass(character.relationshipStatus)">
+                      <v-icon size="14">{{ getRelationshipIcon(character.relationshipStatus) }}</v-icon>
+                      {{ formatRelationshipStatus(character.relationshipStatus) }}
+                    </span>
+                  </div>
                 </div>
               </div>
               
+              <!-- STATS ROW -->
               <div class="header-stats">
                 <div v-for="(value, stat) in headerStats" :key="stat" class="header-stat-bar">
                   <div class="header-stat-header">
@@ -62,12 +101,46 @@
                 </div>
               </div>
               
-              <!-- Health Status Display -->
-              <div v-if="character.healthStatus" class="health-status-badge" :class="getHealthStatusClass(character.healthStatus)">
-                <v-icon size="16">{{ getHealthStatusIcon(character.healthStatus) }}</v-icon>
-                <span>{{ healthStatusLabel }}</span>
+              <!-- STATUS AND ACTIONS ROW -->
+              <div class="character-footer-row">
+                <div class="status-section">
+                  <v-btn
+                    size="x-small"
+                    class="retro-btn"
+                    @click="showStatsDialog = true"
+                    prepend-icon="mdi-chart-box"
+                    color="purple"
+                  >
+                    All Stats
+                  </v-btn>
+                  <v-btn
+                    size="x-small"
+                    class="retro-btn"
+                    @click="toggleStats"
+                    prepend-icon="mdi-account"
+                    :color="showStats ? 'warning' : 'info'"
+                  >
+                    {{ showStats ? 'Hide Skills' : 'Show Skills' }}
+                  </v-btn>
+                  <v-btn
+                    size="x-small"
+                    class="retro-btn"
+                    color="success"
+                    prepend-icon="mdi-help-circle"
+                    @click="showHowToPlay = true"
+                  >
+                    Help
+                  </v-btn>
+                  
+                  <!-- Health Status Display -->
+                  <div v-if="character.healthStatus" class="health-status-badge" :class="getHealthStatusClass(character.healthStatus)">
+                    <v-icon size="16">{{ getHealthStatusIcon(character.healthStatus) }}</v-icon>
+                    <span>{{ healthStatusLabel }}</span>
+                  </div>
+                </div>
               </div>
-
+              
+              <!-- State Strip -->
               <div v-if="currentNarrativeLabel || activePathBadges.length || activeConsequenceBadges.length" class="state-strip">
                 <div v-if="currentNarrativeLabel" class="state-pill narrative-pill">
                   <v-icon size="14">mdi-source-branch</v-icon>
@@ -84,52 +157,27 @@
               </div>
             </div>
             
-            <div class="character-actions">
-              <v-btn
-                size="small"
-                class="retro-btn retro-stats-btn"
-                @click="toggleStats"
-                prepend-icon="mdi-account"
-                :color="showStats ? 'warning' : 'info'"
-              >
-                {{ showStats ? 'Hide Skills' : 'Show Skills' }}
-              </v-btn>
-              <v-btn
-                size="small"
-                class="retro-btn retro-help-btn"
-                color="success"
-                prepend-icon="mdi-help-circle"
-                @click="showHowToPlay = true"
-              >
-                How to Play
-              </v-btn>
-              <v-btn
-                size="x-small"
-                class="retro-btn retro-edit-btn"
-                prepend-icon="mdi-pencil"
-                @click="editProfile"
-              >
-                Edit
-              </v-btn>
-              <v-btn
-                size="x-small"
-                class="retro-btn retro-save-btn"
-                color="warning"
-                prepend-icon="mdi-floppy"
-                @click="saveGame"
-                :loading="isSavingGame"
-              >
-                Save
-              </v-btn>
-              <v-btn
-                size="x-small"
-                class="retro-btn retro-exit-btn"
-                color="error"
-                prepend-icon="mdi-power"
-                @click="logout"
-              >
-                Exit
-              </v-btn>
+            <!-- Story Paths - Below Card -->
+            <div v-if="pathProgressBadges.length > 0" class="path-progress-strip">
+              <div class="path-progress-title">
+                <v-icon size="14">mdi-timeline-outline</v-icon>
+                <span>Story Paths</span>
+              </div>
+              <div class="path-progress-list">
+                <div 
+                  v-for="p in pathProgressBadges" 
+                  :key="`progress-${p.path}`"
+                  class="path-progress-item"
+                  :class="{ 'active-path': p.isActive, 'current-path': p.isCurrent, 'inactive-path': !p.isActive }"
+                >
+                  <div class="path-name">{{ p.label }}</div>
+                  <div class="path-stage">{{ p.stage }}</div>
+                  <div class="path-bar-container">
+                    <div class="path-bar" :style="{ width: p.progressPercent + '%' }"></div>
+                  </div>
+                  <div class="path-stage-info">{{ p.stageIndex }}/{{ p.totalStages }}</div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -197,7 +245,7 @@
             <v-icon class="narration-icon">mdi-script-text</v-icon>
             <h4 class="narration-title">LIFE LOG</h4>
           </div>
-          <div class="narration-body">
+          <div class="narration-body" ref="narrationBodyRef">
             <p v-if="narrationHistory.length === 0" class="narration-empty">
               Select an event to begin your life...
             </p>
@@ -358,6 +406,32 @@
               <div
                 v-for="(event, index) in availableEvents.triggers"
                 :key="`trigger-${index}`"
+                class="event-card-item"
+                @click="!selectedEvent && selectEvent(event)"
+                :class="{ 'disabled': selectedEvent }"
+              >
+                <div class="card-visual">
+                  <v-img :src="event.image" cover class="card-img" />
+                  <div class="card-type-badge" :class="getCardBadgeClass(event)">{{ getCardBadgeLabel(event) }}</div>
+                </div>
+                <div class="card-content">
+                  <h4 class="card-title">{{ event.title }}</h4>
+                  <p class="card-desc">{{ event.description }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Luck Events Section -->
+          <div v-if="availableEvents.luck && availableEvents.luck.length > 0" class="event-section">
+            <h3 class="section-header luck">
+              <v-icon class="header-icon">mdi-clover</v-icon>
+              <span class="section-header-text glitch" data-text="LUCK">LUCK</span>
+            </h3>
+            <div class="events-grid">
+              <div
+                v-for="(event, index) in availableEvents.luck"
+                :key="`luck-${index}`"
                 class="event-card-item"
                 @click="!selectedEvent && selectEvent(event)"
                 :class="{ 'disabled': selectedEvent }"
@@ -582,6 +656,7 @@
               <div class="game-over-content">
                 <h3 class="game-over-title">{{ endingTitle || 'Your journey has ended.' }}</h3>
                 <p class="game-over-text">{{ endingDescription || `You lived until Age ${character.age || character.currentDay} as a ${character.ageGroup}.` }}</p>
+                <p v-if="deathCause" class="death-cause">💀 Cause of Death: {{ deathCause }}</p>
                 <v-btn color="info" size="large" class="new-game-btn" variant="tonal" @click="openLifeSummary">
                   Life Summary
                 </v-btn>
@@ -631,11 +706,30 @@
                 variant="outlined"
                 size="large"
                 class="choice-btn"
+                :class="{ 
+                  'choice-with-effects': choice.stat_effects || choice.outcomes,
+                  'choice-locked': choice.is_locked
+                }"
                 @click="handleChoiceClick(idx)"
-                :disabled="applyingOutcome"
+                :disabled="applyingOutcome || choice.is_locked"
               >
                 <div class="choice-btn-content">
+                  <span v-if="choice.is_locked" class="locked-indicator">
+                    <v-icon size="14">mdi-lock</v-icon>
+                  </span>
                   <span class="choice-btn-label">{{ formatChoiceLabel(choice) }}</span>
+                  <!-- Consequence Preview -->
+                  <div v-if="choice.stat_effects || getChoiceOutcomes(choice).length > 0" class="choice-effects-preview">
+                    <div v-if="choice.stat_effects" class="stat-effects-text">
+                      {{ formatStatEffects(choice.stat_effects) }}
+                    </div>
+                    <div v-if="getChoiceOutcomes(choice).length > 0" class="outcome-preview">
+                      <span class="outcome-label">Outcomes:</span>
+                      <span v-for="(outcome, oi) in getChoiceOutcomes(choice).slice(0, 2)" :key="oi" class="outcome-badge" :class="outcome.tier">
+                        {{ outcome.tier }}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </v-btn>
             </div>
@@ -1176,6 +1270,55 @@
       </v-card>
     </v-dialog>
 
+    <!-- All Stats Dialog -->
+    <v-dialog v-model="showStatsDialog" max-width="500" rounded="xl" content-class="stats-dialog-content">
+      <v-card class="stats-dialog-card">
+        <v-card-title class="stats-dialog-title">
+          <v-icon class="mr-2">mdi-chart-box</v-icon>
+          CHARACTER STATS
+        </v-card-title>
+        <v-card-text class="stats-dialog-content-inner">
+          <!-- Core Attributes -->
+          <div class="stats-section">
+            <h5 class="stats-section-title">⚔️ CORE ATTRIBUTES</h5>
+            <div class="stats-grid">
+              <div v-for="(value, stat) in coreStats" :key="stat" class="stat-item">
+                <div class="stat-header">
+                  <span class="stat-icon">{{ getStatIcon(stat) }}</span>
+                  <span class="stat-name">{{ stat }}</span>
+                  <span class="stat-value">{{ typeof value === 'number' ? value + '%' : value }}</span>
+                </div>
+                <div class="stat-bar">
+                  <div class="stat-fill" :style="{ width: (typeof value === 'number' ? value : 50) + '%', background: getStatGradient(typeof value === 'number' ? value : 50) }"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Fate Stats -->
+          <div class="stats-section mt-4">
+            <h5 class="stats-section-title fate">🍀 FATE</h5>
+            <div class="stats-grid">
+              <div v-for="(value, stat) in fateStats" :key="stat" class="stat-item">
+                <div class="stat-header">
+                  <span class="stat-icon">{{ getStatIcon(stat) }}</span>
+                  <span class="stat-name">{{ stat }}</span>
+                  <span class="stat-value">{{ typeof value === 'number' ? value + '%' : value }}</span>
+                </div>
+                <div class="stat-bar">
+                  <div class="stat-fill" :style="{ width: (typeof value === 'number' ? value : 50) + '%', background: getStatGradient(typeof value === 'number' ? value : 50) }"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="primary" variant="tonal" @click="showStatsDialog = false">Close</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Achievements Dialog -->
     <Achievements
       v-model="showAchievementsDialog"
@@ -1244,9 +1387,9 @@ const getStarStyle = (n) => {
 
 // Get gradient color based on stat value
 const getStatGradient = (value) => {
-  if (value > 70) return 'linear-gradient(90deg, #00ffcc, #00d4aa)'
-  if (value < 30) return 'linear-gradient(90deg, #ef4444, #f87171)'
-  return 'linear-gradient(90deg, #f59e0b, #fbbf24)'
+  if (value > 70) return 'linear-gradient(90deg, #22c55e, #16a34a)'
+  if (value < 30) return 'linear-gradient(90deg, #ef4444, #dc2626)'
+  return 'linear-gradient(90deg, #f59e0b, #d97706)'
 }
 
 // Get health status CSS class
@@ -1277,11 +1420,21 @@ const getHealthStatusIcon = (status) => {
 
 const formatChoiceLabel = (choice) => {
   const baseText = choice?.text || 'Accept'
-  const years = Number(choice?.days_to_advance ?? 0)
-  if (Number.isFinite(years) && years > 0) {
-    return `${baseText} (+${years}y)`
-  }
   return baseText
+}
+
+// Helper to get outcomes from choice
+const getChoiceOutcomes = (choice) => {
+  if (!choice) return []
+  return choice.outcomes || []
+}
+
+// Helper to format stat effects for display
+const formatStatEffects = (effects) => {
+  if (!effects) return ''
+  // Parse effects like "+5 Intelligence, -2 Happiness"
+  const parts = effects.split(',').map(part => part.trim())
+  return parts.slice(0, 3).join(', ') // Show max 3 effects
 }
 
 const getCardBadgeLabel = (event) => {
@@ -1311,6 +1464,7 @@ const getCardBadgeClass = (event) => {
     profession_choice: 'career',
     trigger: 'milestone',
     milestone: 'milestone',
+    luck: 'luck',
   }
   return classes[type] || 'actions'
 }
@@ -1339,7 +1493,11 @@ const normalizeEventsPayload = (data = {}) => ({
   cultural: Array.isArray(data.cultural) ? data.cultural : [],
   ageSpecific: Array.isArray(data.ageSpecific) ? data.ageSpecific : [],
   profession: Array.isArray(data.profession) ? data.profession : [],
-  milestone: data.milestone || null
+  luck: Array.isArray(data.luck) ? data.luck : [],
+  milestone: data.milestone || null,
+  // Branching system data
+  path_progress: Array.isArray(data.path_progress) ? data.path_progress : [],
+  completed_chains: data.completed_chains || {}
 })
 
 const syncCharacterRuntime = (source = {}, { announceState = false } = {}) => {
@@ -1352,6 +1510,8 @@ const syncCharacterRuntime = (source = {}, { announceState = false } = {}) => {
     stats: source.stats || character.value.stats || {},
     hiddenStats: source.hidden_stats || source.hiddenStats || character.value.hiddenStats || {},
     effectiveStats: source.effective_stats || source.effectiveStats || character.value.effectiveStats || {},
+    luck: source.luck ?? character.value.luck ?? 50,
+    karma: source.karma ?? character.value.karma ?? 50,
     profession: source.profession ?? character.value.profession,
     ageGroup: source.age_group || source.ageGroup || character.value.ageGroup,
     currentDay: source.current_day || source.currentDay || character.value.currentDay,
@@ -1399,6 +1559,7 @@ const endDay = async () => {
       endingTitle.value = data.ending_title
       endingDescription.value = data.ending_description
       endingType.value = data.ending_type
+      deathCause.value = data.death_cause || null
       return
     }
     
@@ -1426,6 +1587,7 @@ const selectedEvent = ref(null)
 const showEventDialog = ref(false)
 const applyingOutcome = ref(false)
 const narrationHistory = ref([])
+const narrationBodyRef = ref(null)
 const statsPanelKey = ref(0)
 const isGuestUser = ref(false)
 const shareConsent = ref(false)
@@ -1440,6 +1602,7 @@ const showGameOverOverlay = ref(false)
 const endingTitle = ref(null)
 const endingDescription = ref(null)
 const endingType = ref(null)
+const deathCause = ref(null)
 
 const suicideMethods = ref([
   { name: 'JUMP OFF BRIDGE' },
@@ -1453,6 +1616,15 @@ const suicideMethods = ref([
 watch(showEventDialog, (isOpen) => {
   if (!isOpen) selectedEvent.value = null
 })
+
+// Auto-scroll narration to bottom when new entries are added
+watch(narrationHistory, () => {
+  nextTick(() => {
+    if (narrationBodyRef.value) {
+      narrationBodyRef.value.scrollTop = narrationBodyRef.value.scrollHeight
+    }
+  })
+}, { deep: true })
 
 // Image upload refs
 const imageInput = ref(null)
@@ -1473,7 +1645,11 @@ const character = ref({
   activePaths: [],
   characterState: {},
   skills: [],
-  talents: []
+  talents: [],
+  stats: {},
+  hiddenStats: {},
+  luck: 50,
+  karma: 50
 })
 
 const effectiveStats = ref({
@@ -1493,6 +1669,32 @@ const headerStats = computed(() => {
   return rest
 })
 
+// Split stats into categories for the All Stats dialog
+const visibleStats = computed(() => {
+  const stats = effectiveStats.value?.visible || {}
+  // Show only the main visible stats (not Health)
+  const { Health: _h, ...rest } = stats
+  return rest
+})
+
+const coreStats = computed(() => {
+  const stats = character.value.stats || {}
+  return stats
+})
+
+const hiddenStats = computed(() => {
+  const stats = character.value.hiddenStats || {}
+  return stats
+})
+
+const fateStats = computed(() => {
+  // Luck and Karma from character
+  return {
+    Luck: character.value.luck ?? 50,
+    Karma: character.value.karma ?? 50
+  }
+})
+
 const healthStatusLabel = computed(() => {
   const status = String(character.value?.healthStatus || 'healthy')
   return status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Healthy'
@@ -1508,7 +1710,10 @@ const availableEvents = ref({
   cultural: [],
   ageSpecific: [],
   profession: [],
-  milestone: null
+  milestone: null,
+  // Branching system data
+  path_progress: [],
+  completed_chains: {}
 })
 
 const consequenceCatalog = {
@@ -1556,6 +1761,27 @@ const currentNarrativeLabel = computed(() => formatNarrativeLabel(character.valu
 const activePathBadges = computed(() => {
   const paths = Array.isArray(character.value?.activePaths) ? character.value.activePaths : []
   return paths.map(formatBadgeLabel)
+})
+
+// Path progress display for branching visualization
+const pathProgressBadges = computed(() => {
+  const progress = Array.isArray(availableEvents.value?.path_progress) 
+    ? availableEvents.value.path_progress 
+    : []
+  return progress.map(p => ({
+    path: p.path,
+    label: formatBadgeLabel(p.path),
+    stage: p.current_stage,
+    stageIndex: p.stage_index,
+    totalStages: p.total_stages,
+    isActive: p.is_active,
+    isCurrent: p.is_current,
+    progressPercent: p.total_stages > 0 ? Math.round((p.stage_index / p.total_stages) * 100) : 0
+  }))
+})
+
+const completedChains = computed(() => {
+  return availableEvents.value?.completed_chains || {}
 })
 
 const activeConsequenceBadges = computed(() => {
@@ -1614,6 +1840,7 @@ const selectingProfession = ref(false)
 // Mini-game state
 const showMiniGameDialog = ref(false)
 const showAchievementsDialog = ref(false)
+const showStatsDialog = ref(false)
 const miniGameType = ref(null)
 const miniGameData = ref(null)
 const miniGameEventId = ref(null)
@@ -2072,6 +2299,7 @@ const applyChoice = async (choiceIndex) => {
       endingTitle.value = data.ending_title || null
       endingDescription.value = data.ending_description || null
       endingType.value = data.ending_type || null
+      deathCause.value = data.death_cause || null
     }
     
     // Handle milestone from age transition
@@ -2445,11 +2673,29 @@ const updateEffectiveStats = () => {
  */
 const getStatIcon = (stat) => {
   const icons = {
+    // Visible stats
     Health: "❤️",
     Charisma: "✨",
     Burnout: "🔥",
     Wealth: "💰",
-    Happiness: "😊"
+    Happiness: "😊",
+    // Core stats
+    Intelligence: "🧠",
+    Strength: "💪",
+    Creativity: "🎨",
+    Empathy: "💕",
+    Social: "👥",
+    // Hidden stats
+    Reputation: "⭐",
+    Isolation: "🌑",
+    Addiction: "💉",
+    Debt: "📉",
+    Morality: "⚖️",
+    Discipline: "🎯",
+    Ego: "👑",
+    // Fate stats
+    Luck: "🍀",
+    Karma: "🧘"
   }
   return icons[stat] || "📊"
 }
@@ -2558,12 +2804,16 @@ const saveGame = async () => {
   try {
     isSavingGame.value = true
 
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+
     const response = await fetch(`/api/characters/${character.value.id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': csrfToken || ''
       },
+      credentials: 'include',
       body: JSON.stringify({
         stats: character.value.stats,
         hidden_stats: character.value.hiddenStats,
@@ -2588,12 +2838,16 @@ const saveGame = async () => {
  */
 const saveStatsToDb = async () => {
   try {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+
     const response = await fetch(`/api/characters/${character.value.id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': csrfToken || ''
       },
+      credentials: 'include',
       body: JSON.stringify({
         stats: character.value.stats,
         hidden_stats: character.value.hiddenStats,
@@ -2877,6 +3131,7 @@ const startNewGame = () => {
   endingTitle.value = null
   endingDescription.value = null
   endingType.value = null
+  deathCause.value = null
   router.push('/character-creation')
 }
 </script>
@@ -3077,29 +3332,82 @@ const startNewGame = () => {
 .character-card-enhanced {
   display: flex;
   align-items: flex-start;
-  gap: 20px;
-  background: linear-gradient(135deg, rgba(15,10,25,0.8), rgba(25,15,40,0.9));
-  border: 2px solid rgba(255,255,255,0.15);
-  border-radius: 16px;
-  padding: 20px;
+  gap: 24px;
+  background: 
+    linear-gradient(135deg, rgba(15,10,25,0.92) 0%, rgba(25,15,40,0.95) 50%, rgba(10,20,30,0.92) 100%);
+  border: 2px solid rgba(0,255,204,0.5);
+  border-radius: 6px;
+  padding: 24px;
   position: relative;
   box-shadow: 
-    inset 0 1px 0 rgba(255,255,255,0.1),
-    0 0 0 1px rgba(0,255,204,0.3),
-    0 20px 60px rgba(0,0,0,0.6),
-    0 0 40px rgba(139,92,246,0.2);
+    0 0 20px rgba(0,255,204,0.2),
+    0 4px 20px rgba(0,0,0,0.5);
   font-family: 'Press Start 2P', 'VT323', monospace;
-  image-rendering: pixelated;
 }
 
+/* Pixel corner decorations */
 .character-card-enhanced::before {
   content: '';
   position: absolute;
   inset: 0;
   background: 
-    repeating-linear-gradient(90deg, transparent 0, transparent 1px, rgba(0,255,204,0.05) 1px, rgba(0,255,204,0.05) 2px),
-    repeating-linear-gradient(0deg, transparent 0, transparent 2px, rgba(139,92,246,0.04) 2px, rgba(139,92,246,0.04) 4px);
+    repeating-linear-gradient(90deg, transparent 0, transparent 2px, rgba(0,255,204,0.08) 2px, rgba(0,255,204,0.08) 4px),
+    repeating-linear-gradient(0deg, transparent 0, transparent 3px, rgba(139,92,246,0.06) 3px, rgba(139,92,246,0.06) 6px);
   pointer-events: none;
+}
+
+/* Retro corner decorations with pixel effect */
+.character-card-enhanced::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 16px;
+  height: 16px;
+  border-top: 3px solid #00ffcc;
+  border-right: 3px solid #00ffcc;
+  opacity: 0.8;
+}
+
+.character-card-enhanced .corner-bl {
+  content: '';
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  width: 16px;
+  height: 16px;
+  border-bottom: 3px solid #00ffcc;
+  border-left: 3px solid #00ffcc;
+  opacity: 0.8;
+}
+
+.character-card-enhanced .corner-br {
+  content: '';
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 16px;
+  height: 16px;
+  border-bottom: 3px solid #00ffcc;
+  border-right: 3px solid #00ffcc;
+  opacity: 0.8;
+}
+
+.avatar-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Avatar pixel frame with glow */
+.avatar-wrapper::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  right: -6px;
+  width: 12px;
+  height: 12px;
+  border-bottom: 3px solid #00ffcc;
+  border-right: 3px solid #00ffcc;
 }
 
 .avatar-wrapper {
@@ -3108,20 +3416,30 @@ const startNewGame = () => {
 }
 
 .character-avatar {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  border: 3px solid rgb(var(--accent-rgb));
+  width: 110px;
+  height: 110px;
+  border-radius: 4px;
+  border: 3px solid #00ffcc;
   object-fit: cover;
-  box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.25);
+  box-shadow: 
+    0 0 20px rgba(0,255,204,0.4),
+    0 0 40px rgba(139,92,246,0.2);
 }
 
 .avatar-ring {
   position: absolute;
   inset: -6px;
-  border-radius: 50%;
-  border: 2px solid rgba(var(--accent2-rgb), 0.45);
+  border-radius: 2px;
+  border: 3px solid rgba(139,92,246,0.7);
   animation: ring-pulse 2s ease-in-out infinite;
+  box-shadow: 
+    0 0 15px rgba(139,92,246,0.5),
+    inset 0 0 10px rgba(0,255,204,0.2);
+}
+
+@keyframes ring-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.6; box-shadow: 0 0 15px rgba(139,92,246,0.5); }
+  50% { transform: scale(1.12); opacity: 0.3; box-shadow: 0 0 25px rgba(139,92,246,0.8); }
 }
 
 .avatar-ring--profile {
@@ -3156,83 +3474,157 @@ const startNewGame = () => {
   min-width: 0;
 }
 
+/* Two-column layout for character card */
+.character-card-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.character-card-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.character-header-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.character-footer-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.status-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.avatar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
 .character-info {
   flex-shrink: 0;
 }
 
 .character-name {
   font-family: 'Press Start 2P', monospace !important;
-  font-size: 1.4rem !important;
+  font-size: 1.5rem !important;
   font-weight: 700 !important;
   color: #00ffcc !important;
   text-shadow: 
-    0 0 20px #00ffcc,
+    0 0 25px #00ffcc,
+    0 0 50px #00ffcc,
     3px 0 0 #000, -3px 0 0 #00ffcc,
     0 3px 0 #000, 0 -3px 0 #00ffcc !important;
-  letter-spacing: 0.1em !important;
+  letter-spacing: 0.15em !important;
   text-transform: uppercase !important;
   animation: name-glitch 4s infinite;
-  margin-bottom: 8px !important;
+  margin-bottom: 10px !important;
   line-height: 1 !important;
+  position: relative;
+}
+
+.character-name::before {
+  content: '█';
+  position: absolute;
+  left: -20px;
+  opacity: 0.6;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 0.6; }
+  51%, 100% { opacity: 0; }
 }
 
 .character-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
   flex-wrap: wrap;
+  gap: 12px;
 }
 
 .meta-badge {
-  background: linear-gradient(135deg, rgba(139,92,246,0.9), rgba(99,102,241,0.8), rgba(0,212,170,0.9)) !important;
+  background: 
+    linear-gradient(135deg, rgba(139,92,246,0.95), rgba(99,102,241,0.9), rgba(0,212,170,0.95)) !important;
   color: #ffffff !important;
   font-family: 'Press Start 2P', monospace !important;
   font-size: 0.55rem !important;
   font-weight: 700 !important;
-  padding: 4px 12px !important;
-  border-radius: 12px !important;
+  padding: 5px 10px !important;
+  border-radius: 0px !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.08em !important;
-  border: 1px solid rgba(255,255,255,0.3) !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.4), 0 0 12px rgba(139,92,246,0.4) !important;
+  letter-spacing: 0.1em !important;
+  border: 2px solid rgba(255,255,255,0.4) !important;
+  box-shadow: 
+    0 3px 0 rgba(0,0,0,0.4),
+    0 4px 10px rgba(0,0,0,0.5),
+    0 0 15px rgba(139,92,246,0.5) !important;
   image-rendering: pixelated !important;
 }
 
-.meta-divider {
-  color: rgba(255, 255, 255, 0.3);
+.meta-badge.gender-badge {
+  background: linear-gradient(135deg, rgba(236,72,153,0.95), rgba(168,85,247,0.9)) !important;
+  box-shadow: 
+    0 3px 0 rgba(0,0,0,0.4),
+    0 4px 10px rgba(0,0,0,0.5),
+    0 0 15px rgba(236,72,153,0.5) !important;
 }
 
 .day-counter {
-  color: rgb(var(--accent-rgb));
-  font-size: 0.9rem;
-  font-weight: 500;
+  color: #00ffcc;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: 'Press Start 2P', monospace;
+  text-shadow: 0 0 10px #00ffcc;
+  letter-spacing: 0.1em;
 }
 
 .profession-badge {
   background: linear-gradient(135deg, #3b82f6, #2563eb);
   color: #fff;
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 20px;
-  text-transform: capitalize;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 0px;
+  text-transform: uppercase;
+  border: 2px solid rgba(255,255,255,0.3);
+  box-shadow: 
+    0 3px 0 rgba(0,0,0,0.4),
+    0 0 12px rgba(59,130,246,0.5);
 }
 
-/* Header Stats - Always Visible */
+/* Header Stats - Always Visible - Simplified Style */
 .header-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: 12px;
-  padding: 12px;
-  background: rgba(10,5,20,0.7);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px;
+  background: 
+    linear-gradient(135deg, rgba(10,5,20,0.85), rgba(20,10,35,0.9));
   border: 2px solid rgba(0,255,204,0.4);
-  border-radius: 12px;
+  border-radius: 4px;
   box-shadow: 
-    inset 0 1px 0 rgba(255,255,255,0.1),
-    0 0 20px rgba(0,255,204,0.3),
-    0 8px 25px rgba(0,0,0,0.5);
+    0 0 15px rgba(0,255,204,0.2),
+    0 4px 15px rgba(0,0,0,0.4);
   font-family: 'Press Start 2P', monospace;
-  image-rendering: pixelated;
 }
 
 /* Health Status Badge */
@@ -3250,9 +3642,10 @@ const startNewGame = () => {
 }
 
 .status-healthy {
-  background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 212, 170, 0.3));
-  border: 1px solid #00ffcc;
-  color: #00ffcc;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.3));
+  border: 1px solid #22c55e;
+  color: #22c55e;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
 }
 
 .status-fever {
@@ -3292,16 +3685,27 @@ const startNewGame = () => {
 }
 
 .header-stat-bar {
-  background: linear-gradient(135deg, rgba(20,15,35,0.9), rgba(10,5,25,0.95));
-  border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 8px;
-  padding: 8px 6px;
+  flex: 1 1 calc(48% - 10px);
+  min-width: 100px;
+  background: 
+    linear-gradient(135deg, rgba(20,15,35,0.95), rgba(10,5,25,0.98));
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 4px;
+  padding: 12px 14px;
   box-shadow: 
-    0 4px 12px rgba(0,0,0,0.4),
-    inset 0 1px 0 rgba(255,255,255,0.15);
+    0 3px 10px rgba(0,0,0,0.4),
+    0 0 8px rgba(139,92,246,0.1);
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+}
+
+.header-stat-bar:hover {
+  border-color: rgba(0,255,204,0.6);
+  box-shadow: 
+    0 4px 15px rgba(0,0,0,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.2),
+    0 0 20px rgba(0,255,204,0.3);
 }
 
 .header-stat-header {
@@ -3319,11 +3723,12 @@ const startNewGame = () => {
 }
 
 .header-stat-name {
-  color: #00ff88 !important;
+  color: #22c55e !important;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.55rem;
   font-family: 'Press Start 2P', monospace !important;
-  font-size: 0.4rem !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.05em !important;
   text-transform: uppercase !important;
   flex: 1;
   text-shadow: 1px 1px 0 #000;
@@ -3336,16 +3741,47 @@ const startNewGame = () => {
 }
 
 .header-stat-track {
-  height: 8px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 4px;
+  height: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 0px;
   overflow: hidden;
+  box-shadow: 
+    inset 0 2px 4px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(0,255,204,0.2);
+  position: relative;
+}
+
+.header-stat-track::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 2px,
+    rgba(255,255,255,0.03) 2px,
+    rgba(255,255,255,0.03) 4px
+  );
 }
 
 .header-stat-fill {
   height: 100%;
-  border-radius: 4px;
+  border-radius: 0px;
   transition: width 0.5s ease;
+  box-shadow: 
+    0 0 12px currentColor,
+    0 0 4px currentColor;
+  position: relative;
+}
+
+.header-stat-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255,255,255,0.3);
 }
 
 .no-skills, .no-talents {
@@ -3371,54 +3807,71 @@ const startNewGame = () => {
 .character-actions {
   display: flex;
   flex-direction: row;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-/* Retro Pixel Header Buttons */
-.character-actions {
-  display: flex;
-  flex-direction: row;
+  flex-wrap: wrap;
   gap: 6px;
   flex-shrink: 0;
-  padding: 4px;
-  background: rgba(0,0,0,0.3);
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.1);
+  padding: 8px;
+  background: 
+    linear-gradient(135deg, rgba(0,0,0,0.4), rgba(20,10,35,0.5));
+  border-radius: 2px;
+  border: 2px solid rgba(0,255,204,0.3);
+  align-items: center;
+  justify-content: flex-end;
+  box-shadow: 
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    0 0 15px rgba(139,92,246,0.2);
 }
 
+/* Retro Pixel Header Buttons - Enhanced */
 .retro-btn {
   font-family: 'Press Start 2P', 'VT323', monospace !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.1em !important;
+  letter-spacing: 0.08em !important;
   image-rendering: pixelated !important;
-  border-radius: 4px !important;
-  border: 2px solid !important;
+  border-radius: 0px !important;
+  border: 3px solid !important;
   box-shadow: 
-    0 4px 8px rgba(0,0,0,0.4),
-    inset 0 1px 0 rgba(255,255,255,0.2) !important;
-  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+    0 4px 0 rgba(0,0,0,0.5),
+    0 6px 12px rgba(0,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.25) !important;
+  transition: all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
   font-weight: 700 !important;
-  font-size: 0.55rem !important;
+  font-size: 0.5rem !important;
   padding: 6px 10px !important;
   min-height: 32px !important;
   min-width: auto !important;
-  backdrop-filter: blur(4px);
+  position: relative;
+}
+
+.retro-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 2px,
+    rgba(255,255,255,0.02) 2px,
+    rgba(255,255,255,0.02) 4px
+  );
+  pointer-events: none;
 }
 
 .retro-btn:hover:not(:disabled) {
   transform: translateY(-2px) !important;
   box-shadow: 
-    0 6px 12px rgba(0,0,0,0.5),
-    0 0 12px currentColor,
-    inset 0 1px 0 rgba(255,255,255,0.3) !important;
+    0 6px 0 rgba(0,0,0,0.5),
+    0 10px 20px rgba(0,0,0,0.5),
+    0 0 20px currentColor,
+    inset 0 1px 0 rgba(255,255,255,0.4) !important;
 }
 
 .retro-btn:active:not(:disabled) {
-  transform: translateY(0px) !important;
+  transform: translateY(2px) !important;
   box-shadow: 
-    0 2px 4px rgba(0,0,0,0.4),
-    inset 0 2px 4px rgba(0,0,0,0.2) !important;
+    0 2px 0 rgba(0,0,0,0.5),
+    0 3px 6px rgba(0,0,0,0.4),
+    inset 0 2px 4px rgba(0,0,0,0.3) !important;
 }
 
 .retro-stats-btn {
@@ -3640,10 +4093,10 @@ const startNewGame = () => {
 }
 
 .skill-badge {
-  background: linear-gradient(135deg, #8b5cf6, #6366f1, #00d4aa) !important;
-  border-color: #a78bfa !important;
+  background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+  border-color: #4ade80 !important;
   color: #ffffff !important;
-  box-shadow: 0 0 12px rgba(139,92,246,0.6) !important;
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.6) !important;
 }
 
 .talent-badge {
@@ -3662,10 +4115,10 @@ const startNewGame = () => {
 }
 
 .connection-badge {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
-  border-color: #60a5fa !important;
+  background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+  border-color: #4ade80 !important;
   color: #ffffff !important;
-  box-shadow: 0 0 12px rgba(59,130,246,0.6) !important;
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.6) !important;
 }
 
 .relationship-badge-header {
@@ -3740,17 +4193,59 @@ const startNewGame = () => {
 }
 
 .game-content::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 
 .game-content::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
 }
 
 .game-content::-webkit-scrollbar-thumb {
-  background: rgb(var(--accent-rgb));
-  border-radius: 3px;
+  background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+  border-radius: 4px;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+}
+
+.game-content::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #4ade80 0%, #22c55e 100%);
+}
+
+/* ========================================
+   GLOBAL SCROLLBAR THEMING
+   ======================================== */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 5px;
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #22c55e 0%, #15803d 100%);
+  border-radius: 5px;
+  border: 2px solid rgba(0, 0, 0, 0.35);
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover,
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #4ade80 0%, #22c55e 100%);
+}
+
+html::-webkit-scrollbar-corner,
+body::-webkit-scrollbar-corner,
+*::-webkit-scrollbar-corner {
+  background: rgba(0, 0, 0, 0.3);
 }
 
 /* ========================================
@@ -4266,6 +4761,273 @@ const startNewGame = () => {
   border-radius: 16px !important;
 }
 
+/* ========================================
+   GLOBAL VUETIFY COMPONENT THEMING
+   ======================================== */
+/* Buttons */
+::v-deep(.v-btn) {
+  text-transform: none !important;
+  letter-spacing: 0.5px !important;
+  font-weight: 600 !important;
+}
+
+::v-deep(.v-btn--variant-elevated),
+::v-deep(.v-btn--variant-flat) {
+  border-radius: 8px !important;
+}
+
+/* Inputs */
+::v-deep(.v-field) {
+  border-radius: 8px !important;
+}
+
+::v-deep(.v-field__outline) {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+::v-deep(.v-input__details) {
+  display: none !important;
+}
+
+/* Selects */
+::v-deep(.v-select__selection-text) {
+  color: #e2e8f0 !important;
+}
+
+/* Chips */
+::v-deep(.v-chip) {
+  font-weight: 500 !important;
+}
+
+/* Text fields */
+::v-deep(.v-text-field input),
+::v-deep(.v-text-field textarea) {
+  color: #e2e8f0 !important;
+}
+
+/* Cards */
+::v-deep(.v-card) {
+  border-radius: 12px !important;
+}
+
+/* Dialog overlay */
+::v-deep(.v-overlay__scrim) {
+  background: rgba(0, 0, 0, 0.75) !important;
+}
+
+/* Menu */
+::v-deep(.v-menu__content) {
+  border-radius: 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Tooltip */
+::v-deep(.v-tooltip > .v-overlay__content) {
+  background: rgba(30, 30, 50, 0.95) !important;
+  border: 1px solid rgba(34, 197, 94, 0.5) !important;
+  border-radius: 8px !important;
+}
+
+/* Slider */
+::v-deep(.v-slider-track__background) {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+::v-deep(.v-slider-track__fill) {
+  background: linear-gradient(90deg, #22c55e, #16a34a) !important;
+}
+
+/* Switch */
+::v-deep(.v-switch__track) {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+::v-deep(.v-switch__track--is-active) {
+  background: #22c55e !important;
+}
+
+/* Tabs */
+::v-deep(.v-tab) {
+  text-transform: none !important;
+}
+
+::v-deep(.v-tab--selected) {
+  color: #22c55e !important;
+}
+
+/* Progress */
+::v-deep(.v-progress-linear) {
+  border-radius: 4px !important;
+}
+
+::v-deep(.v-progress-linear__bar) {
+  background: linear-gradient(90deg, #22c55e, #16a34a) !important;
+}
+
+/* Badge */
+::v-deep(.v-badge__badge) {
+  font-weight: 700 !important;
+}
+
+/* List */
+::v-deep(.v-list) {
+  background: rgba(25, 20, 45, 0.95) !important;
+  border-radius: 12px !important;
+}
+
+::v-deep(.v-list-item) {
+  border-radius: 8px !important;
+}
+
+::v-deep(.v-list-item:hover) {
+  background: rgba(34, 197, 94, 0.1) !important;
+}
+
+/* Divider */
+::v-deep(.v-divider) {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Expansion Panels */
+::v-deep(.v-expansion-panel) {
+  background: rgba(0, 0, 0, 0.2) !important;
+  border-radius: 8px !important;
+  margin-bottom: 4px !important;
+}
+
+::v-deep(.v-expansion-panel-title) {
+  padding: 12px 16px !important;
+}
+
+/* Navigation Drawer */
+::v-deep(.v-navigation-drawer) {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* App Bar */
+::v-deep(.v-app-bar) {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Bottom Navigation */
+::v-deep(.v-bottom-navigation) {
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ========================================
+   ALL STATS DIALOG STYLES
+   ======================================== */
+.stats-dialog-card {
+  background: linear-gradient(180deg, rgba(25, 20, 45, 0.98) 0%, rgba(15, 15, 30, 0.98) 100%) !important;
+  border: 2px solid rgba(168, 85, 247, 0.5) !important;
+  box-shadow: 0 0 30px rgba(168, 85, 247, 0.3) !important;
+}
+
+.stats-dialog-title {
+  font-family: 'Press Start 2P', monospace !important;
+  color: #a855f7 !important;
+  text-shadow: 0 0 10px rgba(168, 85, 247, 0.5) !important;
+  padding: 20px !important;
+  border-bottom: 1px solid rgba(168, 85, 247, 0.3) !important;
+}
+
+.stats-dialog-content-inner {
+  padding: 20px !important;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
+/* Custom Scrollbar */
+.stats-dialog-content-inner::-webkit-scrollbar {
+  width: 8px;
+}
+
+.stats-dialog-content-inner::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+.stats-dialog-content-inner::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #a855f7 0%, #7c3aed 100%);
+  border-radius: 4px;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+}
+
+.stats-dialog-content-inner::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #c084fc 0%, #8b5cf6 100%);
+}
+
+.stats-section {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stats-section-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  color: #22c55e;
+  margin-bottom: 12px;
+  letter-spacing: 1px;
+}
+
+.stats-section-title.hidden {
+  color: #f59e0b;
+}
+
+.stats-section-title.fate {
+  color: #8b5cf6;
+}
+
+.stats-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.stat-item {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+.stat-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.stat-icon {
+  font-size: 14px;
+}
+
+.stat-name {
+  flex: 1;
+  font-size: 12px;
+  color: #e2e8f0;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.stat-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.stat-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
 ::v-deep(.v-card) {
   border-radius: 12px !important;
   background: linear-gradient(180deg, rgba(25, 20, 45, 0.96) 0%, rgba(15, 15, 30, 0.96) 100%) !important;
@@ -4552,6 +5314,94 @@ const startNewGame = () => {
 
 .choice-btn:active:not(:disabled) {
   transform: translateX(4px) scale(0.98);
+}
+
+/* Choice Effects Preview */
+.choice-btn.choice-with-effects {
+  padding: 12px 16px !important;
+  background: linear-gradient(180deg, rgba(25, 35, 55, 0.92), rgba(15, 20, 40, 0.95)) !important;
+}
+
+.choice-btn.choice-locked {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  background: linear-gradient(180deg, rgba(30, 30, 40, 0.8), rgba(20, 20, 30, 0.85)) !important;
+  border-color: rgba(100, 100, 100, 0.3) !important;
+}
+
+.choice-btn.choice-locked:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.locked-indicator {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 6px;
+  color: #ef4444;
+}
+
+.choice-btn-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  gap: 6px;
+}
+
+.choice-effects-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-effects-text {
+  font-size: 0.75rem;
+  color: #86efac;
+  font-family: 'VT323', monospace;
+}
+
+.outcome-preview {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.outcome-label {
+  font-size: 0.65rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.outcome-badge {
+  font-size: 0.6rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.outcome-badge.positive {
+  background: rgba(34, 197, 94, 0.25);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.outcome-badge.negative {
+  background: rgba(239, 68, 68, 0.25);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.outcome-badge.mixed {
+  background: rgba(251, 191, 36, 0.25);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.4);
 }
 
 /* Cancel Button */
@@ -5264,12 +6114,14 @@ const startNewGame = () => {
   }
 
   .header-stats {
-    gap: 8px;
+    gap: 12px;
+    padding: 14px;
   }
 
   .header-stat-bar {
-    min-width: 84px;
-    max-width: 110px;
+    flex: 1 1 calc(48% - 8px);
+    min-width: 80px;
+    padding: 10px 12px;
   }
 }
 
@@ -5283,76 +6135,139 @@ const startNewGame = () => {
   }
 
   .game-header {
-    margin-bottom: 12px;
+    margin-bottom: 16px;
   }
 
   .character-panel {
     padding: 16px;
-    border-radius: 18px;
+    border-radius: 12px;
   }
 
   .character-card-enhanced {
     flex-direction: column;
     align-items: center;
-    gap: 14px;
+    gap: 20px;
     text-align: center;
+    padding: 20px;
   }
 
-  .character-avatar {
-    width: 72px;
-    height: 72px;
+  .character-card-left,
+  .character-card-right {
+    width: 100%;
+  }
+
+  .character-card-left {
+    flex-direction: row;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .avatar-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .avatar-actions .retro-btn {
+    flex: 0 1 auto;
+  }
+
+  .character-header-row {
+    align-items: center;
   }
 
   .character-meta {
     justify-content: center;
   }
 
-  .header-stats {
-    width: 100%;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .character-avatar {
+    width: 80px;
+    height: 80px;
+  }
+
+  .character-meta {
+    justify-content: center;
     gap: 10px;
   }
 
+  .character-meta .meta-badge,
+  .character-meta .profession-badge,
+  .character-meta .relationship-badge-header,
+  .character-meta .day-counter {
+    font-size: 0.5rem !important;
+    padding: 4px 8px !important;
+  }
+
+  .header-stats {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px;
+  }
+
   .header-stat-bar {
+    flex: 1 1 calc(50% - 6px);
     min-width: 0;
     max-width: none;
+    padding: 10px 12px;
+  }
+
+  .header-stat-header {
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+
+  .header-stat-name {
+    font-size: 0.45rem !important;
+  }
+
+  .header-stat-value {
+    font-size: 0.6rem;
+  }
+
+  .header-stat-track {
+    height: 8px;
+  }
+
+  .character-name {
+    font-size: 1rem !important;
+    text-align: center;
   }
 
   .character-actions {
     width: 100%;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 8px;
+    gap: 4px;
   }
 
   .character-actions .v-btn {
-    flex: 1 1 130px;
+    flex: 1 1 45%;
+    font-size: 0.4rem !important;
+    padding: 4px 6px !important;
+    min-height: 26px !important;
   }
 
-  .game-content {
-    padding-right: 0;
+  .state-strip,
+  .path-progress-strip {
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
-  .narration-body {
-    max-height: 160px;
+  .state-pill {
+    font-size: 0.5rem;
+    padding: 2px 6px;
   }
 
-  .action-section {
-    padding: 14px;
-    border-radius: 14px;
+  .health-status-badge {
+    font-size: 0.5rem;
+    padding: 4px 8px;
   }
+}
 
-  .events-grid {
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-    gap: 14px;
-    padding: 6px;
-  }
-
-  .event-section {
-    padding: 16px;
-    border-radius: 18px;
-  }
+/* Additional game content responsive */
+@media (max-width: 640px) {
 
   .section-header-wrapper {
     grid-template-columns: 1fr;
@@ -7339,39 +8254,191 @@ const startNewGame = () => {
 .state-strip {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px;
+  background: 
+    linear-gradient(135deg, rgba(0,0,0,0.3), rgba(20,10,35,0.4));
+  border-radius: 0px;
+  border: 2px solid rgba(0,255,204,0.2);
+  width: 100%;
+  box-shadow: 
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    0 0 10px rgba(0,255,204,0.1);
 }
 
 .state-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-family: 'VT323', monospace;
-  font-size: 0.92rem;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 0px;
+  font-family: 'Press Start 2P', 'VT323', monospace;
+  font-size: 0.45rem;
   line-height: 1;
-  border: 1px solid rgba(255,255,255,0.12);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+  border: 2px solid;
+  box-shadow: 
+    0 2px 0 rgba(0,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.15);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.state-pill .v-icon {
+  font-size: 0.7rem !important;
 }
 
 .narrative-pill {
   color: #fcd34d;
-  background: rgba(120, 53, 15, 0.34);
-  border-color: rgba(252, 211, 77, 0.25);
+  background: linear-gradient(135deg, rgba(120, 53, 15, 0.5), rgba(180, 100, 30, 0.5));
+  border-color: rgba(252, 211, 77, 0.6);
+  box-shadow: 
+    0 2px 0 rgba(0,0,0,0.4),
+    0 0 10px rgba(252, 211, 77, 0.3),
+    inset 0 1px 0 rgba(255,255,255,0.2);
 }
 
 .path-pill {
   color: #93c5fd;
-  background: rgba(30, 64, 175, 0.26);
-  border-color: rgba(147, 197, 253, 0.24);
+  background: linear-gradient(135deg, rgba(30, 64, 175, 0.5), rgba(59, 130, 246, 0.5));
+  border-color: rgba(147, 197, 253, 0.6);
+  box-shadow: 
+    0 2px 0 rgba(0,0,0,0.4),
+    0 0 10px rgba(147, 197, 253, 0.3),
+    inset 0 1px 0 rgba(255,255,255,0.2);
 }
 
 .consequence-pill {
   color: #fca5a5;
-  background: rgba(127, 29, 29, 0.28);
-  border-color: rgba(252, 165, 165, 0.22);
+  background: linear-gradient(135deg, rgba(127, 29, 29, 0.5), rgba(185, 50, 50, 0.5));
+  border-color: rgba(252, 165, 165, 0.6);
+  box-shadow: 
+    0 2px 0 rgba(0,0,0,0.4),
+    0 0 10px rgba(252, 165, 165, 0.3),
+    inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.character-card-enhanced + .path-progress-strip {
+  margin-top: 8px;
+  padding: 6px;
+}
+
+.character-card-enhanced + .path-progress-strip .path-progress-title {
+  font-size: 0.6rem;
+  margin-bottom: 2px;
+}
+
+.character-card-enhanced + .path-progress-strip .path-progress-list {
+  gap: 4px;
+}
+
+.character-card-enhanced + .path-progress-strip .path-progress-item {
+  padding: 3px 6px;
+  min-width: 50px;
+  max-width: 80px;
+}
+
+.character-card-enhanced + .path-progress-strip .path-name {
+  font-size: 0.5rem;
+}
+
+.character-card-enhanced + .path-progress-strip .path-stage {
+  font-size: 0.45rem;
+}
+
+.character-card-enhanced + .path-progress-strip .path-bar-container {
+  height: 2px;
+  margin-top: 2px;
+}
+
+.character-card-enhanced + .path-progress-strip .path-stage-info {
+  font-size: 0.4rem;
+}
+
+.path-progress-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.65rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.path-progress-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+}
+
+.path-progress-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 8px;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(100, 116, 139, 0.3);
+  border-radius: 4px;
+  min-width: 60px;
+  flex: 1 1 auto;
+  max-width: 100px;
+  transition: all 0.3s ease;
+}
+
+.path-progress-item.active-path {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.path-progress-item.current-path {
+  background: rgba(168, 85, 247, 0.2);
+  border-color: rgba(168, 85, 247, 0.5);
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
+}
+
+.path-progress-item.inactive-path {
+  opacity: 0.5;
+  background: rgba(30, 41, 59, 0.3);
+}
+
+.path-progress-item .path-name {
+  font-size: 0.6rem;
+  color: #e2e8f0;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 600;
+  text-align: center;
+}
+
+.path-progress-item .path-stage {
+  font-size: 0.55rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.path-progress-item .path-bar-container {
+  width: 100%;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.path-progress-item .path-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+.path-progress-item .path-stage-info {
+  font-size: 0.5rem;
+  color: #64748b;
+  margin-top: 2px;
 }
 
 .selected-event-meta {

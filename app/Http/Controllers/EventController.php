@@ -34,12 +34,13 @@ class EventController extends Controller
     protected LuckService $luckService;
     protected AchievementService $achievementService;
 
-    // Age progression thresholds (in days) - SHORTENED for faster gameplay
+    // Age progression thresholds - unified with EventService
+    // Uses age (not day) based on EventService::getAgeGroupFromAge()
     const AGE_GROUPS = [
-        'child' => ['min' => 0, 'max' => 9],      // Days 0-9
-        'teen' => ['min' => 10, 'max' => 19],      // Days 10-19
-        'adult' => ['min' => 20, 'max' => 35],     // Days 20-35
-        'old' => ['min' => 36, 'max' => 50],      // Days 36-50 (game ends)
+        'child' => ['min' => 0, 'max' => 9],       // Age 0-9
+        'teenager' => ['min' => 10, 'max' => 17],  // Age 10-17
+        'adult' => ['min' => 18, 'max' => 59],     // Age 18-59
+        'old' => ['min' => 60, 'max' => 100],     // Age 60+
     ];
 
     // Days per year for age calculation
@@ -47,6 +48,14 @@ class EventController extends Controller
 
     // Default maximum days in game (fallback)
     const DEFAULT_MAX_DAYS = 50;
+
+    // Maximum age (day) per age group - must match CharacterController
+    const MAX_AGE_BY_GROUP = [
+        'child' => 10,
+        'teenager' => 18,
+        'adult' => 60,
+        'old' => 100,
+    ];
 
     // Get max days based on character's starting age group
     private function getMaxDays(Character $character): int
@@ -334,6 +343,15 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 }
             }
 
+            // Get luck events - check if a random luck event should trigger
+            $luckEvents = [];
+            if ($this->luckService->shouldTriggerLuckEvent($character)) {
+                $luckEvent = $this->luckService->generateLuckEvent($character);
+                if ($luckEvent) {
+                    $luckEvents = [$this->formatLuckEvent($luckEvent, $character)];
+                }
+            }
+
             $events = [
                 // Separate decks (same interaction model as life actions)
                 'skills_to_learn' => $this->dedupeFormattedEvents($skillsToLearn),
@@ -345,6 +363,8 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 'ageSpecific' => $this->dedupeFormattedEvents($this->getAgeSpecificEvents($character, $ageGroup, $shownEventIds)),
                 'profession' => $this->dedupeFormattedEvents($this->ensureArray($statefulEvents['profession'] ?? [])),
                 'profession_choices' => $this->dedupeFormattedEvents($professionChoices),
+                // NEW: Luck events
+                'luck' => $luckEvents,
                 'milestone' => $milestone,
                 'current_state' => $character->current_state,
                 'character_state' => $character->character_state,
@@ -352,8 +372,11 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 'age' => $this->calculateAge($character->current_day),
                 'current_day' => $character->current_day,
                 // Feature 1: Health status instead of health %
-                'health_status' => $this->eventService->getHealthStatus($character->health ?? 100),
-                'health_percentage' => $character->health ?? 100,
+                'health_status' => $this->eventService->getHealthStatus($character->health ?? 78),
+                'health_percentage' => $character->health ?? 78,
+                // Branching system data
+                'path_progress' => $this->getPathProgress($character),
+                'completed_chains' => $character->completed_event_chains ?? [],
             ];
 
             // Add profession events if character is adult with profession
@@ -523,6 +546,11 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
             $character->previous_age_group = $normalizedCurrentAgeGroup;
             $character->age_group = $newAgeGroup;
             
+            // Update max_age in character_state to match new age group
+            $state = is_array($character->character_state) ? $character->character_state : [];
+            $state['max_age'] = self::MAX_AGE_BY_GROUP[$newAgeGroup] ?? self::DEFAULT_MAX_DAYS;
+            $character->character_state = $state;
+            
             // Update profile picture based on new age_group and gender
             $genderKey = $character->gender;
             $genderMap = [
@@ -535,8 +563,8 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
             
             $ageGroupMap = [
                 'child' => 'child',
-                'teen' => 'teenage',
-                'teenager' => 'teenage',
+                'teen' => 'teenager',
+                'teenager' => 'teenager',
                 'adult' => 'adult',
                 'old' => 'old',
             ];
@@ -561,6 +589,61 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
         if ($day <= 19) return 'teenager';
         if ($day <= 35) return 'adult';
         return 'old';
+    }
+
+    /**
+     * Get path progress for all active story paths
+     * Returns progress information for each path the character is on
+     */
+    private function getPathProgress(Character $character): array
+    {
+        $activePaths = is_array($character->active_event_paths) ? $character->active_event_paths : [];
+        $completedChains = is_array($character->completed_event_chains) ? $character->completed_event_chains : [];
+        $currentNarrative = $character->current_narrative;
+        
+        $pathStages = [
+            'education' => ['school', 'high_school', 'college', 'graduate', 'phd'],
+            'career' => ['unemployed', 'entry_level', 'mid_level', 'senior', 'executive', 'retired'],
+            'family' => ['single', 'dating', 'engaged', 'married', 'parent', 'empty_nest'],
+            'health' => ['healthy', 'fitness', 'injury', 'illness', 'recovery'],
+            'wealth' => ['broke', 'saving', 'investing', 'wealthy', 'rich'],
+            'social' => ['loner', 'friend', 'popular', 'influencer', 'leader']
+        ];
+        
+        $progress = [];
+        
+        foreach ($activePaths as $path) {
+            $stages = $pathStages[$path] ?? [];
+            $completedCount = isset($completedChains[$path]) ? (int)$completedChains[$path] : 0;
+            $currentStage = $stages[$completedCount] ?? $stages[0] ?? 'unknown';
+            
+            $progress[] = [
+                'path' => $path,
+                'current_stage' => $currentStage,
+                'stage_index' => $completedCount,
+                'total_stages' => count($stages),
+                'is_active' => true,
+                'is_current' => ($currentNarrative === $path)
+            ];
+        }
+        
+        // Add inactive paths that haven't been started
+        $allPaths = array_keys($pathStages);
+        foreach ($allPaths as $path) {
+            if (!in_array($path, $activePaths)) {
+                $stages = $pathStages[$path] ?? [];
+                $progress[] = [
+                    'path' => $path,
+                    'current_stage' => $stages[0] ?? 'unknown',
+                    'stage_index' => 0,
+                    'total_stages' => count($stages),
+                    'is_active' => false,
+                    'is_current' => false
+                ];
+            }
+        }
+        
+        return $progress;
     }
 
     /**
@@ -1064,7 +1147,7 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
 
         return match ($ageGroup) {
             'child', 'children' => 'child',
-            'teen', 'teenager', 'adolescent' => 'teenager',
+            'teen', 'teenager', 'adolescent' => 'teen',
             'adult' => 'adult',
             'old', 'elder', 'elderly' => 'old',
             default => 'adult',
@@ -1464,6 +1547,7 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
 
             $isSystemEvent = ($validated['event_type'] === 'system');
             $isProfessionChoice = ($validated['event_type'] === 'profession_choice');
+            $isLuckEvent = ($validated['event_type'] === 'luck');
 
             // DEBUG: Log what's being received from frontend
             Log::debug('applyEventOutcome request received', [
@@ -1478,7 +1562,19 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
             $event = null;
             $eventData = null;
 
-            if ($isSystemEvent) {
+            if ($isLuckEvent) {
+                // Luck events come from LuckService - reconstruct from request data
+                $luckEventData = $request->all();
+                $eventData = [
+                    'id' => $luckEventData['event_id'] ?? 'luck',
+                    'title' => $luckEventData['event_title'] ?? 'Lucky Event',
+                    'description' => $luckEventData['event_description'] ?? '',
+                    'choices' => $luckEventData['choices'] ?? [],
+                    'luck_type' => $luckEventData['luck_type'] ?? 'neutral',
+                    'category' => $luckEventData['category'] ?? 'random',
+                ];
+                $event = (object) $eventData;
+            } elseif ($isSystemEvent) {
                 $eventData = $this->getSystemEventById($character, (int) $validated['event_id']);
                 if (!$eventData) {
                     return response()->json(['error' => 'Event not found'], 404);
@@ -1510,8 +1606,10 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 $eventData = $this->formatEvent($event, $validated['event_type'], $character);
             }
 
-            // Get the choice list
-            $choices = $this->resolveEventChoices($event, $validated['event_type'], $character, $character->age_group ?? 'adult');
+            // Get the choice list - use direct choices for luck events
+            $choices = $isLuckEvent 
+                ? ($event->choices ?? [])
+                : $this->resolveEventChoices($event, $validated['event_type'], $character, $character->age_group ?? 'adult');
             
             // Feature 5: Game-decided outcomes - if event has auto_resolve flag, determine outcome automatically
             $autoResolve = $event->auto_resolve ?? false;
@@ -1541,9 +1639,9 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 'effective_stats' => $character->effective_stats,
                 'narrative' => $character->current_narrative,
                 'active_event_paths' => $character->active_event_paths,
-                'health' => $character->health ?? 100,
-                'happiness' => $character->happiness ?? 100,
-                'finance' => $character->finance ?? 0,
+                'health_status' => $this->eventService->getHealthStatus($character->health ?? 78),
+                'health_percentage' => $character->health ?? 78,
+                'finance' => $character->finance ?? 20,
                 'relationship_status' => $character->relationship_status ?? 'single',
                 'profession' => $character->profession ?? null,
                 'career_level' => $character->career_level ?? 'unemployed',
@@ -1660,21 +1758,22 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 ]);
             }
 
-            // Process relationship changes (for daily actions with relationship_status_change)
+            // Process relationship changes (for ALL event types with relationship_status_change)
             $relationshipChanges = [];
-            if ($isSystemEvent && isset($choice['relationship_status_change'])) {
+            if (isset($choice['relationship_status_change'])) {
                 $newStatus = $choice['relationship_status_change'];
                 $character->setRelationshipStatus($newStatus);
                 $relationshipChanges['status'] = $newStatus;
                 
                 Log::info('Relationship status changed', [
                     'character_id' => $character->id,
-                    'new_status' => $newStatus
+                    'new_status' => $newStatus,
+                    'event_type' => $validated['event_type'] ?? 'unknown'
                 ]);
             }
 
-            // Process relationship state changes (for daily actions with relationship_state_change)
-            if ($isSystemEvent && isset($choice['relationship_state_change'])) {
+            // Process relationship state changes (for ALL event types with relationship_state_change)
+            if (isset($choice['relationship_state_change'])) {
                 $stateChanges = $choice['relationship_state_change'];
                 
                 if (is_array($stateChanges)) {
@@ -1690,9 +1789,35 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 }
             }
 
-            // Process social connection (for daily actions with add_social_connection)
+            // Process profession trigger - for ProfessionTrigger events with set_profession => true
+            if (isset($choice['set_profession']) && $choice['set_profession'] === true) {
+                // Get profession from the choice first (for AgeSpecificEvent career choices)
+                $profession = null;
+                if (isset($choice['profession'])) {
+                    // Direct profession in choice (AgeSpecificEvent career choices)
+                    $profession = $choice['profession'];
+                } elseif (isset($event->profession)) {
+                    // Fallback: get from event (ProfessionTrigger)
+                    $profession = $event->profession;
+                } elseif (isset($event->event_choice)) {
+                    // Fallback: extract profession from event_choice
+                    $profession = $event->event_choice;
+                }
+                
+                if ($profession) {
+                    $character->setProfession($profession);
+                    
+                    Log::info('Profession set via trigger', [
+                        'character_id' => $character->id,
+                        'profession' => $profession,
+                        'event_type' => $validated['event_type'] ?? 'unknown'
+                    ]);
+                }
+            }
+
+            // Process social connection (for ALL event types with add_social_connection)
             $socialConnectionsAdded = [];
-            if ($isSystemEvent && isset($choice['add_social_connection'])) {
+            if (isset($choice['add_social_connection'])) {
                 $connectionData = $choice['add_social_connection'];
                 
                 if (is_array($connectionData)) {
@@ -1711,9 +1836,9 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 }
             }
 
-            // Process location change (for daily actions with change_location)
+            // Process location change (for ALL event types with change_location)
             $locationChanged = null;
-            if ($isSystemEvent && isset($choice['change_location'])) {
+            if (isset($choice['change_location'])) {
                 $newLocation = $choice['change_location'];
                 $character->setLocation($newLocation);
                 $locationChanged = $newLocation;
@@ -1724,9 +1849,9 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 ]);
             }
 
-            // Process season change (for daily actions with change_season)
+            // Process season change (for ALL event types with change_season)
             $seasonChanged = null;
-            if ($isSystemEvent && isset($choice['change_season'])) {
+            if (isset($choice['change_season'])) {
                 $newSeason = $choice['change_season'];
                 $character->setSeason($newSeason);
                 $seasonChanged = $newSeason;
@@ -1959,9 +2084,9 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                         // Include life stats in the log data
                         $logDataWithLifeStats = array_merge($logData ?? [], [
                             'life_stats' => [
-                                'health' => $character->health ?? 100,
-                                'happiness' => $character->happiness ?? 100,
-                                'finance' => $character->finance ?? 0,
+                                'health' => $character->health ?? 78,
+                                'happiness' => $character->happiness ?? 72,
+                                'finance' => $character->finance ?? 20,
                                 'relationship_status' => $character->relationship_status ?? 'single',
                                 'profession' => $character->profession ?? null,
                                 'career_level' => $character->career_level ?? 'unemployed',
@@ -2001,9 +2126,10 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                             'choice_index' => $choiceIndex,
                             'event_title' => $logData['event_title'] ?? null,
                             'choice_text' => $logData['choice_text'] ?? null,
-                            'health' => $character->health ?? 100,
-                            'happiness' => $character->happiness ?? 100,
-                            'finance' => $character->finance ?? 0,
+                            // Before state
+                            'before_health' => $beforeSnapshot['health'] ?? ($character->health ?? 78),
+                            'before_happiness' => $beforeSnapshot['happiness'] ?? ($character->happiness ?? 72),
+                            'before_finance' => $beforeSnapshot['finance'] ?? ($character->finance ?? 20),
                             'relationship_status' => $character->relationship_status ?? 'single',
                             'profession' => $character->profession ?? null,
                             'career_level' => $character->career_level ?? 'unemployed',
@@ -2030,23 +2156,23 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                             'outcome' => $logData['event_description'] ?? null,
                             'effects' => json_encode($effects),
                             // Before state
-                            'before_health' => $beforeSnapshot['health'] ?? ($character->health ?? 100),
-                            'before_happiness' => $beforeSnapshot['happiness'] ?? ($character->happiness ?? 100),
-                            'before_finance' => $beforeSnapshot['finance'] ?? ($character->finance ?? 0),
+                            'before_health' => $beforeSnapshot['health'] ?? ($character->health ?? 78),
+                            'before_happiness' => $beforeSnapshot['happiness'] ?? ($character->happiness ?? 72),
+                            'before_finance' => $beforeSnapshot['finance'] ?? ($character->finance ?? 20),
                             'before_relationship_status' => $beforeSnapshot['relationship_status'] ?? ($character->relationship_status ?? 'single'),
                             'before_profession' => $beforeSnapshot['profession'] ?? ($character->profession ?? null),
                             'before_career_level' => $beforeSnapshot['career_level'] ?? ($character->career_level ?? 'unemployed'),
                             // After state
-                            'after_health' => $character->health ?? 100,
-                            'after_happiness' => $character->happiness ?? 100,
-                            'after_finance' => $character->finance ?? 0,
+                            'after_health' => $character->health ?? 78,
+                            'after_happiness' => $character->happiness ?? 72,
+                            'after_finance' => $character->finance ?? 20,
                             'after_relationship_status' => $character->relationship_status ?? 'single',
                             'after_profession' => $character->profession ?? null,
                             'after_career_level' => $character->career_level ?? 'unemployed',
                             // Changes
-                            'health_change' => ($character->health ?? 100) - ($beforeSnapshot['health'] ?? ($character->health ?? 100)),
-                            'happiness_change' => ($character->happiness ?? 100) - ($beforeSnapshot['happiness'] ?? ($character->happiness ?? 100)),
-                            'finance_change' => ($character->finance ?? 0) - ($beforeSnapshot['finance'] ?? ($character->finance ?? 0)),
+                            'health_change' => ($character->health ?? 78) - ($beforeSnapshot['health'] ?? ($character->health ?? 78)),
+                            'happiness_change' => ($character->happiness ?? 72) - ($beforeSnapshot['happiness'] ?? ($character->happiness ?? 72)),
+                            'finance_change' => ($character->finance ?? 20) - ($beforeSnapshot['finance'] ?? ($character->finance ?? 20)),
                             // Additional
                             'mbti' => $logData['mbti'] ?? null,
                             'data' => $logData,
@@ -2067,9 +2193,27 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 ]);
             }
 
+            // AUTO-CHECK ACHIEVEMENTS after event outcome is applied
+            $newAchievements = [];
+            try {
+                $newAchievements = $this->achievementService->checkAndUnlockAchievements($character);
+                if (!empty($newAchievements)) {
+                    Log::info('New achievements unlocked after event', [
+                        'character_id' => $character->id,
+                        'achievements' => $newAchievements,
+                    ]);
+                }
+            } catch (\Throwable $achievementError) {
+                Log::error('Failed to check achievements', [
+                    'character_id' => $character->id,
+                    'error' => $achievementError->getMessage(),
+                ]);
+            }
+
             return response()->json([
                 'message' => 'Event outcome applied',
                 'character' => $character,
+                'new_achievements' => $newAchievements, // Auto-checked achievements
                 'effects' => $effects,
                 'choice_outcome' => $choiceOutcomeText,
                 'game_over' => $gameOver,
@@ -2097,9 +2241,8 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 // Feature 4: Age instead of day
                 'age' => $this->calculateAge($character->current_day),
                 'age_group' => $character->age_group,
-                // Feature 1: Health status instead of health %
-                'health_status' => $healthStatus ?? $this->eventService->getHealthStatus($character->health ?? 100),
-                'health_percentage' => $character->health ?? 100,
+            'health_status' => $this->eventService->getHealthStatus($character->health ?? 78),
+            'health_percentage' => $character->health ?? 78,
                 // Feature 8: Severe consequences
                 'consequences' => $consequences ?? [],
                 'current_day' => $character->current_day,
@@ -2277,6 +2420,9 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
             return; // No branching for events without categories
         }
         
+        // Get the chain order from the event
+        $chainOrder = (int) ($event->chain_order ?? 1);
+        
         // Determine outcome type based on stat effects
         $outcomeType = $this->eventService->determineOutcomeType($event->stat_effects ?? '');
         
@@ -2284,8 +2430,8 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
         $narrativeService = app(\App\Services\NarrativeService::class);
         $narrativeService->updateNarrativePath($character, $eventCategory, $outcomeType);
         
-        // Complete the event chain and unlock next events
-        $this->eventService->completeEventChain($character, $eventCategory, $outcomeType);
+        // Complete the event chain and unlock next events (with chain order)
+        $this->eventService->completeEventChain($character, $eventCategory, $outcomeType, $chainOrder);
     }
 
     /**
@@ -2372,13 +2518,14 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
             'character' => $character,
             'game_over' => true,
             'ending_type' => $endingType,
+            'death_cause' => $cause,
             'ending_title' => $endingDetails['title'],
             'ending_description' => $endingDetails['description'],
             'age' => $this->calculateAge((int) ($character->current_day ?? 1)),
             'current_day' => (int) ($character->current_day ?? 1),
             'age_group' => $character->age_group,
-            'health_status' => $isDead ? 'dead' : $this->eventService->getHealthStatus($character->health ?? 100),
-            'health_percentage' => $isDead ? 0 : ($character->health ?? 100),
+            'health_status' => $isDead ? 'dead' : $this->eventService->getHealthStatus($character->health ?? 78),
+            'health_percentage' => $isDead ? 0 : ($character->health ?? 78),
             'actions' => [],
         ];
     }
@@ -2678,6 +2825,54 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
         ];
     }
 
+    /**
+     * Format luck event for API response
+     */
+    private function formatLuckEvent(array $luckEvent, ?Character $character = null): array
+    {
+        $title = $luckEvent['title'] ?? 'Lucky Event';
+        $description = $luckEvent['description'] ?? '';
+        
+        // Generate image path based on luck type
+        $luckType = $luckEvent['luck_type'] ?? 'neutral';
+        $image = $luckType === 'fortune' 
+            ? '/css/images/luck/fortune.png'
+            : ($luckType === 'misfortune' 
+                ? '/css/images/luck/misfortune.png'
+                : '/css/images/luck/neutral.png');
+        
+        // Format choices if present
+        $choices = [];
+        if (!empty($luckEvent['choices'])) {
+            foreach ($luckEvent['choices'] as $index => $choice) {
+                $choices[] = [
+                    'text' => $choice['text'] ?? 'Choice ' . ($index + 1),
+                    'effects' => $choice['effects'] ?? [],
+                    'weight' => $choice['weight'] ?? 1,
+                ];
+            }
+        }
+        
+        return [
+            'id' => $luckEvent['id'] ?? 'luck_' . uniqid(),
+            'type' => 'luck',
+            'deck_label' => 'Luck',
+            'repeatable' => true,
+            'title' => $title,
+            'description' => $description,
+            'image' => $image,
+            'outcome' => null,
+            'statEffects' => null,
+            'choices' => $choices,
+            'luck_type' => $luckType,
+            'category' => $luckEvent['category'] ?? 'random',
+            'weight' => $luckEvent['weight'] ?? 1,
+            'archetype' => 'luck_event',
+            'auto_resolve' => empty($choices),
+            'days_to_advance' => 0,
+        ];
+    }
+
     private function resolveEventChoices($event, string $type, ?Character $character = null, ?string $ageGroup = null): array
     {
         $rawChoices = $event->choices ?? null;
@@ -2716,6 +2911,15 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 ],
                 $choices
             );
+        }
+
+        // Check for locked choices and mark them
+        if ($character) {
+            $eventChoiceId = $event->event_choice ?? $event->title ?? null;
+            foreach ($choices as &$choice) {
+                $choiceId = ($eventChoiceId ?? 'unknown') . '_' . ($choice['text'] ?? '');
+                $choice['is_locked'] = $character->isChoiceLocked($choiceId);
+            }
         }
 
         return $this->formatChoices($choices);
@@ -2945,10 +3149,10 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
         // Merge stats for evaluation
         $allStats = array_merge($stats, $effectiveStats);
         
-        // Get key stats (default to 0 if not set)
-        $health = (int)($allStats['Health'] ?? 50);
-        $happiness = (int)($allStats['Happiness'] ?? 50);
-        $wealth = (int)($allStats['Wealth'] ?? 0);
+        // Get key stats (default to character defaults if not set)
+        $health = (int)($allStats['Health'] ?? 78);
+        $happiness = (int)($allStats['Happiness'] ?? 72);
+        $wealth = (int)($allStats['Wealth'] ?? 20);
         $reputation = (int)($allStats['Reputation'] ?? 50);
         $morality = (int)($allStats['Morality'] ?? 50);
         $intelligence = (int)($allStats['Intelligence'] ?? 50);
@@ -3427,9 +3631,15 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
      */
     public function getAchievements(Character $character)
     {
-        // Get all achievements with their unlocked status
-        $achievements = $this->achievementService->getAllAchievementsWithStatus($character);
-        $stats = $this->achievementService->getAchievementStats($character);
+        // Use database-backed achievements if available, otherwise fall back to hardcoded
+        if ($this->achievementService->hasDatabaseAchievements()) {
+            $achievements = $this->achievementService->getAllAchievementsWithStatusFromDatabase($character);
+            $stats = $this->achievementService->getAchievementStatsFromDatabase($character);
+        } else {
+            // Fall back to hardcoded achievements
+            $achievements = $this->achievementService->getAllAchievementsWithStatus($character);
+            $stats = $this->achievementService->getAchievementStats($character);
+        }
         
         return response()->json([
             'achievements' => $achievements,
@@ -3442,12 +3652,21 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
      */
     public function checkAchievements(Character $character)
     {
-        $unlocked = $this->achievementService->checkAndUnlockAchievements($character);
-        $stats = $this->achievementService->getAchievementStats($character);
+        // Use database-backed achievements if available
+        if ($this->achievementService->hasDatabaseAchievements()) {
+            $unlocked = $this->achievementService->checkAndUnlockDatabaseAchievements($character);
+            $stats = $this->achievementService->getAchievementStatsFromDatabase($character);
+            $unlockedCount = $character->achievements()->count();
+        } else {
+            // Fall back to hardcoded achievements
+            $unlocked = $this->achievementService->checkAndUnlockAchievements($character);
+            $stats = $this->achievementService->getAchievementStats($character);
+            $unlockedCount = count($character->achievement_flags ?? []);
+        }
         
         return response()->json([
             'new_achievements' => $unlocked,
-            'unlocked_count' => count($character->achievement_flags ?? []),
+            'unlocked_count' => $unlockedCount,
             'stats' => $stats
         ]);
     }

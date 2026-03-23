@@ -151,16 +151,16 @@ class LuckService
         foreach ($conditions as $condition => $value) {
             switch ($condition) {
                 case 'min_wealth':
-                    if (($character->finance ?? 0) < $value) return false;
+                    if (($character->finance ?? 20) < $value) return false;
                     break;
                 case 'max_wealth':
-                    if (($character->finance ?? 0) > $value) return false;
+                    if (($character->finance ?? 20) > $value) return false;
                     break;
                 case 'min_health':
-                    if (($character->health ?? 100) < $value) return false;
+                    if (($character->health ?? 78) < $value) return false;
                     break;
                 case 'max_health':
-                    if (($character->health ?? 100) > $value) return false;
+                    if (($character->health ?? 78) > $value) return false;
                     break;
                 case 'profession':
                     if ($character->profession !== $value) return false;
@@ -181,7 +181,7 @@ class LuckService
                     if ($character->age_group !== $value) return false;
                     break;
                 case 'min_happiness':
-                    if (($character->happiness ?? 50) < $value) return false;
+                    if (($character->happiness ?? 72) < $value) return false;
                     break;
             }
         }

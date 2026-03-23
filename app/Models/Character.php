@@ -121,7 +121,7 @@ class Character extends Model
 
     protected $attributes = [
         'stats' => '{"Intelligence": 25, "Strength": 25, "Charisma": 25, "Creativity": 25, "Wealth": 20, "Luck": 20, "Social": 50, "Empathy": 50}',
-        'hidden_stats' => '{"Debt": 0, "Health": 78, "Addiction": 0, "Burnout": 5, "Morality": 45, "Happiness": 72, "Reputation": 35, "Discipline": 40, "Isolation": 6, "Ego": 10}',
+        'hidden_stats' => '{"Debt": 0, "Addiction": 0, "Burnout": 5, "Morality": 45, "Reputation": 35, "Discipline": 40, "Isolation": 6, "Ego": 10}',
         'gender_bonus' => '{}',
         'age_bonus' => '{}',
         'effective_stats' => '{}',
@@ -409,19 +409,138 @@ class Character extends Model
 
     /**
      * Get relationship status (single, married, etc.).
+     * JSON is source of truth, falls back to column for backwards compatibility.
      */
     public function getRelationshipStatus(): string
     {
+        // Check JSON first (source of truth)
+        $state = is_array($this->character_state) ? $this->character_state : [];
+        if (isset($state['relationship_status']) && !empty($state['relationship_status'])) {
+            return $state['relationship_status'];
+        }
+        // Fallback to column
         return $this->relationship_status ?? 'single';
     }
 
     /**
+     * Mutator for relationship_status - syncs to JSON when directly assigned.
+     */
+    public function setRelationshipStatusAttribute($value)
+    {
+        $validStatuses = ['single', 'dating', 'engaged', 'married', 'divorced', 'widowed'];
+        if (in_array($value, $validStatuses)) {
+            // Update JSON (source of truth)
+            $state = is_array($this->character_state) ? $this->character_state : [];
+            $state['relationship_status'] = $value;
+            $this->character_state = $state;
+            // Also set the column for backwards compatibility
+            $this->attributes['relationship_status'] = $value;
+        }
+    }
+
+    // =============================================
+    // LIFE STATS ACCESSORS/MUTATORS (effective_stats based)
+    // =============================================
+
+    /**
+     * Get health from effective_stats (source of truth).
+     */
+    public function getHealthAttribute(): int
+    {
+        $effectiveStats = is_array($this->effective_stats) ? $this->effective_stats : [];
+        if (isset($effectiveStats['Health'])) {
+            return (int) $effectiveStats['Health'];
+        }
+        // Fallback to column
+        return (int) ($this->attributes['health'] ?? 78);
+    }
+
+    /**
+     * Set health - updates effective_stats and syncs to column.
+     */
+    public function setHealthAttribute($value)
+    {
+        $value = (int) $value;
+        // Update effective_stats (source of truth)
+        $effectiveStats = is_array($this->effective_stats) ? $this->effective_stats : [];
+        $effectiveStats['Health'] = $value;
+        $this->effective_stats = $effectiveStats;
+        // Also sync to column for backwards compatibility
+        $this->attributes['health'] = $value;
+    }
+
+    /**
+     * Get happiness from effective_stats (source of truth).
+     */
+    public function getHappinessAttribute(): int
+    {
+        $effectiveStats = is_array($this->effective_stats) ? $this->effective_stats : [];
+        if (isset($effectiveStats['Happiness'])) {
+            return (int) $effectiveStats['Happiness'];
+        }
+        // Fallback to column
+        return (int) ($this->attributes['happiness'] ?? 72);
+    }
+
+    /**
+     * Set happiness - updates effective_stats and syncs to column.
+     */
+    public function setHappinessAttribute($value)
+    {
+        $value = (int) $value;
+        // Update effective_stats (source of truth)
+        $effectiveStats = is_array($this->effective_stats) ? $this->effective_stats : [];
+        $effectiveStats['Happiness'] = $value;
+        $this->effective_stats = $effectiveStats;
+        // Also sync to column for backwards compatibility
+        $this->attributes['happiness'] = $value;
+    }
+
+    /**
+     * Get finance from effective_stats (source of truth).
+     */
+    public function getFinanceAttribute(): int
+    {
+        $effectiveStats = is_array($this->effective_stats) ? $this->effective_stats : [];
+        if (isset($effectiveStats['Wealth'])) {
+            return (int) $effectiveStats['Wealth'];
+        }
+        if (isset($effectiveStats['Finance'])) {
+            return (int) $effectiveStats['Finance'];
+        }
+        // Fallback to column
+        return (int) ($this->attributes['finance'] ?? 20);
+    }
+
+    /**
+     * Set finance - updates effective_stats and syncs to column.
+     */
+    public function setFinanceAttribute($value)
+    {
+        $value = (int) $value;
+        // Update effective_stats (source of truth)
+        $effectiveStats = is_array($this->effective_stats) ? $this->effective_stats : [];
+        $effectiveStats['Wealth'] = $value;
+        $effectiveStats['Finance'] = $value;
+        $this->effective_stats = $effectiveStats;
+        // Also sync to column for backwards compatibility
+        $this->attributes['finance'] = $value;
+    }
+
+    /**
      * Set relationship status.
+     * Updates both JSON (source of truth) and column (backwards compatibility).
      */
     public function setRelationshipStatus(string $status): void
     {
         $validStatuses = ['single', 'dating', 'engaged', 'married', 'divorced', 'widowed'];
         if (in_array($status, $validStatuses)) {
+            // Update JSON (source of truth)
+            $state = is_array($this->character_state) ? $this->character_state : [];
+            $state['relationship_status'] = $status;
+            $this->character_state = $state;
+            
+            // Also update column for backwards compatibility
             $this->relationship_status = $status;
             $this->save();
         }
@@ -442,6 +561,31 @@ class Character extends Model
     {
         $status = $this->getRelationshipStatus();
         return in_array($status, ['dating', 'engaged', 'married']);
+    }
+
+    /**
+     * Get character profession.
+     */
+    public function getProfession(): ?string
+    {
+        return $this->profession;
+    }
+
+    /**
+     * Set profession.
+     */
+    public function setProfession(?string $profession): void
+    {
+        $this->profession = $profession;
+        $this->save();
+    }
+
+    /**
+     * Check if character has specific profession.
+     */
+    public function hasProfession(string $profession): bool
+    {
+        return $this->getProfession() === $profession;
     }
 
     /**
@@ -721,5 +865,55 @@ class Character extends Model
             ->toArray();
         
         return in_array($choiceId, $locked);
+    }
+
+    /**
+     * Get the achievements unlocked by this character (database-backed).
+     */
+    public function achievements(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Achievement::class, 'character_achievements')
+            ->withPivot('unlocked_at', 'metadata')
+            ->withTimestamps();
+    }
+
+    /**
+     * Check if character has unlocked a specific achievement.
+     */
+    public function hasAchievement(string $achievementId): bool
+    {
+        return $this->achievements()->where('achievement_id', $achievementId)->exists();
+    }
+
+    /**
+     * Unlock an achievement for this character.
+     */
+    public function unlockAchievement(string $achievementId, array $metadata = []): bool
+    {
+        $achievement = Achievement::where('achievement_id', $achievementId)->first();
+        
+        if (!$achievement) {
+            return false;
+        }
+
+        // Check if already unlocked (unless unlock_once is false)
+        if ($achievement->unlock_once && $this->hasAchievement($achievementId)) {
+            return false;
+        }
+
+        $this->achievements()->attach($achievement->id, [
+            'unlocked_at' => now(),
+            'metadata' => json_encode($metadata),
+        ]);
+
+        return true;
+    }
+
+    /**
+     * Get total achievement points.
+     */
+    public function getAchievementPoints(): int
+    {
+        return $this->achievements()->sum('points');
     }
 }

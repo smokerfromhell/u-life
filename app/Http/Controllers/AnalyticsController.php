@@ -80,8 +80,8 @@ $stats = [
     private function estimateAgeGroup(int $day): string
     {
         if ($day <= 3650) return 'child';      // 0-10
-        if ($day <= 6570) return 'teen';       // 11-18
+        if ($day <= 6570) return 'teenager';   // 11-18
         if ($day <= 25550) return 'adult';     // 19-70
-        return 'senior';                       // 70+
+        return 'old';                          // 70+
     }
 }

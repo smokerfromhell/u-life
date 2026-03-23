@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Achievement;
 use App\Models\Character;
 use App\Models\DecisionLog;
 use Illuminate\Support\Facades\Log;
@@ -46,6 +47,244 @@ class AchievementService
         'executive',
         'retired'
     ];
+
+    /**
+     * Check if achievements table has data.
+     */
+    public static function hasDatabaseAchievements(): bool
+    {
+        return Achievement::count() > 0;
+    }
+
+    /**
+     * Get all achievements from database.
+     */
+    public function getDatabaseAchievements(): array
+    {
+        $achievements = Achievement::all();
+        
+        return $achievements->map(function ($achievement) {
+            return [
+                'id' => $achievement->achievement_id,
+                'name' => $achievement->name,
+                'description' => $achievement->description,
+                'category' => $achievement->category,
+                'rarity' => $achievement->rarity,
+                'icon' => $achievement->icon,
+                'condition' => $achievement->conditions,
+                'unlock_once' => $achievement->unlock_once,
+                'points' => $achievement->points,
+                // Store the DB model for later use
+                '_db_model' => $achievement,
+            ];
+        })->toArray();
+    }
+
+    /**
+     * Get achievement by ID from database.
+     */
+    public function getDatabaseAchievementById(string $achievementId): ?Achievement
+    {
+        return Achievement::where('achievement_id', $achievementId)->first();
+    }
+
+    /**
+     * Get achievements by category from database.
+     */
+    public function getDatabaseAchievementsByCategory(string $category): array
+    {
+        return Achievement::where('category', $category)->get()->map(function ($achievement) {
+            return [
+                'id' => $achievement->achievement_id,
+                'name' => $achievement->name,
+                'description' => $achievement->description,
+                'category' => $achievement->category,
+                'rarity' => $achievement->rarity,
+                'icon' => $achievement->icon,
+                'condition' => $achievement->conditions,
+                'unlock_once' => $achievement->unlock_once,
+                'points' => $achievement->points,
+                '_db_model' => $achievement,
+            ];
+        })->toArray();
+    }
+
+    /**
+     * Unlock achievement in database for a character.
+     */
+    public function unlockAchievementInDatabase(Character $character, string $achievementId, array $metadata = []): bool
+    {
+        $achievement = $this->getDatabaseAchievementById($achievementId);
+        
+        if (!$achievement) {
+            Log::warning("Achievement not found in database: {$achievementId}");
+            return false;
+        }
+
+        // Check if already unlocked
+        if ($achievement->unlock_once && $character->hasAchievement($achievementId)) {
+            return false;
+        }
+
+        // Attach to character
+        $character->achievements()->attach($achievement->id, [
+            'unlocked_at' => now(),
+            'metadata' => json_encode($metadata),
+        ]);
+
+        Log::info("Achievement unlocked: {$achievementId} for character {$character->id}");
+        
+        return true;
+    }
+
+    /**
+     * Get character unlocked achievements from database.
+     */
+    public function getUnlockedAchievementsFromDatabase(Character $character): array
+    {
+        $achievements = $character->achievements()->get();
+        
+        return $achievements->map(function ($achievement) {
+            return [
+                'id' => $achievement->achievement_id,
+                'name' => $achievement->name,
+                'description' => $achievement->description,
+                'category' => $achievement->category,
+                'rarity' => $achievement->rarity,
+                'icon' => $achievement->icon,
+                'points' => $achievement->points,
+                'unlocked_at' => $achievement->pivot->unlocked_at,
+                'metadata' => json_decode($achievement->pivot->metadata, true),
+            ];
+        })->toArray();
+    }
+
+    /**
+     * Get achievement progress from database.
+     */
+    public function getAchievementProgressFromDatabase(Character $character): array
+    {
+        $totalDb = Achievement::count();
+        $unlockedCount = $character->achievements()->count();
+        
+        return [
+            'total' => $totalDb,
+            'unlocked' => $unlockedCount,
+            'percentage' => $totalDb > 0 ? round(($unlockedCount / $totalDb) * 100, 1) : 0,
+            'achievements' => $this->getUnlockedAchievementsFromDatabase($character),
+            'points' => $character->getAchievementPoints(),
+        ];
+    }
+
+    /**
+     * Check and unlock achievements using database.
+     * Returns array of newly unlocked achievements.
+     */
+    public function checkAndUnlockDatabaseAchievements(Character $character): array
+    {
+        $newlyUnlocked = [];
+        
+        if (!$this->hasDatabaseAchievements()) {
+            return $newlyUnlocked;
+        }
+
+        $dbAchievements = $this->getDatabaseAchievements();
+        
+        foreach ($dbAchievements as $achievement) {
+            $achievementId = $achievement['id'];
+            
+            // Skip if already unlocked
+            if ($character->hasAchievement($achievementId)) {
+                continue;
+            }
+
+            // Check if conditions are met using existing isUnlocked method
+            if ($this->isUnlocked($character, $achievement)) {
+                $metadata = [
+                    'day' => $character->current_day,
+                    'age' => $character->current_day, // In this game, day = age
+                ];
+                
+                if ($this->unlockAchievementInDatabase($character, $achievementId, $metadata)) {
+                    $newlyUnlocked[] = $achievement;
+                }
+            }
+        }
+        
+        return $newlyUnlocked;
+    }
+
+    /**
+     * Get all achievements with unlock status from database.
+     */
+    public function getAllAchievementsWithStatusFromDatabase(Character $character): array
+    {
+        $allAchievements = $this->getDatabaseAchievements();
+        $unlockedAchievements = $character->achievements()->pluck('achievement_id')->toArray();
+        
+        $result = [];
+        foreach ($allAchievements as $achievement) {
+            $achievementId = $achievement['id'];
+            $isUnlocked = in_array($achievementId, $unlockedAchievements);
+            $unlockedAt = null;
+            
+            if ($isUnlocked) {
+                $pivot = $character->achievements()->where('achievement_id', $achievementId)->first();
+                $unlockedAt = $pivot ? $pivot->pivot->unlocked_at : null;
+            }
+            
+            $result[] = [
+                'id' => $achievementId,
+                'name' => $achievement['name'],
+                'description' => $achievement['description'],
+                'category' => $achievement['category'],
+                'rarity' => $achievement['rarity'],
+                'icon' => $achievement['icon'],
+                'points' => $achievement['points'],
+                'unlocked' => $isUnlocked,
+                'unlocked_at' => $unlockedAt,
+            ];
+        }
+        
+        return $result;
+    }
+
+    /**
+     * Get achievement stats from database.
+     */
+    public function getAchievementStatsFromDatabase(Character $character): array
+    {
+        $progress = $this->getAchievementProgressFromDatabase($character);
+        
+        // Group by category
+        $byCategory = [];
+        foreach ($progress['achievements'] as $achievement) {
+            $category = $achievement['category'];
+            if (!isset($byCategory[$category])) {
+                $byCategory[$category] = 0;
+            }
+            $byCategory[$category]++;
+        }
+        
+        // Group by rarity
+        $byRarity = [];
+        foreach ($progress['achievements'] as $achievement) {
+            $rarity = $achievement['rarity'];
+            if (!isset($byRarity[$rarity])) {
+                $byRarity[$rarity] = 0;
+            }
+            $byRarity[$rarity]++;
+        }
+        
+        return [
+            'total' => $progress['total'],
+            'unlocked' => $progress['unlocked'],
+            'percentage' => $progress['percentage'],
+            'points' => $progress['points'],
+            'by_category' => $byCategory,
+            'by_rarity' => $byRarity,
+        ];
+    }
 
     /**
      * All available achievements based on the game's mechanics
@@ -579,11 +818,11 @@ class AchievementService
         $characterState = is_array($character->character_state) ? $character->character_state : [];
         
         // Get finance from effective_stats (Wealth) or direct field
-        $finance = (int) ($effectiveStats['Wealth'] ?? ($character->finance ?? 0));
+        $finance = (int) ($effectiveStats['Wealth'] ?? ($character->finance ?? 20));
         
         // Get health and happiness
-        $health = (int) ($hiddenStats['Health'] ?? ($character->health ?? 100));
-        $happiness = (int) ($hiddenStats['Happiness'] ?? ($character->happiness ?? 50));
+        $health = (int) ($hiddenStats['Health'] ?? ($character->health ?? 78));
+        $happiness = (int) ($hiddenStats['Happiness'] ?? ($character->happiness ?? 72));
         
         // Get luck and karma
         $luck = (int) ($character->luck ?? 50);

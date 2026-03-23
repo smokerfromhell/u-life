@@ -372,21 +372,21 @@ class EventService
      */
     const CATEGORIES = [
         'education_elementary' => ['age_group' => 'child', 'next' => 'education_high_school'],
-        'education_high_school' => ['age_group' => 'teen', 'next' => 'education_college'],
+        'education_high_school' => ['age_group' => 'teenager', 'next' => 'education_college'],
         'education_college' => ['age_group' => 'adult', 'next' => null],
         'career_start' => ['age_group' => 'adult', 'next' => 'career_advancement'],
         'career_advancement' => ['age_group' => 'adult', 'next' => 'career_master'],
         'career_master' => ['age_group' => 'adult', 'next' => null],
-        'family_relationship' => ['age_group' => 'teen', 'next' => 'family_marriage'],
+        'family_relationship' => ['age_group' => 'teenager', 'next' => 'family_marriage'],
         'family_marriage' => ['age_group' => 'adult', 'next' => 'family_parenthood'],
         'family_parenthood' => ['age_group' => 'adult', 'next' => null],
         'health_crisis' => ['age_group' => 'adult', 'next' => 'health_recovery'],
         'health_recovery' => ['age_group' => 'adult', 'next' => null],
         'social_friendship' => ['age_group' => 'child', 'next' => 'social_romantic'],
-        'social_romantic' => ['age_group' => 'teen', 'next' => 'social_relationship'],
+        'social_romantic' => ['age_group' => 'teenager', 'next' => 'social_relationship'],
         'social_relationship' => ['age_group' => 'adult', 'next' => null],
         'skill_learning' => ['age_group' => 'child', 'next' => 'skill_development'],
-        'skill_development' => ['age_group' => 'teen', 'next' => 'skill_mastery'],
+        'skill_development' => ['age_group' => 'teenager', 'next' => 'skill_mastery'],
         'skill_mastery' => ['age_group' => 'adult', 'next' => null],
     ];
 
@@ -733,7 +733,7 @@ Log::error('Error in getStatefulEvents', [
     {
         $state = is_array($character->character_state) ? $character->character_state : [];
         $effectiveStats = is_array($character->effective_stats) ? $character->effective_stats : [];
-        $health = (int) ($effectiveStats['Health'] ?? $character->health ?? 100);
+        $health = (int) ($effectiveStats['Health'] ?? $character->health ?? 78);
 
         return ($state['is_dead'] ?? false) === true
             || ($state['health_condition'] ?? null) === 'dead'
@@ -767,9 +767,9 @@ Log::error('Error in getStatefulEvents', [
     public function getLifeStats(Character $character): array
     {
         return [
-            'health' => $character->health ?? 100,
-            'happiness' => $character->happiness ?? 100,
-            'finance' => $character->finance ?? 0,
+            'health' => $character->health ?? 78,
+            'happiness' => $character->happiness ?? 72,
+            'finance' => $character->finance ?? 20,
             'relationship_status' => $character->relationship_status ?? 'single',
             'career_level' => $character->career_level ?? 'unemployed',
         ];
@@ -973,15 +973,24 @@ Log::error('Error in getStatefulEvents', [
     public function checkEventPrerequisites($event, Character $character): bool
     {
         $completedChains = $character->completed_event_chains ?? [];
-
+        $characterState = $character->character_state ?? [];
+        $chainOutcomes = $characterState['chain_outcomes'] ?? [];
+        
+        // Normalize age_group to match seeder conventions
+        $ageGroup = $character->age_group ?? $characterState['life_stage'] ?? 'adult';
+        $ageGroup = match($ageGroup) {
+            'teen' => 'teenager',
+            default => $ageGroup
+        };
+        
         if (!empty($event->parent_category)) {
             if (!in_array($event->parent_category, $completedChains)) {
                 return false;
             }
 
+            // Check if previous chain had required outcome (using character_state)
             if (!empty($event->required_choice_outcome)) {
-                $outcomeKey = $event->parent_category . '_outcome';
-                $actualOutcome = $character->$outcomeKey ?? null;
+                $actualOutcome = $chainOutcomes[$event->parent_category] ?? null;
 
                 if ($actualOutcome !== $event->required_choice_outcome) {
                     return false;
@@ -1023,13 +1032,19 @@ Log::error('Error in getStatefulEvents', [
         // Get character data
         $characterState = $character->character_state ?? [];
         $ageGroup = $character->age_group ?? $characterState['life_stage'] ?? 'adult';
+        
+        // Normalize age_group to match seeder conventions (teen -> teenager)
+        $ageGroup = match($ageGroup) {
+            'teen' => 'teenager',
+            default => $ageGroup
+        };
         $relationshipStatus = $characterState['relationship_status'] ?? $character->relationship_status ?? 'single';
         $professionState = $characterState['profession_state'] ?? $character->career_level ?? 'unemployed';
-        $healthCondition = $characterState['health_condition'] ?? $this->getHealthStatus($character->health ?? 100);
-        $wealth = $character->finance ?? $character->wealth ?? 0;
+        $healthCondition = $characterState['health_condition'] ?? $this->getHealthStatus($character->health ?? 78);
+        $wealth = $character->finance ?? $character->wealth ?? 20;
         $stats = $character->effective_stats ?? $character->stats ?? [];
         $burnout = $stats['burnout'] ?? 0;
-        $health = $character->health ?? 100;
+        $health = $character->health ?? 78;
         
         // Get character's skills
         $skills = [];
@@ -1150,6 +1165,50 @@ Log::error('Error in getStatefulEvents', [
                     }
                     break;
                     
+                case 'has_completed_chain':
+                    // Character must have completed a specific chain step (e.g., 'education_1')
+                    // Format: 'category_stepNumber' like 'education_1', 'career_2'
+                    $completedChains = $character->completed_event_chains ?? [];
+                    $requiredChain = $conditionValue; // e.g., 'education_1'
+                    
+                    // Parse the required chain (e.g., 'education_1' -> category: 'education', step: 1)
+                    if (is_string($requiredChain) && strpos($requiredChain, '_') !== false) {
+                        list($requiredCategory, $requiredStep) = explode('_', $requiredChain, 2);
+                        $requiredStep = (int) $requiredStep;
+                        
+                        // Check if character has completed this chain category
+                        if (!in_array($requiredCategory, $completedChains)) {
+                            return false;
+                        }
+                        
+                        // Also check chain_progress for the specific step
+                        $chainProgress = $character->character_state['chain_progress'] ?? [];
+                        $currentStep = $chainProgress[$requiredCategory] ?? 0;
+                        
+                        if ($currentStep < $requiredStep) {
+                            return false;
+                        }
+                    } else {
+                        // Simple format: just check if category is in completed_chains
+                        if (!in_array($requiredChain, $completedChains)) {
+                            return false;
+                        }
+                    }
+                    break;
+                    
+                case 'chain_order':
+                    // Character must be at or past a certain chain order in a category
+                    $chainProgress = $character->character_state['chain_progress'] ?? [];
+                    $requiredCategory = $conditionValue['category'] ?? null;
+                    $requiredOrder = $conditionValue['order'] ?? 0;
+                    
+                    if ($requiredCategory && isset($chainProgress[$requiredCategory])) {
+                        if ($chainProgress[$requiredCategory] < $requiredOrder) {
+                            return false;
+                        }
+                    }
+                    break;
+                    
                 // Unknown condition keys are ignored
             }
         }
@@ -1234,18 +1293,27 @@ $character->current_narrative = $narrative . (($outcomeType === 'positive') ? '_
     /**
      * Complete event chain (EXISTING)
      */
-    public function completeEventChain(Character $character, string $category, string $outcomeType): void
+    public function completeEventChain(Character $character, string $category, string $outcomeType, int $chainOrder = 1): void
     {
         $completedChains = $character->completed_event_chains ?? [];
+        $characterState = $character->character_state ?? [];
         
         if (!in_array($category, $completedChains)) {
             $completedChains[] = $category;
             $character->completed_event_chains = $completedChains;
         }
         
-        // Note: Removed dynamic outcome columns - they don't exist in DB
-        // $outcomeKey = $category . '_outcome';
-        // $character->$outcomeKey = $outcomeType;
+        // Store outcome in character_state JSON (chain_outcomes)
+        $chainOutcomes = $characterState['chain_outcomes'] ?? [];
+        $chainOutcomes[$category] = $outcomeType;
+        $characterState['chain_outcomes'] = $chainOutcomes;
+        
+        // Store chain progress (current step in each chain)
+        $chainProgress = $characterState['chain_progress'] ?? [];
+        $chainProgress[$category] = $chainOrder;
+        $characterState['chain_progress'] = $chainProgress;
+        
+        $character->character_state = $characterState;
         
         if (isset(self::CATEGORIES[$category])) {
             $nextCategory = self::CATEGORIES[$category]['next'];

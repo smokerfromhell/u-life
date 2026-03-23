@@ -130,9 +130,9 @@ class LifeSummaryService
     {
         if ($snapshots->isEmpty()) {
             return [
-                'health' => $this->singleStatAnalysis('Health', $character->health ?? 100),
-                'happiness' => $this->singleStatAnalysis('Happiness', $character->happiness ?? 100),
-                'finance' => $this->singleStatAnalysis('Finance', $character->finance ?? 0),
+                'health' => $this->singleStatAnalysis('Health', $character->health ?? 78),
+                'happiness' => $this->singleStatAnalysis('Happiness', $character->happiness ?? 72),
+                'finance' => $this->singleStatAnalysis('Finance', $character->finance ?? 20),
                 'relationship' => $character->relationship_status ?? 'single',
                 'career_level' => $character->career_level ?? 1,
             ];
@@ -143,9 +143,9 @@ class LifeSummaryService
         $financeValues = $snapshots->pluck('finance')->filter()->toArray();
 
         return [
-            'health' => $this->statTrendAnalysis('Health', $healthValues, $character->health ?? 100),
-            'happiness' => $this->statTrendAnalysis('Happiness', $happinessValues, $character->happiness ?? 100),
-            'finance' => $this->statTrendAnalysis('Finance', $financeValues, $character->finance ?? 0),
+            'health' => $this->statTrendAnalysis('Health', $healthValues, $character->health ?? 78),
+            'happiness' => $this->statTrendAnalysis('Happiness', $happinessValues, $character->happiness ?? 72),
+            'finance' => $this->statTrendAnalysis('Finance', $financeValues, $character->finance ?? 20),
             'relationship' => $character->relationship_status ?? 'single',
             'career_level' => $character->career_level ?? 1,
             'luck' => $character->luck ?? 50,
@@ -475,8 +475,8 @@ class LifeSummaryService
     {
         $profession = $character->profession ?? '';
         $relationship = $character->relationship_status ?? 'single';
-        $finance = $character->finance ?? 0;
-        $happiness = $character->happiness ?? 50;
+        $finance = $character->finance ?? 20;
+        $happiness = $character->happiness ?? 72;
 
         if ($finance > 1000000) {
             return match(true) {
@@ -590,15 +590,15 @@ class LifeSummaryService
         $maxScore = 100;
 
         // Health factor (25 points)
-        $health = $character->health ?? 50;
+        $health = $character->health ?? 78;
         $score += ($health / 100) * 25;
 
         // Happiness factor (25 points)
-        $happiness = $character->happiness ?? 50;
+        $happiness = $character->happiness ?? 72;
         $score += ($happiness / 100) * 25;
 
         // Finance factor (20 points)
-        $finance = $character->finance ?? 0;
+        $finance = $character->finance ?? 20;
         $score += min(($finance / 100000), 1) * 20;
 
         // Relationship factor (15 points)
@@ -722,9 +722,9 @@ class LifeSummaryService
     {
         $advice = [];
         
-        $health = $character->health ?? 50;
-        $happiness = $character->happiness ?? 50;
-        $finance = $character->finance ?? 0;
+        $health = $character->health ?? 78;
+        $happiness = $character->happiness ?? 72;
+        $finance = $character->finance ?? 20;
         $years = (int) ($character->current_day ?? 1);
 
         // Health advice

@@ -58,6 +58,7 @@ Route::middleware(['web'])->group(function () {
         Route::get('/characters/{character}/achievements', [EventController::class, 'getAchievements']);
         Route::post('/characters/{character}/achievements/check', [EventController::class, 'checkAchievements']);
         Route::get('/characters/{character}/decision-logs', [CharacterController::class, 'decisionLogs']);
+        Route::get('/characters/{character}/analytics', [CharacterController::class, 'analytics']);
 
         // Admin analytics (RBAC via role/permission)
         Route::get('/admin/shared-decision-logs', [SharedDecisionLogController::class, 'index']);

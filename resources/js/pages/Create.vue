@@ -16,6 +16,27 @@
     <!-- Grid Lines -->
     <div class="grid-lines pointer-events-none fixed inset-0 z-10"></div>
     
+    <!-- Floating Orbs -->
+    <div class="orbs-container pointer-events-none fixed inset-0 z-5">
+      <div v-for="n in 8" :key="'orb-' + n" class="floating-orb" :class="'orb-' + n" :style="getOrbStyle(n)"></div>
+    </div>
+    
+    <!-- Orbital System -->
+    <div class="orbital-container pointer-events-none fixed inset-0 z-15">
+      <div class="orbital-system">
+        <!-- Central sun -->
+        <div class="orbital-sun"></div>
+        <!-- Orbit paths -->
+        <div class="orbit orbit-1"></div>
+        <div class="orbit orbit-2"></div>
+        <div class="orbit orbit-3"></div>
+        <!-- Orbiting planets -->
+        <div class="planet planet-1"></div>
+        <div class="planet planet-2"></div>
+        <div class="planet planet-3"></div>
+      </div>
+    </div>
+    
     <!-- Scanlines -->
     <div class="scanlines pointer-events-none fixed inset-0 z-25"></div>
     
@@ -288,6 +309,36 @@ const getStarStyle = (n) => {
   return `left: ${left}%; top: ${top}%; width: ${size}px; height: ${size}px; background: ${color}; box-shadow: 0 0 ${size * 2}px ${color}; opacity: ${opacity}; animation-duration: ${duration}s; animation-delay: ${delay}s;`
 }
 
+// Generate floating orbs styles
+const getOrbStyle = (n) => {
+  const colors = [
+    'rgba(0, 255, 204, 0.3)',   // cyan
+    'rgba(255, 0, 255, 0.25)',  // magenta
+    'rgba(138, 43, 226, 0.3)',  // purple
+    'rgba(0, 206, 209, 0.25)', // dark cyan
+    'rgba(255, 215, 0, 0.2)',  // gold
+  ]
+  const color = colors[n % colors.length]
+  const positions = [
+    { left: '10%', top: '20%' },
+    { left: '85%', top: '15%' },
+    { left: '70%', top: '70%' },
+    { left: '15%', top: '75%' },
+    { left: '50%', top: '10%' },
+    { left: '90%', top: '50%' },
+    { left: '5%', top: '50%' },
+    { left: '60%', top: '85%' },
+  ]
+  const pos = positions[n - 1]
+  const sizes = [80, 60, 100, 50, 70, 45, 90, 55]
+  const size = sizes[n - 1]
+  const durations = [12, 15, 18, 14, 20, 11, 16, 13]
+  const duration = durations[n - 1]
+  const delays = [0, 2, 4, 1, 3, 5, 6, 2]
+  const delay = delays[n - 1]
+  return `left: ${pos.left}; top: ${pos.top}; width: ${size}px; height: ${size}px; background: ${color}; box-shadow: 0 0 ${size * 0.8}px ${color}; animation-duration: ${duration}s; animation-delay: ${delay}s;`
+}
+
 // Handle Google Sign-In response
 const handleCredentialResponse = async (response) => {
   loading.value = true
@@ -543,6 +594,191 @@ const goToHome = () => {
     transparent 1px,
     transparent 3px
   );
+}
+
+/* ============================================
+   FLOATING ORBS
+   ============================================ */
+.orbs-container {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.floating-orb {
+  position: absolute;
+  border-radius: 50%;
+  animation: float-orb ease-in-out infinite;
+  filter: blur(1px);
+}
+
+.floating-orb.orb-1 { animation-name: float-orb-1; }
+.floating-orb.orb-2 { animation-name: float-orb-2; }
+.floating-orb.orb-3 { animation-name: float-orb-3; }
+.floating-orb.orb-4 { animation-name: float-orb-4; }
+.floating-orb.orb-5 { animation-name: float-orb-5; }
+.floating-orb.orb-6 { animation-name: float-orb-6; }
+.floating-orb.orb-7 { animation-name: float-orb-7; }
+.floating-orb.orb-8 { animation-name: float-orb-8; }
+
+@keyframes float-orb-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(20px, -40px) scale(1.1); }
+  66% { transform: translate(-15px, -20px) scale(0.9); }
+}
+
+@keyframes float-orb-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-25px, -35px) scale(1.05); }
+  66% { transform: translate(10px, -50px) scale(0.95); }
+}
+
+@keyframes float-orb-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -25px) scale(0.9); }
+  66% { transform: translate(-20px, -40px) scale(1.1); }
+}
+
+@keyframes float-orb-4 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-15px, -45px) scale(1.15); }
+  66% { transform: translate(25px, -15px) scale(0.85); }
+}
+
+@keyframes float-orb-5 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(35px, -30px) scale(1.2); }
+  66% { transform: translate(-25px, -35px) scale(0.8); }
+}
+
+@keyframes float-orb-6 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-30px, -20px) scale(0.95); }
+  66% { transform: translate(15px, -45px) scale(1.05); }
+}
+
+@keyframes float-orb-7 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(20px, -50px) scale(1.1); }
+  66% { transform: translate(-10px, -25px) scale(0.9); }
+}
+
+@keyframes float-orb-8 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-35px, -15px) scale(0.95); }
+  66% { transform: translate(30px, -40px) scale(1.05); }
+}
+
+/* ============================================
+   ORBITAL SYSTEM
+   ============================================ */
+.orbital-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 15;
+}
+
+.orbital-system {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 300px;
+  height: 300px;
+}
+
+.orbital-sun {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 30px;
+  height: 30px;
+  background: radial-gradient(circle, #ffcc00 0%, #ff6600 50%, #ff3300 100%);
+  border-radius: 50%;
+  box-shadow: 0 0 30px #ffcc00, 0 0 60px #ff6600, 0 0 90px #ff3300;
+  animation: sun-pulse 3s ease-in-out infinite;
+}
+
+@keyframes sun-pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.15); }
+}
+
+.orbit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  animation: orbit-rotate linear infinite;
+}
+
+.orbit-1 { width: 100px; height: 100px; animation-duration: 15s; }
+.orbit-2 { width: 180px; height: 180px; animation-duration: 25s; border-color: rgba(255, 255, 255, 0.05); }
+.orbit-3 { width: 260px; height: 260px; animation-duration: 35s; border-color: rgba(255, 255, 255, 0.03); }
+
+@keyframes orbit-rotate {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.planet {
+  position: absolute;
+  border-radius: 50%;
+  animation: planet-orbit linear infinite;
+}
+
+.planet-1 {
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 16px;
+  background: radial-gradient(circle at 30% 30%, #00ffcc, #008866);
+  box-shadow: 0 0 15px rgba(0, 255, 204, 0.6);
+  animation-duration: 15s;
+}
+
+.planet-2 {
+  top: 50%;
+  right: -10px;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  background: radial-gradient(circle at 30% 30%, #ff00ff, #880088);
+  box-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+  animation-duration: 25s;
+  animation-direction: reverse;
+}
+
+.planet-3 {
+  bottom: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 24px;
+  background: radial-gradient(circle at 30% 30%, #88ccff, #2266aa);
+  box-shadow: 0 0 25px rgba(136, 204, 255, 0.4);
+  animation-duration: 35s;
+}
+
+
+@keyframes planet-orbit {
+  0% { transform: rotate(0deg) translateX(0) rotate(0deg); }
+  100% { transform: rotate(360deg) translateX(0) rotate(-360deg); }
+}
+
+.planet-2 {
+  animation: planet-orbit-reverse linear infinite;
+}
+
+@keyframes planet-orbit-reverse {
+  0% { transform: rotate(0deg) translateX(0) rotate(0deg); }
+  100% { transform: rotate(-360deg) translateX(0) rotate(360deg); }
 }
 
 /* ============================================
@@ -916,7 +1152,53 @@ const goToHome = () => {
 /* ============================================
    RESPONSIVE
    ============================================ */
-@media (max-width: 380px) {
+
+/* Small phones (320px - 379px) */
+@media (max-width: 379px) {
+  .galaxy-card {
+    margin: 0 -8px;
+    border-radius: 16px;
+  }
+  
+  .card-header {
+    padding: 16px 16px 12px !important;
+  }
+  
+  .card-body {
+    padding: 16px 16px 20px !important;
+  }
+  
+  .logo-img {
+    max-width: 45px !important;
+  }
+  
+  .card-title {
+    font-size: 20px !important;
+  }
+  
+  .inputs {
+    gap: 12px !important;
+  }
+  
+  .divider {
+    margin-top: 20px;
+  }
+  
+  .divider span {
+    font-size: 8px;
+  }
+  
+  .game-title {
+    font-size: clamp(1.8rem, 10vw, 3rem) !important;
+  }
+  
+  .tagline {
+    font-size: 13px !important;
+  }
+}
+
+/* Larger phones (380px - 420px) */
+@media (min-width: 380px) and (max-width: 420px) {
   .galaxy-card {
     margin: 0 -4px;
   }
@@ -928,6 +1210,43 @@ const goToHome = () => {
   
   .card-body {
     padding: 20px;
+  }
+}
+
+/* Tablet (421px - 768px) */
+@media (min-width: 421px) and (max-width: 768px) {
+  .w-full.max-w-sm {
+    max-width: 420px !important;
+  }
+}
+
+/* Improve touch targets on mobile */
+@media (max-width: 480px) {
+  .register-btn,
+  .login-btn-link {
+    min-height: 52px !important;
+    padding: 12px 16px !important;
+  }
+  
+  .back-link {
+    min-height: 36px;
+    padding: 6px 8px;
+  }
+  
+  .game-title {
+    font-size: clamp(1.8rem, 10vw, 3rem) !important;
+  }
+}
+
+/* Improve scroll on mobile */
+@media (max-width: 768px) {
+  .v-application {
+    overflow-x: hidden;
+  }
+  
+  .galaxy-screen {
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 }
 </style>
