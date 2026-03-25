@@ -282,21 +282,69 @@ onUnmounted(() => {
 
 <style scoped>
 .choice-chain-game {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: transparent !important;
 }
 
+.instructions {
+  color: #b0b0b0;
+  font-size: 14px;
+  text-shadow: 0 0 5px rgba(0, 255, 204, 0.3);
+}
+
+/* Galaxy styled question card */
 .question-card {
-  background: rgba(255, 255, 255, 0.05);
+  background: linear-gradient(135deg, rgba(26, 10, 46, 0.6) 0%, rgba(13, 13, 26, 0.8) 100%) !important;
+  border: 1px solid rgba(0, 255, 204, 0.3) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 0 30px rgba(0, 255, 204, 0.05);
 }
 
+.question-card .text-h6 {
+  color: #00ffcc !important;
+  text-shadow: 0 0 10px rgba(0, 255, 204, 0.4);
+}
+
+/* Galaxy styled option buttons - holographic effect */
 .option-btn {
   text-transform: none;
   justify-content: flex-start;
   padding-left: 20px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #2d2d4a 100%) !important;
+  border: 1px solid rgba(0, 255, 204, 0.3) !important;
+  color: #e0e0e0 !important;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
+.option-btn:hover:not(:disabled) {
+  border-color: rgba(0, 255, 204, 0.7) !important;
+  box-shadow: 0 0 20px rgba(0, 255, 204, 0.3), 0 4px 15px rgba(0, 0, 0, 0.3);
+  transform: translateX(5px);
+}
+
+.option-btn:active:not(:disabled) {
+  background: linear-gradient(135deg, #2d2d4a 0%, #3d3d5a 100%) !important;
+  box-shadow: 0 0 25px rgba(0, 255, 204, 0.5);
+}
+
+/* Progress info styling */
 .progress-info {
   display: flex;
   justify-content: center;
+  gap: 8px;
+}
+
+/* Enhanced result display */
+.result-display {
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(0, 255, 204, 0.2);
+}
+
+.result-display .text-h6 {
+  color: #00ffcc;
+  text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+  font-weight: 600;
 }
 </style>

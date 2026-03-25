@@ -37,10 +37,6 @@ class CharacterMbtiChart extends ChartWidget
         if ($this->record) {
             $characterId = $this->record->id;
         }
-        // Then try the widget's getRecord() method
-        elseif ($this->getRecord()) {
-            $characterId = $this->getRecord()->id;
-        }
         // Fallback to recordId property
         elseif ($this->recordId) {
             $characterId = $this->recordId;

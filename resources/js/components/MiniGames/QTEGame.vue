@@ -1,29 +1,34 @@
 <template>
   <v-card class="qte-game" max-width="500" :loading="loading">
-    <v-card-title class="text-center">
-      <v-icon size="24" class="mr-2">mdi-gesture-tap</v-icon>
-      Quick Time Event!
+    <v-card-title class="game-title text-center">
+      <v-icon size="28" class="game-icon mr-2">mdi-gesture-tap</v-icon>
+      <span class="title-text">Quick Time Event!</span>
     </v-card-title>
     
-    <v-card-text class="text-center">
+    <v-card-text class="text-center game-content">
       <div class="instructions mb-4">
+        <v-icon size="16" class="mr-1">mdi-star-shooting</v-icon>
         Press the buttons in the correct sequence!
+        <v-icon size="16" class="ml-1">mdi-star-shooting</v-icon>
       </div>
       
-      <!-- Timer -->
+      <!-- Timer - Galaxy styled -->
       <v-progress-linear
         v-if="isPlaying"
         :model-value="timeRemaining"
         :color="timeWarning ? 'warning' : 'primary'"
         height="10"
         rounded
-        class="mb-4"
+        class="galaxy-progress mb-4"
       ></v-progress-linear>
       
       <!-- Current sequence display -->
       <div class="sequence-display mb-4">
-        <div class="target-sequence mb-2">
-          <span class="text-grey">Watch: </span>
+        <div class="sequence-label mb-2">
+          <v-icon size="18" class="mr-1">mdi-eye</v-icon>
+          <span class="label-text">Watch: </span>
+        </div>
+        <div class="sequence-buttons">
           <span 
             v-for="(btn, idx) in gameData.sequence" 
             :key="'target-' + idx"
@@ -34,16 +39,21 @@
           </span>
         </div>
         
-        <div class="player-sequence" v-if="playerSequence.length > 0">
-          <span class="text-grey">Your input: </span>
-          <span 
-            v-for="(btn, idx) in playerSequence" 
-            :key="'player-' + idx"
-            class="sequence-btn"
-            :class="{ 'correct': correctSequence[idx] === true, 'incorrect': correctSequence[idx] === false }"
-          >
-            {{ btn }}
-          </span>
+        <div class="player-sequence mt-3" v-if="playerSequence.length > 0">
+          <div class="sequence-label mb-2">
+            <v-icon size="18" class="mr-1">mdi-hand-pointing-right</v-icon>
+            <span class="label-text">Your input: </span>
+          </div>
+          <div class="sequence-buttons">
+            <span 
+              v-for="(btn, idx) in playerSequence" 
+              :key="'player-' + idx"
+              class="sequence-btn"
+              :class="{ 'correct': correctSequence[idx] === true, 'incorrect': correctSequence[idx] === false }"
+            >
+              {{ btn }}
+            </span>
+          </div>
         </div>
       </div>
       
@@ -68,7 +78,7 @@
         color="primary"
         size="large"
         @click="startGame"
-        class="mt-4"
+        class="mt-4 start-btn"
       >
         <v-icon start>mdi-play</v-icon>
         Start Game
@@ -79,19 +89,26 @@
         <v-alert
           :type="score >= 70 ? 'success' : score >= 50 ? 'warning' : 'error'"
           variant="tonal"
+          class="galaxy-alert"
         >
-          <div class="text-h6">Score: {{ score }}%</div>
-          <div>{{ resultMessage }}</div>
+          <div class="score-display text-h6">
+            <v-icon size="22" class="mr-2">mdi-star</v-icon>
+            Score: {{ score }}%
+            <v-icon size="22" class="ml-2">mdi-star</v-icon>
+          </div>
+          <div class="result-message">{{ resultMessage }}</div>
         </v-alert>
       </div>
     </v-card-text>
     
-    <v-card-actions v-if="gameComplete">
+    <v-card-actions v-if="gameComplete" class="galaxy-actions">
       <v-btn
         color="primary"
         block
+        class="continue-btn"
         @click="submitResult"
       >
+        <v-icon start>mdi-check</v-icon>
         Continue
       </v-btn>
     </v-card-actions>
@@ -251,63 +268,263 @@ onUnmounted(() => {
 
 <style scoped>
 .qte-game {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: transparent !important;
+  border: 1px solid rgba(0, 255, 204, 0.2) !important;
 }
 
-.sequence-btn {
-  display: inline-block;
-  padding: 8px 12px;
-  margin: 2px;
-  background: #333;
-  border-radius: 8px;
-  font-size: 18px;
-  font-weight: bold;
-  min-width: 40px;
-  transition: all 0.2s;
+/* Game title styling */
+.game-title {
+  background: linear-gradient(90deg, rgba(0, 255, 204, 0.1) 0%, rgba(155, 89, 182, 0.1) 100%) !important;
+  border-bottom: 1px solid rgba(0, 255, 204, 0.3) !important;
+  color: #00ffcc !important;
+  padding: 16px !important;
 }
 
-.sequence-btn.completed {
-  background: #4caf50;
-  color: white;
+.game-icon {
+  color: #00ffcc !important;
+  filter: drop-shadow(0 0 8px rgba(0, 255, 204, 0.8));
+  animation: iconPulse 2s ease-in-out infinite;
 }
 
-.sequence-btn.current {
-  background: #ff9800;
-  color: white;
-  animation: pulse 0.5s infinite;
-}
-
-.sequence-btn.correct {
-  background: #4caf50;
-  color: white;
-}
-
-.sequence-btn.incorrect {
-  background: #f44336;
-  color: white;
-}
-
-@keyframes pulse {
+@keyframes iconPulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.1); }
 }
 
-.button-pad {
+.title-text {
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+}
+
+/* Content area */
+.game-content {
+  padding: 20px !important;
+}
+
+/* Instructions with stars */
+.instructions {
+  color: #9e9e9e;
+  font-size: 14px;
+  text-shadow: 0 0 5px rgba(0, 255, 204, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.instructions .v-icon {
+  color: #9b59b6 !important;
+  font-size: 16px !important;
+}
+
+/* Galaxy progress bar */
+.galaxy-progress {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(0, 255, 204, 0.2) !important;
+}
+
+.galaxy-progress .v-progress-linear__bar {
+  background: linear-gradient(90deg, #00ffcc, #9b59b6) !important;
+  box-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+}
+
+/* Sequence display */
+.sequence-display {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 15px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 255, 204, 0.15);
+}
+
+.sequence-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sequence-label .v-icon {
+  color: #9b59b6 !important;
+}
+
+.label-text {
+  color: #b0b0b0;
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.sequence-buttons {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  max-width: 300px;
-  margin: 0 auto;
+  gap: 4px;
+}
+
+.instructions {
+  color: #b0b0b0;
+  font-size: 14px;
+  text-shadow: 0 0 5px rgba(0, 255, 204, 0.3);
+}
+
+/* Galaxy styled sequence buttons */
+.sequence-btn {
+  display: inline-block;
+  padding: 10px 14px;
+  margin: 3px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #2d2d4a 100%);
+  border: 1px solid rgba(0, 255, 204, 0.3);
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: bold;
+  min-width: 44px;
+  transition: all 0.2s;
+  color: #e0e0e0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.sequence-btn:hover {
+  border-color: rgba(0, 255, 204, 0.6);
+  box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
+}
+
+.sequence-btn.completed {
+  background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+  border-color: rgba(76, 175, 80, 0.6);
+  color: #a5d6a7;
+  box-shadow: 0 0 10px rgba(76, 175, 80, 0.4);
+}
+
+.sequence-btn.current {
+  background: linear-gradient(135deg, #e65100 0%, #ef6c00 100%);
+  border-color: rgba(255, 152, 0, 0.8);
+  color: #ffcc80;
+  animation: cosmicPulse 0.5s infinite;
+  box-shadow: 0 0 20px rgba(255, 152, 0, 0.5);
+}
+
+@keyframes cosmicPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 15px rgba(255, 152, 0, 0.4); }
+  50% { transform: scale(1.05); box-shadow: 0 0 25px rgba(255, 152, 0, 0.7); }
+}
+
+.sequence-btn.correct {
+  background: linear-gradient(135deg, #00c853 0%, #00e676 100%);
+  border-color: rgba(0, 255, 204, 0.8);
+  color: #fff;
+  animation: correctFlash 0.3s ease-out;
+  box-shadow: 0 0 20px rgba(0, 255, 204, 0.6);
+}
+
+.sequence-btn.incorrect {
+  background: linear-gradient(135deg, #c62828 0%, #d32f2f 100%);
+  border-color: rgba(244, 67, 54, 0.8);
+  color: #ffcdd2;
+  animation: incorrectShake 0.3s ease-out;
+  box-shadow: 0 0 15px rgba(244, 67, 54, 0.5);
+}
+
+@keyframes correctFlash {
+  0% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+@keyframes incorrectShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* Galaxy styled game buttons */
+.button-pad {
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 16px;
+  border: 1px solid rgba(0, 255, 204, 0.2);
 }
 
 .game-btn {
-  min-width: 60px;
-  min-height: 60px;
-  font-size: 24px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #2d2d4a 100%) !important;
+  border: 2px solid rgba(0, 255, 204, 0.4) !important;
+  color: #00ffcc !important;
   font-weight: bold;
+  font-size: 16px;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 .game-btn:hover {
-  transform: scale(1.05);
+  border-color: rgba(0, 255, 204, 0.9) !important;
+  box-shadow: 0 0 25px rgba(0, 255, 204, 0.5), 0 4px 20px rgba(0, 0, 0, 0.4);
+  transform: translateY(-2px);
+}
+
+.game-btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 0 30px rgba(0, 255, 204, 0.7);
+}
+
+/* Start button */
+.start-btn {
+  background: linear-gradient(135deg, #1a1a2e 0%, #2d2d4a 100%) !important;
+  border: 2px solid rgba(0, 255, 204, 0.5) !important;
+  color: #00ffcc !important;
+  font-weight: 600;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 20px rgba(0, 255, 204, 0.3);
+}
+
+.start-btn:hover {
+  border-color: rgba(0, 255, 204, 0.9) !important;
+  box-shadow: 0 0 30px rgba(0, 255, 204, 0.5), 0 6px 25px rgba(0, 0, 0, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Galaxy alert styling */
+.galaxy-alert {
+  background: rgba(0, 0, 0, 0.4) !important;
+  border: 1px solid rgba(0, 255, 204, 0.3) !important;
+  border-radius: 12px !important;
+}
+
+.score-display {
+  color: #00ffcc !important;
+  text-shadow: 0 0 15px rgba(0, 255, 204, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.score-display .v-icon {
+  color: #ffd700 !important;
+  filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.8));
+}
+
+.result-message {
+  color: #b0b0b0;
+  font-size: 14px;
+}
+
+/* Card actions */
+.galaxy-actions {
+  background: linear-gradient(90deg, rgba(0, 255, 204, 0.05) 0%, rgba(155, 89, 182, 0.05) 100%) !important;
+  border-top: 1px solid rgba(0, 255, 204, 0.2) !important;
+  padding: 12px 16px !important;
+}
+
+/* Continue button */
+.continue-btn {
+  background: linear-gradient(135deg, #00ffcc 0%, #00bfa5 100%) !important;
+  color: #0d0d1a !important;
+  font-weight: 600;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 20px rgba(0, 255, 204, 0.4);
+}
+
+.continue-btn:hover {
+  box-shadow: 0 0 30px rgba(0, 255, 204, 0.6), 0 6px 25px rgba(0, 0, 0, 0.4);
+  transform: translateY(-2px);
 }
 </style>

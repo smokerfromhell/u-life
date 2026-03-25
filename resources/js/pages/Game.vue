@@ -727,9 +727,6 @@
                   <span v-if="choice.is_locked" class="locked-indicator" :title="choice.lock_reason || 'Requires previous choice'">
                     <v-icon size="16">mdi-chain</v-icon>
                   </span>
-                  <span v-if="selectedEvent.mini_game && !choice.is_locked" class="mini-game-icon mr-2" title="This choice will trigger a mini-game">
-                    <v-icon size="16" color="#00ffcc">mdi-gamepad-variant</v-icon>
-                  </span>
                   <span class="choice-btn-label">{{ formatChoiceLabel(choice) }}</span>
                   <span v-if="choice.is_locked" class="locked-text">LOCKED</span>
                 </div>

@@ -214,6 +214,22 @@ class DecisionLogService
                     'enhanced_mbti' => $enhancedMbti,
                     'personality_insights' => $eventService->getPersonalityInsight($character),
                 ]),
+                // Analytics tracking fields
+                'stats_before' => json_encode(array_merge(
+                    is_array($character->effective_stats) ? $character->effective_stats : [],
+                    is_array($character->hidden_stats) ? $character->hidden_stats : []
+                )),
+                'stats_after' => json_encode(array_merge(
+                    is_array($character->effective_stats) ? $character->effective_stats : [],
+                    is_array($character->hidden_stats) ? $character->hidden_stats : [],
+                    ['health' => $afterLifeStats['health'] ?? 78],
+                    ['happiness' => $afterLifeStats['happiness'] ?? 72],
+                    ['finance' => $afterLifeStats['finance'] ?? 20]
+                )),
+                'current_luck' => $character->luck ?? 50,
+                'time_spent_on_event' => $event['time_spent'] ?? null,
+                'mini_game_result' => isset($event['mini_game_result']) ? json_encode($event['mini_game_result']) : null,
+                'decision_made_at' => now(),
             ]);
 
             // Existing character + shared logs still work

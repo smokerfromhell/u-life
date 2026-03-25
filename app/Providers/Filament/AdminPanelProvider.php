@@ -26,6 +26,7 @@ use App\Filament\Widgets\Analytics\DailyActivityChart;
 use App\Filament\Widgets\Analytics\PersonalityAnalyticsWidget;
 use App\Filament\Widgets\Analytics\BigFiveRadarChart;
 use App\Filament\Widgets\Analytics\MbtiDimensionChart;
+use App\Filament\Widgets\Analytics\SharedDecisionLogsStatsWidget;
 use App\Filament\Resources\Analytics\UserAnalyticsResource;
 use App\Filament\Resources\Analytics\LifeStatsSnapshotResource;
 use App\Filament\Resources\Analytics\SharedDecisionLogResource;

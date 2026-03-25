@@ -5,9 +5,12 @@ namespace App\Filament\Widgets\Analytics;
 use App\Models\DecisionLog;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Facades\DB;
+use App\Filament\Widgets\Analytics\Concerns\HasAnalyticsFilters;
 
 class ChoicesPopularityChart extends ChartWidget
 {
+    use HasAnalyticsFilters;
+
     protected ?string $heading = 'Top 10 Popular Choices';
 
     protected function getType(): string
@@ -17,7 +20,12 @@ class ChoicesPopularityChart extends ChartWidget
 
     protected function getData(): array
     {
-        $choiceCounts = DecisionLog::select('choice_text', DB::raw('count(*) as aggregate'))
+        $query = DecisionLog::query();
+        
+        // Apply filters
+        $this->applyFilters($query);
+        
+        $choiceCounts = $query->select('choice_text', DB::raw('count(*) as aggregate'))
             ->whereNotNull('choice_text')
             ->where('choice_text', '!=', '')
             ->groupBy('choice_text')

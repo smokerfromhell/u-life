@@ -679,9 +679,9 @@ class DailyActionSeeder extends Seeder
                 'mini_game_category' => 'education',
                 'choices' => [
                     // Choice 1: Triggers mini-game to learn the skill
-                    ['text' => 'Learn Skill', 'stat_effects' => '+2 Intelligence, +1 Isolation', 'days_to_advance' => 0, 'learn_skill' => 'Reading', 'mini_game' => 'memory_match'],
-                    // Choice 2: Skip - check another skill (no mini-game, no skill learned)
-                    ['text' => 'Check another skill', 'stat_effects' => '+1 Intelligence', 'days_to_advance' => 0],
+                    ['text' => 'Learn', 'stat_effects' => '+2 Intelligence, +1 Isolation', 'days_to_advance' => 0, 'learn_skill' => 'Reading', 'mini_game' => 'memory_match'],
+                    // Choice 2: Cancel - skip the learning
+                    ['text' => 'Cancel', 'stat_effects' => '+0', 'days_to_advance' => 0],
                 ],
                 'conditions' => [
                     'lacks_skill' => 'Reading',
@@ -705,9 +705,9 @@ class DailyActionSeeder extends Seeder
                 'mini_game_category' => 'health',
                 'choices' => [
                     // Choice 1: Triggers mini-game to learn the skill
-                    ['text' => 'Learn Skill', 'stat_effects' => '+2 Creativity, +1 Health', 'days_to_advance' => 0, 'learn_skill' => 'Cooking Basics', 'mini_game' => 'timing'],
-                    // Choice 2: Skip - check another skill (no mini-game, no skill learned)
-                    ['text' => 'Check another skill', 'stat_effects' => '+1 Creativity', 'days_to_advance' => 0],
+                    ['text' => 'Learn', 'stat_effects' => '+2 Creativity, +1 Health', 'days_to_advance' => 0, 'learn_skill' => 'Cooking Basics', 'mini_game' => 'timing'],
+                    // Choice 2: Cancel - skip the learning
+                    ['text' => 'Cancel', 'stat_effects' => '+0', 'days_to_advance' => 0],
                 ],
                 'conditions' => [
                     'lacks_skill' => ['Cooking', 'Cooking Basics'],
@@ -731,9 +731,9 @@ class DailyActionSeeder extends Seeder
                 'mini_game_category' => 'health',
                 'choices' => [
                     // Choice 1: Triggers mini-game to learn the skill
-                    ['text' => 'Learn Skill', 'stat_effects' => '+2 Discipline, +1 Morality', 'days_to_advance' => 0, 'learn_skill' => 'Meditation', 'mini_game' => 'choice_chain'],
-                    // Choice 2: Skip - check another skill (no mini-game, no skill learned)
-                    ['text' => 'Check another skill', 'stat_effects' => '+1 Discipline', 'days_to_advance' => 0],
+                    ['text' => 'Learn', 'stat_effects' => '+2 Discipline, +1 Morality', 'days_to_advance' => 0, 'learn_skill' => 'Meditation', 'mini_game' => 'choice_chain'],
+                    // Choice 2: Cancel - skip the learning
+                    ['text' => 'Cancel', 'stat_effects' => '+0', 'days_to_advance' => 0],
                 ],
                 'conditions' => [
                     'lacks_skill' => 'Meditation',
@@ -758,9 +758,9 @@ class DailyActionSeeder extends Seeder
                 'mini_game_category' => 'health',
                 'choices' => [
                     // Choice 1: Triggers mini-game to learn the skill
-                    ['text' => 'Learn Skill', 'stat_effects' => '+2 Strength, +1 Health', 'days_to_advance' => 0, 'learn_skill' => 'Fitness', 'mini_game' => 'qte'],
-                    // Choice 2: Skip - check another skill (no mini-game, no skill learned)
-                    ['text' => 'Check another skill', 'stat_effects' => '+1 Strength', 'days_to_advance' => 0],
+                    ['text' => 'Learn', 'stat_effects' => '+2 Strength, +1 Health', 'days_to_advance' => 0, 'learn_skill' => 'Fitness', 'mini_game' => 'qte'],
+                    // Choice 2: Cancel - skip the learning
+                    ['text' => 'Cancel', 'stat_effects' => '+0', 'days_to_advance' => 0],
                 ],
                 'conditions' => [
                     'lacks_skill' => 'Fitness',
@@ -785,9 +785,9 @@ class DailyActionSeeder extends Seeder
                 'mini_game_category' => 'social',
                 'choices' => [
                     // Choice 1: Triggers mini-game to learn the skill
-                    ['text' => 'Learn Skill', 'stat_effects' => '+2 Charisma, +1 Reputation', 'days_to_advance' => 0, 'learn_skill' => 'Conversation', 'mini_game' => 'choice_chain'],
-                    // Choice 2: Skip - check another skill (no mini-game, no skill learned)
-                    ['text' => 'Check another skill', 'stat_effects' => '+1 Charisma', 'days_to_advance' => 0],
+                    ['text' => 'Learn', 'stat_effects' => '+2 Charisma, +1 Reputation', 'days_to_advance' => 0, 'learn_skill' => 'Conversation', 'mini_game' => 'choice_chain'],
+                    // Choice 2: Cancel - skip the learning
+                    ['text' => 'Cancel', 'stat_effects' => '+0', 'days_to_advance' => 0],
                 ],
                 'conditions' => [
                     'lacks_skill' => ['Conversation', 'Public Speaking'],
@@ -811,9 +811,9 @@ class DailyActionSeeder extends Seeder
                 'mini_game_category' => 'wealth',
                 'choices' => [
                     // Choice 1: Triggers mini-game to learn the skill
-                    ['text' => 'Learn Skill', 'stat_effects' => '+2 Wealth, +1 Discipline', 'days_to_advance' => 0, 'learn_skill' => 'Budgeting', 'mini_game' => 'memory_match'],
-                    // Choice 2: Skip - check another skill (no mini-game, no skill learned)
-                    ['text' => 'Check another skill', 'stat_effects' => '+1 Wealth', 'days_to_advance' => 0],
+                    ['text' => 'Learn', 'stat_effects' => '+2 Wealth, +1 Discipline', 'days_to_advance' => 0, 'learn_skill' => 'Budgeting', 'mini_game' => 'memory_match'],
+                    // Choice 2: Cancel - skip the learning
+                    ['text' => 'Cancel', 'stat_effects' => '+0', 'days_to_advance' => 0],
                 ],
                 'conditions' => [
                     'lacks_skill' => ['Budgeting', 'Planning'],
@@ -838,9 +838,9 @@ class DailyActionSeeder extends Seeder
                 'mini_game_category' => 'health',
                 'choices' => [
                     // Choice 1: Triggers mini-game to learn the skill
-                    ['text' => 'Learn Skill', 'stat_effects' => '+2 Intelligence, +1 Health', 'days_to_advance' => 0, 'learn_skill' => 'Basic First Aid', 'mini_game' => 'qte'],
-                    // Choice 2: Skip - check another skill (no mini-game, no skill learned)
-                    ['text' => 'Check another skill', 'stat_effects' => '+1 Intelligence', 'days_to_advance' => 0],
+                    ['text' => 'Learn', 'stat_effects' => '+2 Intelligence, +1 Health', 'days_to_advance' => 0, 'learn_skill' => 'Basic First Aid', 'mini_game' => 'qte'],
+                    // Choice 2: Cancel - skip the learning
+                    ['text' => 'Cancel', 'stat_effects' => '+0', 'days_to_advance' => 0],
                 ],
                 'conditions' => [
                     'lacks_skill' => 'Basic First Aid',
@@ -864,9 +864,9 @@ class DailyActionSeeder extends Seeder
                 'mini_game_category' => 'skill',
                 'choices' => [
                     // Choice 1: Triggers mini-game to learn the skill
-                    ['text' => 'Learn Skill', 'stat_effects' => '+2 Luck, +1 Intelligence', 'days_to_advance' => 0, 'learn_skill' => 'Driving', 'mini_game' => 'timing'],
-                    // Choice 2: Skip - check another skill (no mini-game, no skill learned)
-                    ['text' => 'Check another skill', 'stat_effects' => '+1 Luck', 'days_to_advance' => 0],
+                    ['text' => 'Learn', 'stat_effects' => '+2 Luck, +1 Intelligence', 'days_to_advance' => 0, 'learn_skill' => 'Driving', 'mini_game' => 'timing'],
+                    // Choice 2: Cancel - skip the learning
+                    ['text' => 'Cancel', 'stat_effects' => '+0', 'days_to_advance' => 0],
                 ],
                 'conditions' => [
                     'lacks_skill' => 'Driving',
@@ -892,9 +892,9 @@ class DailyActionSeeder extends Seeder
                 'mini_game_category' => 'health',
                 'choices' => [
                     // Choice 1: Triggers mini-game to learn the skill
-                    ['text' => 'Learn Skill', 'stat_effects' => '+2 Strength, +1 Health', 'days_to_advance' => 0, 'learn_skill' => 'Swimming', 'mini_game' => 'choice_chain'],
-                    // Choice 2: Skip - check another skill (no mini-game, no skill learned)
-                    ['text' => 'Check another skill', 'stat_effects' => '+1 Strength', 'days_to_advance' => 0],
+                    ['text' => 'Learn', 'stat_effects' => '+2 Strength, +1 Health', 'days_to_advance' => 0, 'learn_skill' => 'Swimming', 'mini_game' => 'choice_chain'],
+                    // Choice 2: Cancel - skip the learning
+                    ['text' => 'Cancel', 'stat_effects' => '+0', 'days_to_advance' => 0],
                 ],
                 'conditions' => [
                     'lacks_skill' => 'Swimming',
@@ -919,9 +919,9 @@ class DailyActionSeeder extends Seeder
                 'mini_game_category' => 'creativity',
                 'choices' => [
                     // Choice 1: Triggers mini-game to learn the skill
-                    ['text' => 'Learn Skill', 'stat_effects' => '+2 Creativity, +1 Isolation', 'days_to_advance' => 0, 'learn_skill' => 'Music', 'mini_game' => 'memory_match'],
-                    // Choice 2: Skip - check another skill (no mini-game, no skill learned)
-                    ['text' => 'Check another skill', 'stat_effects' => '+1 Creativity', 'days_to_advance' => 0],
+                    ['text' => 'Learn', 'stat_effects' => '+2 Creativity, +1 Isolation', 'days_to_advance' => 0, 'learn_skill' => 'Music', 'mini_game' => 'memory_match'],
+                    // Choice 2: Cancel - skip the learning
+                    ['text' => 'Cancel', 'stat_effects' => '+0', 'days_to_advance' => 0],
                 ],
                 'conditions' => [
                     'lacks_skill' => 'Music',
@@ -946,9 +946,9 @@ class DailyActionSeeder extends Seeder
                 'mini_game_category' => 'creativity',
                 'choices' => [
                     // Choice 1: Triggers mini-game to learn the skill
-                    ['text' => 'Learn Skill', 'stat_effects' => '+2 Creativity, +1 Isolation', 'days_to_advance' => 0, 'learn_skill' => 'Drawing', 'mini_game' => 'choice_chain'],
-                    // Choice 2: Skip - check another skill (no mini-game, no skill learned)
-                    ['text' => 'Check another skill', 'stat_effects' => '+1 Creativity', 'days_to_advance' => 0],
+                    ['text' => 'Learn', 'stat_effects' => '+2 Creativity, +1 Isolation', 'days_to_advance' => 0, 'learn_skill' => 'Drawing', 'mini_game' => 'choice_chain'],
+                    // Choice 2: Cancel - skip the learning
+                    ['text' => 'Cancel', 'stat_effects' => '+0', 'days_to_advance' => 0],
                 ],
                 'conditions' => [
                     'lacks_skill' => 'Drawing',

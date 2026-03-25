@@ -277,62 +277,130 @@ onUnmounted(() => {
 
 <style scoped>
 .timing-game {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: transparent !important;
 }
 
+.instructions {
+  color: #b0b0b0;
+  font-size: 14px;
+  text-shadow: 0 0 5px rgba(0, 255, 204, 0.3);
+}
+
+/* Galaxy styled timing area - cosmic track */
 .timing-area {
   position: relative;
   height: 80px;
-  background: rgba(0, 0, 0, 0.3);
+  background: linear-gradient(90deg, 
+    rgba(0, 0, 0, 0.4) 0%, 
+    rgba(26, 10, 46, 0.4) 50%, 
+    rgba(0, 0, 0, 0.4) 100%);
   border-radius: 10px;
   overflow: hidden;
   margin: 20px 0;
   cursor: pointer;
+  border: 1px solid rgba(0, 255, 204, 0.2);
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5);
 }
 
+/* Cosmic target line - energy beam */
 .target-line {
   position: absolute;
   left: 50%;
   top: 0;
   bottom: 0;
   width: 4px;
-  background: #4caf50;
+  background: linear-gradient(180deg, 
+    transparent 0%, 
+    #00ffcc 20%, 
+    #00ffcc 80%, 
+    transparent 100%);
   transform: translateX(-50%);
   z-index: 2;
+  box-shadow: 0 0 15px rgba(0, 255, 204, 0.8), 0 0 30px rgba(0, 255, 204, 0.4);
+  animation: beamPulse 1.5s ease-in-out infinite;
 }
 
+@keyframes beamPulse {
+  0%, 100% { opacity: 0.8; box-shadow: 0 0 15px rgba(0, 255, 204, 0.6); }
+  50% { opacity: 1; box-shadow: 0 0 25px rgba(0, 255, 204, 1); }
+}
+
+/* Planet-styled target - glowing orb */
 .target {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
   height: 40px;
-  background: linear-gradient(180deg, #ff9800 0%, #f57c00 100%);
-  border-radius: 5px;
+  background: radial-gradient(circle at 30% 30%, 
+    #ffd54f 0%, 
+    #ff9800 40%, 
+    #e65100 80%, 
+    #bf360c 100%);
+  border-radius: 50%;
   transition: none;
   cursor: pointer;
+  box-shadow: 
+    0 0 20px rgba(255, 152, 0, 0.6),
+    0 0 40px rgba(255, 152, 0, 0.3),
+    inset -5px -5px 15px rgba(0, 0, 0, 0.3),
+    inset 5px 5px 15px rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 213, 79, 0.5);
 }
 
+/* Cosmic hit zone - energy field */
 .hit-zone {
   position: absolute;
   left: 45%;
   right: 45%;
   top: 0;
   bottom: 0;
-  background: rgba(76, 175, 80, 0.2);
+  background: rgba(0, 255, 204, 0.1);
   transition: background 0.2s;
+  border-left: 1px solid rgba(0, 255, 204, 0.2);
+  border-right: 1px solid rgba(0, 255, 204, 0.2);
 }
 
 .hit-zone.active {
-  background: rgba(76, 175, 80, 0.4);
+  background: rgba(0, 255, 204, 0.25);
+  box-shadow: 0 0 20px rgba(0, 255, 204, 0.4);
+  border-color: rgba(0, 255, 204, 0.6);
 }
 
+/* Round info styling */
 .round-info {
   display: flex;
   justify-content: center;
+  gap: 8px;
 }
 
+/* Instructions text */
 .instructions-text {
   color: rgba(255, 255, 255, 0.7);
   font-size: 14px;
+  text-shadow: 0 0 5px rgba(0, 255, 204, 0.2);
+}
+
+/* Enhanced result display */
+.result-display {
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(0, 255, 204, 0.2);
+}
+
+.result-display .text-h6 {
+  color: #00ffcc;
+  text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+  font-weight: 600;
+}
+
+/* Hit result animation */
+.hit-result {
+  animation: hitFlash 0.5s ease-out;
+}
+
+@keyframes hitFlash {
+  0% { transform: scale(1.2); }
+  100% { transform: scale(1); }
 }
 </style>

@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\SharedDecisionLogController;
 use App\Http\Controllers\ProfessionalAccountRequestController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\AnalyticsExportController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['web'])->group(function () {
@@ -65,6 +66,11 @@ Route::middleware(['web'])->group(function () {
         
         // Professional analytics
         Route::get('/professional/analytics', [AnalyticsController::class, 'dashboard']);
+        
+        // Analytics export routes (admin only)
+        Route::get('/analytics/export/csv', [AnalyticsExportController::class, 'exportToCsv']);
+        Route::get('/analytics/export/summary', [AnalyticsExportController::class, 'exportAnalyticsSummary']);
+        Route::get('/analytics/export/effectiveness', [AnalyticsExportController::class, 'exportChoiceEffectiveness']);
     });
 });
 
