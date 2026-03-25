@@ -2080,6 +2080,7 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                     'description' => $eventData['description'] ?? ($event->outcome ?? $event->description ?? null),
                     'type' => $validated['event_type'],
                     'archetype' => $eventData['archetype'] ?? null,
+                    'event_category' => $event->event_category ?? $eventData['event_category'] ?? null, // Pass event_category for proper narrative path
                 ],
                 is_array($choice) ? $choice : [],
                 is_array($resolvedChoiceOutcome) ? $resolvedChoiceOutcome : null
