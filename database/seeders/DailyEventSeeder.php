@@ -15,6 +15,7 @@ class DailyEventSeeder extends Seeder
      * - deck_label: 'Daily Event'
      * - Each event has: title, description, image, type, deck_label, repeatable, weight, 
      *   auto_resolve, days_to_advance, display_order, choices, conditions
+     * - event_category: Added for narrative branching (education, career, health, wealth, social, family)
      */
     public function run(): void
     {
@@ -33,6 +34,7 @@ class DailyEventSeeder extends Seeder
                 'days_to_advance' => 0,
                 'display_order' => 1,
                 'age_group' => 'child',
+                'event_category' => 'health', // Entertainment affects health/discipline
                 'choices' => [
                     ['text' => 'Cartoon marathon', 'stat_effects' => '+5 Happiness, -5 Discipline', 'days_to_advance' => 0],
                     ['text' => 'Play outside instead', 'stat_effects' => '+5 Health, +3 Happiness, -2 Discipline', 'days_to_advance' => 0],
@@ -51,6 +53,7 @@ class DailyEventSeeder extends Seeder
                 'days_to_advance' => 0,
                 'display_order' => 2,
                 'age_group' => 'child',
+                'event_category' => 'health', // Physical activity
                 'choices' => [
                     ['text' => 'Outdoor fun', 'stat_effects' => '+10 Health, +10 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Stay home and rest', 'stat_effects' => '+2 Health, -3 Happiness', 'days_to_advance' => 0],
@@ -69,6 +72,7 @@ class DailyEventSeeder extends Seeder
                 'days_to_advance' => 0,
                 'display_order' => 3,
                 'age_group' => 'child',
+                'event_category' => 'education',
                 'choices' => [
                     ['text' => 'Complete all homework', 'stat_effects' => '+10 Intelligence, +5 Discipline', 'days_to_advance' => 0],
                     ['text' => 'Skip homework', 'stat_effects' => '-5 Intelligence, -3 Discipline, +5 Happiness', 'days_to_advance' => 0],
@@ -87,6 +91,7 @@ class DailyEventSeeder extends Seeder
                 'days_to_advance' => 0,
                 'display_order' => 4,
                 'age_group' => 'child',
+                'event_category' => 'family',
                 'choices' => [
                     ['text' => 'Help parents', 'stat_effects' => '+10 Discipline, +5 Morality', 'days_to_advance' => 0],
                     ['text' => 'Refuse to help', 'stat_effects' => '-5 Discipline, -3 Morality, +5 Happiness', 'days_to_advance' => 0],
@@ -105,6 +110,7 @@ class DailyEventSeeder extends Seeder
                 'days_to_advance' => 0,
                 'display_order' => 5,
                 'age_group' => 'child',
+                'event_category' => 'health',
                 'choices' => [
                     ['text' => 'Healthy dinner', 'stat_effects' => '+10 Health, +5 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Junk food', 'stat_effects' => '+3 Happiness, -5 Health', 'days_to_advance' => 0],
@@ -123,6 +129,7 @@ class DailyEventSeeder extends Seeder
                 'days_to_advance' => 0,
                 'display_order' => 6,
                 'age_group' => 'child',
+                'event_category' => 'health',
                 'choices' => [
                     ['text' => 'Sleep early', 'stat_effects' => '+10 Health, +5 Discipline', 'days_to_advance' => 0],
                     ['text' => 'Stay up late', 'stat_effects' => '-5 Health, +3 Happiness, -3 Discipline', 'days_to_advance' => 0],
@@ -141,6 +148,7 @@ class DailyEventSeeder extends Seeder
                 'days_to_advance' => 0,
                 'display_order' => 7,
                 'age_group' => 'child',
+                'event_category' => 'education',
                 'choices' => [
                     ['text' => 'Focus on studies', 'stat_effects' => '+10 Intelligence, +10 Happiness', 'days_to_advance' => 0],
                     ['text' => 'Daydream in class', 'stat_effects' => '+2 Happiness, -5 Intelligence', 'days_to_advance' => 0],
@@ -159,6 +167,7 @@ class DailyEventSeeder extends Seeder
                 'days_to_advance' => 0,
                 'display_order' => 8,
                 'age_group' => 'child',
+                'event_category' => 'education',
                 'choices' => [
                     ['text' => 'Read books', 'stat_effects' => '+10 Intelligence, +5 Creativity', 'days_to_advance' => 0],
                     ['text' => 'Play games instead', 'stat_effects' => '+3 Happiness, -3 Intelligence', 'days_to_advance' => 0],
@@ -177,6 +186,7 @@ class DailyEventSeeder extends Seeder
                 'days_to_advance' => 0,
                 'display_order' => 9,
                 'age_group' => 'child',
+                'event_category' => 'social',
                 'choices' => [
                     ['text' => 'Play with friends', 'stat_effects' => '+15 Happiness, +5 Reputation', 'days_to_advance' => 0],
                     ['text' => 'Play alone', 'stat_effects' => '+2 Happiness, -5 Reputation', 'days_to_advance' => 0],
@@ -196,6 +206,7 @@ class DailyEventSeeder extends Seeder
                 'days_to_advance' => 0,
                 'display_order' => 10,
                 'age_group' => 'teen',
+                'event_category' => 'health',
                 'choices' => [
                     ['text' => 'TV marathon', 'stat_effects' => '+5 Happiness, -5 Discipline', 'days_to_advance' => 0],
                     ['text' => 'Do something productive', 'stat_effects' => '+5 Discipline, -3 Happiness', 'days_to_advance' => 0],
@@ -607,6 +618,10 @@ class DailyEventSeeder extends Seeder
             if (!isset($event['event_choice']) && isset($event['title'])) {
                 $event['event_choice'] = $event['title'];
             }
+            // Auto-assign event_category if not set
+            if (!isset($event['event_category'])) {
+                $event['event_category'] = $this->determineEventCategory($event);
+            }
             // Provide default outcome if not set
             if (!isset($event['outcome'])) {
                 $event['outcome'] = $event['description'] ?? 'Event completed.';
@@ -617,5 +632,43 @@ class DailyEventSeeder extends Seeder
             }
             DailyEvent::create($event);
         }
+    }
+
+    /**
+     * Determine event_category based on title and description keywords.
+     * Maps to NarrativeService STORY_PATHS keywords.
+     */
+    private function determineEventCategory(array $event): string
+    {
+        $title = strtolower($event['title'] ?? '');
+        $description = strtolower($event['description'] ?? '');
+        $text = $title . ' ' . $description;
+
+        // Education keywords
+        if (preg_match('/(homework|study|school|exam|learning|college|university|reading|book|course|train|trainings?|lesson)/', $text)) {
+            return 'education';
+        }
+        // Career/Work keywords
+        if (preg_match('/(work|job|career|office|boss|meeting|project|client|customer|shift|career)/', $text)) {
+            return 'career';
+        }
+        // Health keywords
+        if (preg_match('/(exercise|gym|workout|health|doctor|medicine|sleep|rest|bedtime|meal|food|nutrition|sick|ill|fitness)/', $text)) {
+            return 'health';
+        }
+        // Wealth keywords  
+        if (preg_match('/(money|wealth|finance|investment|shopping|buy|sell|budget|bill|payment|saving)/', $text)) {
+            return 'wealth';
+        }
+        // Family keywords
+        if (preg_match('/(family|parent|mother|father|chore|home|house|family)/', $text)) {
+            return 'family';
+        }
+        // Social keywords
+        if (preg_match('/(friend|social|party|hangout|friend|community|network|date|dating|relationship)/', $text)) {
+            return 'social';
+        }
+        // Default to random for unmatched events
+        return 'random';
     }
 }

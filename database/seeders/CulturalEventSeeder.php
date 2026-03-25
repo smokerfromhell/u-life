@@ -23,7 +23,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Sinulog Festival (Cebu)',
                 'description' => 'The Sinulog Festival is a vibrant celebration honoring the Santo Niño. Join the colorful parade and dance in the streets!',
-                'image' => '/css/images/sinulog-festival.png',
+                'image' => '/css/images/culturalevents/sinulog-festival.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -41,7 +41,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Ati-Atihan (Kalibo)',
                 'description' => 'The Ati-Atihan Festival celebrates the indigenous Ati people. Join the tribal costume street dancing!',
-                'image' => '/css/images/ati-atihan.png',
+                'image' => '/css/images/culturalevents/ati-atihan.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -59,7 +59,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Dinagyang (Iloilo)',
                 'description' => 'The Dinagyang Festival is a religious and cultural festival. Join the street dance competition!',
-                'image' => '/css/images/dinagyang-festival.png',
+                'image' => '/css/images/culturalevents/dinagyang-festival.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -77,7 +77,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Panagbenga (Baguio)',
                 'description' => 'The Panagbenga Flower Festival celebrates the blooming of flowers. Join the flower parade!',
-                'image' => '/css/images/event-festival.jpg',
+                'image' => '/css/images/culturalevents/panagbenga-festival.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -95,7 +95,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Kadayawan (Davao)',
                 'description' => 'The Kadayawan Festival celebrates the harvest and gives thanks for blessings. Join the street party!',
-                'image' => '/css/images/event-festival.jpg',
+                'image' => '/css/images/culturalevents/kadayawan-festival.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -113,7 +113,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Pahiyas (Lucban)',
                 'description' => 'The Pahiyas Festival celebrates the harvest. Decorate your house with colorful harvest produce!',
-                'image' => '/css/images/event-festival.jpg',
+                'image' => '/css/images/culturalevents/pahiyas-festival.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -131,7 +131,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Moriones (Marinduque)',
                 'description' => 'The Moriones Festival is a Lenten tradition featuring biblical reenactments. Join the Holy Week tradition!',
-                'image' => '/css/images/event-ceremony.jpg',
+                'image' => '/css/images/culturalevents/moriones-festival.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -149,7 +149,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'MassKara (Bacolod)',
                 'description' => 'The MassKara Festival features colorful masks and parades. Wear a mask and join the fun!',
-                'image' => '/css/images/event-festival.jpg',
+                'image' => '/css/images/culturalevents/masskara-festival.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -167,7 +167,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Flores de Mayo',
                 'description' => 'Flores de Mayo is a religious festival honoring the Virgin Mary. Offer flowers in devotion!',
-                'image' => '/css/images/event-ceremony.jpg',
+                'image' => '/css/images/culturalevents/flores-de-mayo.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -185,7 +185,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Santacruzan',
                 'description' => 'Santacruzan is a liturgical procession honoring the Finding of the True Cross. Join the procession!',
-                'image' => '/css/images/event-ceremony.jpg',
+                'image' => '/css/images/culturalevents/santacruzan-festival.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -203,7 +203,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Higantes (Angono)',
                 'description' => 'The Higantes Festival features giant paper-mache puppets. Parade with the giant puppets!',
-                'image' => '/css/images/event-festival.jpg',
+                'image' => '/css/images/culturalevents/higantes-festival.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -221,7 +221,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Pintados (Leyte)',
                 'description' => 'The Pintados Festival features body painting and parades. Join the body painting parade!',
-                'image' => '/css/images/event-festival.jpg',
+                'image' => '/css/images/culturalevents/pintados-festival.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -239,7 +239,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Sandugo (Bohol)',
                 'description' => 'The Sandugo Festival commemorates the blood compact between Miguel López de Legazpi and Datu Sikatuna. Reenact the historic event!',
-                'image' => '/css/images/event-ceremony.jpg',
+                'image' => '/css/images/culturalevents/sandugo-festival.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -257,7 +257,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Kaamulan (Bukidnon)',
                 'description' => 'The Kaamulan Festival celebrates the culture of Bukidnon tribes. Join the tribal unity celebration!',
-                'image' => '/css/images/event-festival.jpg',
+                'image' => '/css/images/culturalevents/kaamulan-festival.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -275,7 +275,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Giant Lantern (Pampanga)',
                 'description' => 'The Giant Lantern Festival features massive illuminated lanterns. Enter the lantern contest!',
-                'image' => '/css/images/event-festival.jpg',
+                'image' => '/css/images/culturalevents/giant-lantern-festival.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -293,7 +293,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Hermosa (Zamboanga)',
                 'description' => 'The Hermosa Festival features street parades with beautiful attendees. Join the street parade!',
-                'image' => '/css/images/event-festival.jpg',
+                'image' => '/css/images/culturalevents/hermoza-fesitval.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -311,7 +311,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Malasimbo (Puerto Galera)',
                 'description' => 'The Malasimbo Festival features cultural concerts and performances. Attend the concert!',
-                'image' => '/css/images/event-festival.jpg',
+                'image' => '/css/images/culturalevents/malasimbo-festival.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -329,7 +329,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Tuna Festival (GenSan)',
                 'description' => 'The Tuna Festival celebrates the tuna industry in General Santos. Join the fish parade!',
-                'image' => '/css/images/event-festival.jpg',
+                'image' => '/css/images/culturalevents/tuna-festival.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -347,7 +347,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Lanzones (Camiguin)',
                 'description' => 'The Lanzones Festival celebrates the harvest of the lanzones fruit. Join the fruit harvest!',
-                'image' => '/css/images/event-festival.jpg',
+                'image' => '/css/images/culturalevents/lanzones-festival.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -365,7 +365,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Mango Festival (Zambales)',
                 'description' => 'The Mango Festival celebrates the sweet mangoes of Zambales. Celebrate mango season!',
-                'image' => '/css/images/event-festival.jpg',
+                'image' => '/css/images/culturalevents/mango-festival.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -383,7 +383,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Coconut Festival (Quezon)',
                 'description' => 'The Coconut Festival celebrates the coconut industry. Join the parade!',
-                'image' => '/css/images/event-festival.jpg',
+                'image' => '/css/images/culturalevents/coconut-festival.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -401,7 +401,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Bangus Festival (Dagupan)',
                 'description' => 'The Bangus Festival celebrates the milkfish (bangus) harvest. Celebrate the milkfish harvest!',
-                'image' => '/css/images/event-festival.jpg',
+                'image' => '/css/images/culturalevents/bangus-festival.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -419,7 +419,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Tabak Festival (Toledo)',
                 'description' => 'The Tabak Festival celebrates martial arts and knives. Join the martial parade!',
-                'image' => '/css/images/event-festival.jpg',
+                'image' => '/css/images/culturalevents/tabak-festival.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -437,7 +437,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Rodeo Masbateño (Masbate)',
                 'description' => 'The Rodeo Masbateño is a cowboy-style rodeo. Join the rodeo!',
-                'image' => '/css/images/event-festival.jpg',
+                'image' => '/css/images/culturalevents/rodeo-masbate.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -455,7 +455,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Surf Festival (La Union)',
                 'description' => 'The Surf Festival celebrates surfing in La Union. Win the surf competition!',
-                'image' => '/css/images/event-festival.jpg',
+                'image' => '/css/images/culturalevents/surf-festival.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -473,7 +473,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Pagoda Festival (Bulacan)',
                 'description' => 'The Pagoda Festival features a colorful river procession. Join the river procession!',
-                'image' => '/css/images/event-ceremony.jpg',
+                'image' => '/css/images/culturalevents/pagoda-festival.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -491,7 +491,7 @@ class CulturalEventSeeder extends Seeder
             [
                 'title' => 'Buyogan Festival (Leyte)',
                 'description' => 'The Buyogan Festival features bee dance competitions. Join the bee dance!',
-                'image' => '/css/images/event-festival.jpg',
+                'image' => '/css/images/culturalevents/buyogan-festival.png',
                 'type' => 'cultural',
                 'deck_label' => 'Cultural Event',
                 'repeatable' => true,
@@ -512,6 +512,10 @@ class CulturalEventSeeder extends Seeder
             if (!isset($event['event_choice']) && isset($event['title'])) {
                 $event['event_choice'] = $event['title'];
             }
+            // Auto-assign event_category if not set (cultural events are mostly social/family)
+            if (!isset($event['event_category'])) {
+                $event['event_category'] = $this->determineEventCategory($event);
+            }
             // Provide default outcome if not set
             if (!isset($event['outcome'])) {
                 $event['outcome'] = $event['description'] ?? 'Cultural event enjoyed.';
@@ -522,5 +526,39 @@ class CulturalEventSeeder extends Seeder
             }
             CulturalEvent::create($event);
         }
+    }
+
+    /**
+     * Determine event_category based on title and description keywords.
+     * Cultural events are primarily social/family/community gatherings.
+     */
+    private function determineEventCategory(array $event): string
+    {
+        $title = strtolower($event['title'] ?? '');
+        $description = strtolower($event['description'] ?? '');
+        $text = $title . ' ' . $description;
+
+        // Religious/spiritual events
+        if (preg_match('/(mass|church|religious|spiritual|feast|saint|devotion|pilgrimage|celebration)/', $text)) {
+            return 'family';
+        }
+        // Music/arts events  
+        if (preg_match('/(concert|festival|music|dance|art|performance|band|orchestra)/', $text)) {
+            return 'social';
+        }
+        // Community/social events
+        if (preg_match('/(parade|street|community|celebration|festival|party|gathering|tradition)/', $text)) {
+            return 'social';
+        }
+        // FoodCulinary events
+        if (preg_match('/(food|culinary|feast|eat|restaurant)/', $text)) {
+            return 'family';
+        }
+        // Family-oriented events
+        if (preg_match('/(family|child|kid|亲子|children)/', $text)) {
+            return 'family';
+        }
+        // Default to social for cultural events
+        return 'social';
     }
 }

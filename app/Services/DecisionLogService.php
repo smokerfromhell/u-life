@@ -94,8 +94,11 @@ class DecisionLogService
      * Used by EventService after stat changes
      * Only creates DecisionLog if user has given share_consent
      */
-    public function logFullDecision(Character $character, array $event, int $choiceIndex, array $beforeLifeStats, array $afterLifeStats, string $choiceText = null, string $outcomeType = 'neutral'): bool
+    public function logFullDecision(Character $character, array $event, int $choiceIndex, array $beforeLifeStats, array $afterLifeStats, string $choiceText = null, string $outcomeType = 'neutral'): array
     {
+        // Return format: ['success' => bool, 'random_outcome' => array|null]
+        $result = ['success' => false, 'random_outcome' => null];
+        
         try {
             // Get authenticated user via request - more reliable for Intelephense
             $authUser = \request()->user();
@@ -128,8 +131,8 @@ class DecisionLogService
                 $choiceRandomOutcomes = $selectedChoice['random_outcomes'] ?? [];
             }
             
-            // Process consequences for branching
-            $eventService->processChoiceConsequences(
+            // Process consequences for branching and get random outcome info
+            $randomOutcomeInfo = $eventService->processChoiceConsequences(
                 $character,
                 $eventCategory,
                 $choiceId,
@@ -139,13 +142,17 @@ class DecisionLogService
                 $choiceRandomOutcomes
             );
             
+            // Store random outcome info in result
+            $result['random_outcome'] = $randomOutcomeInfo;
+            
             // Only log to DecisionLog if user has given share_consent (clicked "PLAY & SHARE")
             if (!$authUser || !($authUser->share_consent ?? false)) {
                 Log::info('Skipped DecisionLog - no share_consent', [
                     'character_id' => $character->id,
                     'user_id' => $authUser?->id,
                 ]);
-                return true;
+                $result['success'] = true;
+                return $result;
             }
             
             // Get effective stats from character for personality-based MBTI calculation
@@ -212,14 +219,16 @@ class DecisionLogService
             // Existing character + shared logs still work
             $this->logDecision($character, $eventId, $eventType, [$choiceText], $outcomeType, $mbtiType);
 
-            return true;
+            $result['success'] = true;
+            return $result;
         } catch (\Exception $e) {
             // intelephense ignore
             Log::error('DecisionLogService::logFullDecision failed', [
                 'character_id' => $character->id,
                 'error' => $e->getMessage()
             ]);
-            return false;
+            $result['success'] = false;
+            return $result;
         }
     }
 

@@ -594,12 +594,47 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
     /**
      * Get path progress for all active story paths
      * Returns progress information for each path the character is on
+     * Now counts ALL events from choice_history, not just chain completions
      */
     private function getPathProgress(Character $character): array
     {
         $activePaths = is_array($character->active_event_paths) ? $character->active_event_paths : [];
         $completedChains = is_array($character->completed_event_chains) ? $character->completed_event_chains : [];
         $currentNarrative = $character->current_narrative;
+        
+        // Define path categories - which event categories belong to each path
+        $pathCategories = [
+            'education' => ['education', 'study', 'exam', 'school', 'college', 'university', 'homework', 'learning', 'grade'],
+            'career' => ['career', 'work', 'job', 'promotion', 'office', 'boss', 'colleague', 'business', 'profession'],
+            'family' => ['relationship', 'dating', 'marriage', 'baby', 'family', 'parenting', 'wedding', 'spouse', 'sibling', 'parent'],
+            'health' => ['health', 'fitness', 'exercise', 'illness', 'doctor', 'hospital', 'injury', 'accident', 'disease'],
+            'wealth' => ['money', 'finance', 'investment', 'wealth', 'rich', 'broke', 'shopping', 'business', 'saving'],
+            'social' => ['social', 'friend', 'party', 'network', 'community', 'date', 'bully', 'relationship']
+        ];
+        
+        // Count events per path from choice_history
+        $choiceHistory = $character->choice_history ?? [];
+        $pathEventCounts = [
+            'education' => 0,
+            'career' => 0,
+            'family' => 0,
+            'health' => 0,
+            'wealth' => 0,
+            'social' => 0
+        ];
+        
+        foreach ($choiceHistory as $choice) {
+            $category = $choice['category'] ?? '';
+            if (empty($category)) continue;
+            
+            // Check which path this category belongs to
+            foreach ($pathCategories as $path => $categories) {
+                if (in_array(strtolower($category), array_map('strtolower', $categories))) {
+                    $pathEventCounts[$path]++;
+                    break;
+                }
+            }
+        }
         
         $pathStages = [
             'education' => ['school', 'high_school', 'college', 'graduate', 'phd'],
@@ -614,14 +649,34 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
         
         foreach ($activePaths as $path) {
             $stages = $pathStages[$path] ?? [];
-            $completedCount = isset($completedChains[$path]) ? (int)$completedChains[$path] : 0;
-            $currentStage = $stages[$completedCount] ?? $stages[0] ?? 'unknown';
+            
+            // Use choice_history count + completed_chains for progress
+            // This ensures progress shows even for non-chain events
+            $historyCount = $pathEventCounts[$path] ?? 0;
+            $chainCount = isset($completedChains[$path]) ? (int)$completedChains[$path] : 0;
+            
+            // Combine both counts, but cap at total stages
+            $completedCount = min($historyCount + $chainCount, count($stages));
+            $completedCount = max($completedCount, 1); // At least show stage 1 if any events
+            
+            // Calculate stage index (0-based for display)
+            $stageIndex = min($completedCount - 1, count($stages) - 1);
+            $stageIndex = max($stageIndex, 0);
+            
+            $currentStage = $stages[$stageIndex] ?? $stages[0] ?? 'unknown';
+            
+            // Calculate percentage based on actual event count
+            $progressPercent = count($stages) > 0 
+                ? min(100, round(($completedCount / count($stages)) * 100)) 
+                : 0;
             
             $progress[] = [
                 'path' => $path,
                 'current_stage' => $currentStage,
-                'stage_index' => $completedCount,
+                'stage_index' => $stageIndex,
                 'total_stages' => count($stages),
+                'events_completed' => $completedCount,
+                'progress_percent' => $progressPercent,
                 'is_active' => true,
                 'is_current' => ($currentNarrative === $path)
             ];
@@ -637,6 +692,8 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                     'current_stage' => $stages[0] ?? 'unknown',
                     'stage_index' => 0,
                     'total_stages' => count($stages),
+                    'events_completed' => 0,
+                    'progress_percent' => 0,
                     'is_active' => false,
                     'is_current' => false
                 ];
@@ -1542,7 +1599,8 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
             $validated = $request->validate([
                 'event_type' => 'required|string',
                 'event_id' => 'required|integer',
-                'choice_index' => 'required|integer|min:0'
+                'choice_index' => 'required|integer|min:0',
+                'mini_game_score' => 'nullable|integer|min:0|max:100'
             ]);
 
             $isSystemEvent = ($validated['event_type'] === 'system');
@@ -1664,30 +1722,64 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
             // Apply stat effects with FULL LOGGING (now passes event/choice data)
             $baseStatEffects = $choice['stat_effects'] ?? ($event->stat_effects ?? ($eventData['statEffects'] ?? null));
             $statEffects = $this->mergeStatEffectsText($baseStatEffects, $choiceOutcomeEffects);
-            $effects = $this->eventService->applyStatEffects(
+            $effectsResult = $this->eventService->applyStatEffects(
                 $character, 
                 $statEffects,
                 $eventData,  // ← NEW: passes formatted event data for logging
                 $choiceIndex,
                 $choiceText
             );
+            
+            // Extract effects and random outcome info
+            $effects = is_array($effectsResult) ? ($effectsResult['effects'] ?? $effectsResult) : $effectsResult;
+            $randomOutcomeInfo = is_array($effectsResult) ? ($effectsResult['random_outcome'] ?? null) : null;
 
             // Process skill learning (for daily actions with learn_skill)
+            // Only learn skill if mini-game score is acceptable (>= 30) or no mini-game was played
             $skillLearningResult = null;
             $talentDiscoveryResult = null;
             $isLearningEvent = ($validated['event_type'] === 'learning');
             
+            // Get mini-game score from request or session
+            $miniGameScore = $validated['mini_game_score'] ?? null;
+            
+            // If not provided in request, try to get from session
+            if ($miniGameScore === null && isset($validated['event_id'])) {
+                $sessionKey = 'mini_game_score_' . $character->id . '_' . $validated['event_id'];
+                $miniGameScore = session($sessionKey);
+                // Clear the session after retrieving
+                session()->forget($sessionKey);
+            }
+            
+            // Minimum score required to successfully learn a skill (30 = 0.3x multiplier, below = fail)
+            $minScoreToLearnSkill = 30;
+            
             if (($isSystemEvent || $isLearningEvent) && isset($choice['learn_skill'])) {
                 $skillName = $choice['learn_skill'];
-                $learned = $character->learnSkill($skillName);
-                $skillLearningResult = $learned ? $skillName : false;
                 
-                Log::info('Skill learning attempt', [
-                    'character_id' => $character->id,
-                    'skill' => $skillName,
-                    'learned' => $learned,
-                    'event_type' => $validated['event_type']
-                ]);
+                // Check if mini-game was played and if score is sufficient
+                if ($miniGameScore !== null && $miniGameScore < $minScoreToLearnSkill) {
+                    // Failed mini-game - skill not learned
+                    $skillLearningResult = 'failed_mini_game';
+                    Log::info('Skill learning failed due to poor mini-game performance', [
+                        'character_id' => $character->id,
+                        'skill' => $skillName,
+                        'mini_game_score' => $miniGameScore,
+                        'required_score' => $minScoreToLearnSkill
+                    ]);
+                } else {
+                    // Either no mini-game or passed - learn the skill
+                    $learned = $character->learnSkill($skillName);
+                    $skillLearningResult = $learned ? $skillName : false;
+                    
+                    Log::info('Skill learning attempt', [
+                        'character_id' => $character->id,
+                        'skill' => $skillName,
+                        'learned' => $learned,
+                        'event_type' => $validated['event_type'],
+                        'mini_game_score' => $miniGameScore
+                    ]);
+                }
             }
             
             // Process talent discovery (for daily actions with discover_talent)
@@ -1828,11 +1920,51 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                     $character->addSocialConnection($type, $name, $details);
                     $socialConnectionsAdded[] = ['type' => $type, 'name' => $name];
                     
+                    // NEW: Track relationship chain progress when meeting an NPC
+                    // Progress 1 = just met, 2 = know name, 3 = friend, 4 = close friend/ally
+                    if (isset($connectionData['start_relationship_chain']) && $connectionData['start_relationship_chain'] === true) {
+                        $relationshipType = $connectionData['relationship_type'] ?? $type;
+                        $startingProgress = $connectionData['starting_progress'] ?? 1;
+                        $character->updateRelationshipChainProgress($name, $relationshipType, $startingProgress, $details);
+                        
+                        Log::info('Relationship chain started', [
+                            'character_id' => $character->id,
+                            'npc_name' => $name,
+                            'relationship_type' => $relationshipType,
+                            'progress' => $startingProgress
+                        ]);
+                    }
+                    
                     Log::info('Social connection added', [
                         'character_id' => $character->id,
                         'type' => $type,
                         'name' => $name
                     ]);
+                }
+            }
+            
+            // NEW: Process relationship chain progression
+            if (isset($choice['advance_relationship'])) {
+                $advanceData = $choice['advance_relationship'];
+                
+                if (is_array($advanceData)) {
+                    $npcName = $advanceData['name'] ?? null;
+                    $relationshipType = $advanceData['type'] ?? 'friend';
+                    $advanceAmount = $advanceData['amount'] ?? 1;
+                    
+                    if ($npcName) {
+                        $currentProgress = $character->getRelationshipProgress($npcName, $relationshipType);
+                        $newProgress = $currentProgress + $advanceAmount;
+                        $character->updateRelationshipChainProgress($npcName, $relationshipType, $newProgress, [
+                            'last_action' => 'choice_advance',
+                        ]);
+                        
+                        Log::info('Relationship chain advanced', [
+                            'character_id' => $character->id,
+                            'npc_name' => $npcName,
+                            'new_progress' => $newProgress
+                        ]);
+                    }
                 }
             }
 
@@ -2215,6 +2347,8 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 'character' => $character,
                 'new_achievements' => $newAchievements, // Auto-checked achievements
                 'effects' => $effects,
+                // Random outcome info - visible to player!
+                'random_outcome' => $randomOutcomeInfo ?? null,
                 'choice_outcome' => $choiceOutcomeText,
                 'game_over' => $gameOver,
                 'ending_type' => $endingType,
@@ -3464,6 +3598,13 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
             $gameType = $request->input('game_type');
             $score = (int) $request->input('score');
             $gameData = $request->input('game_data', []);
+            $eventId = $gameData['event_id'] ?? null;
+            
+            // Store mini-game score in session for later use when applying the event outcome
+            if ($eventId) {
+                $sessionKey = 'mini_game_score_' . $character->id . '_' . $eventId;
+                session([$sessionKey => $score]);
+            }
             
             // Process the game result
             $result = $this->miniGameService->processGameResult(
@@ -3599,7 +3740,11 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
             }
             
             // Apply effects
-            $appliedEffects = $this->eventService->applyStatEffects($character, $effects);
+            $effectsResult = $this->eventService->applyStatEffects($character, $effects);
+            
+            // Extract effects and random outcome info
+            $appliedEffects = is_array($effectsResult) ? ($effectsResult['effects'] ?? $effectsResult) : $effectsResult;
+            $luckRandomOutcome = is_array($effectsResult) ? ($effectsResult['random_outcome'] ?? null) : null;
             
             // Update luck based on event type
             if ($luckEvent['luck_type'] === 'fortune') {
@@ -3614,6 +3759,7 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 'success' => true,
                 'message' => $luckEvent['title'] . ' applied!',
                 'effects' => $appliedEffects,
+                'random_outcome' => $luckRandomOutcome ?? null,
                 'character' => $character,
                 'luck' => $character->luck,
                 'karma' => $character->karma

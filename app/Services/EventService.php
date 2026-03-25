@@ -13,14 +13,54 @@ use Illuminate\Support\Facades\Log;
 
 class EventService
 {
+    /**
+     * Standard stat names used in the game:
+     * - Health, Happiness, Wealth, Intelligence, Discipline, Reputation
+     * - Strength, Creativity, Charisma, Morality, Luck, Burnout
+     * - Confidence, Isolation, Ego, Addiction
+     */
     private const EFFECT_STAT_ALIASES = [
+        // Stats that map to Burnout
         'Stress' => ['stat' => 'Burnout', 'multiplier' => 1],
         'Fatigue' => ['stat' => 'Burnout', 'multiplier' => 1],
+        
+        // Stats that map to Happiness
         'Peace' => ['stat' => 'Happiness', 'multiplier' => 1],
+        'Joy' => ['stat' => 'Happiness', 'multiplier' => 1],
+        'Satisfaction' => ['stat' => 'Happiness', 'multiplier' => 1],
+        
+        // Stats that map to Morality
         'Ethics' => ['stat' => 'Morality', 'multiplier' => 1],
-        'Finance' => ['stat' => 'Wealth', 'multiplier' => 1],
         // Lower corruption should improve morality, and higher corruption should hurt it.
         'Corruption' => ['stat' => 'Morality', 'multiplier' => -1],
+        
+        // Stats that map to Wealth
+        'Finance' => ['stat' => 'Wealth', 'multiplier' => 1],
+        'Financial' => ['stat' => 'Wealth', 'multiplier' => 1],
+        
+        // Stats that map to Intelligence
+        'Knowledge' => ['stat' => 'Intelligence', 'multiplier' => 1],
+        'Wisdom' => ['stat' => 'Intelligence', 'multiplier' => 1],
+        
+        // Stats that map to Discipline
+        'Self-Control' => ['stat' => 'Discipline', 'multiplier' => 1],
+        'Control' => ['stat' => 'Discipline', 'multiplier' => 1],
+        
+        // Stats that map to Reputation
+        'Fame' => ['stat' => 'Reputation', 'multiplier' => 1],
+        'Status' => ['stat' => 'Reputation', 'multiplier' => 1],
+        
+        // Stats that map to Strength
+        'Fitness' => ['stat' => 'Strength', 'multiplier' => 1],
+        'Athletics' => ['stat' => 'Strength', 'multiplier' => 1],
+        
+        // Stats that map to Creativity
+        'Art' => ['stat' => 'Creativity', 'multiplier' => 1],
+        'Imagination' => ['stat' => 'Creativity', 'multiplier' => 1],
+        
+        // Stats that map to Charisma
+        'Social' => ['stat' => 'Charisma', 'multiplier' => 1],
+        'Charm' => ['stat' => 'Charisma', 'multiplier' => 1],
     ];
 
     /**
@@ -482,7 +522,25 @@ Log::error('Error in getStatefulEvents', [
             $query->whereNotIn('id', $shownIds);
         }
         
-        return $query->get();
+        $events = $query->get();
+        
+        // Filter out events that require specific choice outcomes not yet made
+        return $events->filter(function ($event) use ($character) {
+            // If event has no required outcome, it's available
+            if (empty($event->required_choice_outcome)) {
+                return true;
+            }
+            
+            // Check if character has made the required choice outcome
+            $choiceHistory = $character->choice_history ?? [];
+            foreach ($choiceHistory as $choice) {
+                if (($choice['outcome'] ?? '') === $event->required_choice_outcome) {
+                    return true;
+                }
+            }
+            
+            return false;
+        });
     }
 
     /**
@@ -585,11 +643,20 @@ Log::error('Error in getStatefulEvents', [
     }
 
     /**
-     * Advance FSM state based on event outcome (NEW)
+     * Advance FSM state based on event outcome (FIXED)
+     * Now preserves chain-related data AND decision_profile (for AdaptiveNarrative flags)
      */
     public function advanceState(Character $character, string $eventType, string $outcomeType): void
     {
         $state = $character->character_state ?? [];
+        
+        // Preserve chain-related data that shouldn't be overwritten by FSM transitions
+        $preservedData = [
+            'chain_progress' => $state['chain_progress'] ?? [],
+            'chain_outcomes' => $state['chain_outcomes'] ?? [],
+            'completed_chain_steps' => $state['completed_chain_steps'] ?? [],
+            'decision_profile' => $state['decision_profile'] ?? [], // FIX: Preserve AdaptiveNarrative flags
+        ];
         
         foreach (self::STATE_TRANSITIONS as $stateType => $transitions) {
             if (isset($state[$stateType]) && isset($transitions[$state[$stateType]])) {
@@ -612,6 +679,12 @@ Log::error('Error in getStatefulEvents', [
                 }
             }
         }
+        
+        // Restore all preserved data
+        $state['chain_progress'] = $preservedData['chain_progress'];
+        $state['chain_outcomes'] = $preservedData['chain_outcomes'];
+        $state['completed_chain_steps'] = $preservedData['completed_chain_steps'];
+        $state['decision_profile'] = $preservedData['decision_profile'];
         
         $character->character_state = $state;
         $character->save();
@@ -691,6 +764,8 @@ Log::error('Error in getStatefulEvents', [
 
     /**
      * Parse stat effects string (EXISTING)
+     * Now handles complex strings with parenthetical explanations like:
+     * "+15 Health, +10 Wealth (prevention saves money), -5 Wealth (checkup cost)"
      */
     public function parseStatEffects(?string $effectsText): array
     {
@@ -703,7 +778,10 @@ Log::error('Error in getStatefulEvents', [
 
         foreach ($parts as $part) {
             $part = trim($part);
-            if (preg_match('/([+-]\d+)\s+(\w+)/', $part, $matches)) {
+            // Updated regex to handle complex strings with parenthetical explanations
+            // Matches: +15 Health, +10 Wealth (prevention saves money), -5 Wealth (checkup cost)
+            // Captures: sign, number, stat name (ignoring anything in parentheses after)
+            if (preg_match('/([+-]\d+)\s+(\w+)(?:\s*\([^)]*\))?/', $part, $matches)) {
                 $stat = $matches[2];
                 $value = (int)$matches[1];
                 [$stat, $value] = $this->normalizeEffectStat($stat, $value);
@@ -820,7 +898,7 @@ Log::error('Error in getStatefulEvents', [
         $outcomeType = $this->determineOutcomeType($effectsText);
         
         // LOG EVERY STAT CHANGE - MAIN AUDIT TRAIL
-        app(\App\Services\DecisionLogService::class)->logFullDecision(
+        $logResult = app(\App\Services\DecisionLogService::class)->logFullDecision(
             $character, 
             $event,
             $choiceIndex, 
@@ -830,7 +908,11 @@ Log::error('Error in getStatefulEvents', [
             $outcomeType
         );
         
-        return $rawEffects;
+        // Return both raw effects and random outcome info
+        return [
+            'effects' => $rawEffects,
+            'random_outcome' => $logResult['random_outcome'] ?? null,
+        ];
     }
 
     /**
@@ -968,7 +1050,7 @@ Log::error('Error in getStatefulEvents', [
     }
 
     /**
-     * Check event prerequisites (EXISTING)
+     * Check event prerequisites (FIXED - now validates sequential chain progression)
      */
     public function checkEventPrerequisites($event, Character $character): bool
     {
@@ -983,9 +1065,52 @@ Log::error('Error in getStatefulEvents', [
             default => $ageGroup
         };
         
+        // FIX: Enhanced parent_category check with chain progression validation (including branch points)
         if (!empty($event->parent_category)) {
+            // Check if the parent category was started (step 1 completed)
             if (!in_array($event->parent_category, $completedChains)) {
                 return false;
+            }
+            
+            // If event has a chain_order > 1, verify sequential progression (handle floats for branch points)
+            $eventChainOrder = (float) ($event->chain_order ?? 1);
+            $eventChainOrderInt = (int) floor($eventChainOrder);
+            
+            if ($eventChainOrder > 1) {
+                $completedSteps = $characterState['completed_chain_steps'] ?? [];
+                $parentCompletedSteps = $completedSteps[$event->parent_category] ?? [];
+                
+                // Check if this is a branch point (e.g., 4.1, 4.2)
+                $isBranchPoint = fmod($eventChainOrder, 1) > 0;
+                
+                if ($isBranchPoint) {
+                    // For branch points: base step must be completed OR specific branch must be completed
+                    $baseCompleted = in_array($eventChainOrderInt, $parentCompletedSteps);
+                    $branchCompleted = in_array($eventChainOrder, $parentCompletedSteps);
+                    
+                    if (!$baseCompleted && !$branchCompleted) {
+                        Log::info('Parent chain prerequisite not met (branch point)', [
+                            'event' => $event->event_choice ?? $event->title ?? 'unknown',
+                            'parent_category' => $event->parent_category,
+                            'required_step' => $eventChainOrder,
+                            'completed_steps' => $parentCompletedSteps,
+                        ]);
+                        return false;
+                    }
+                } else {
+                    // For regular steps: verify ALL previous steps are completed
+                    for ($i = 1; $i <= $eventChainOrderInt; $i++) {
+                        if (!in_array($i, $parentCompletedSteps)) {
+                            Log::info('Parent chain prerequisite not met', [
+                                'event' => $event->event_choice ?? $event->title ?? 'unknown',
+                                'parent_category' => $event->parent_category,
+                                'required_step' => $i,
+                                'completed_steps' => $parentCompletedSteps,
+                            ]);
+                            return false;
+                        }
+                    }
+                }
             }
 
             // Check if previous chain had required outcome (using character_state)
@@ -1076,9 +1201,18 @@ Log::error('Error in getStatefulEvents', [
         foreach ($conditions as $conditionKey => $conditionValue) {
             switch ($conditionKey) {
                 case 'age_group':
-                    // age_group can be a string or array of valid values
+                    // FIXED: Normalize both character age_group AND condition value for consistency
                     $validAgeGroups = is_array($conditionValue) ? $conditionValue : [$conditionValue];
-                    if (!in_array($ageGroup, $validAgeGroups)) {
+                    
+                    // Normalize condition values too (in case seeder uses 'teen')
+                    $normalizedValidGroups = array_map(function($g) {
+                        return match($g) {
+                            'teen' => 'teenager',
+                            default => $g
+                        };
+                    }, $validAgeGroups);
+                    
+                    if (!in_array($ageGroup, $normalizedValidGroups)) {
                         return false;
                     }
                     break;
@@ -1167,29 +1301,63 @@ Log::error('Error in getStatefulEvents', [
                     
                 case 'has_completed_chain':
                     // Character must have completed a specific chain step (e.g., 'education_1')
-                    // Format: 'category_stepNumber' like 'education_1', 'career_2'
-                    $completedChains = $character->completed_event_chains ?? [];
-                    $requiredChain = $conditionValue; // e.g., 'education_1'
+                    // Format: 'category_stepNumber' like 'education_1', 'career_2', 'education_4.1'
+                    // FIXED: Now properly validates sequential progression AND handles branch points
+                    $requiredChain = $conditionValue; // e.g., 'education_1' or 'education_4.1'
                     
                     // Parse the required chain (e.g., 'education_1' -> category: 'education', step: 1)
                     if (is_string($requiredChain) && strpos($requiredChain, '_') !== false) {
-                        list($requiredCategory, $requiredStep) = explode('_', $requiredChain, 2);
-                        $requiredStep = (int) $requiredStep;
+                        // Handle decimal chain orders like '4.1', '4.2' (branch points)
+                        $parts = explode('_', $requiredChain, 2);
+                        $requiredCategory = $parts[0];
+                        $requiredStepRaw = $parts[1] ?? '1';
                         
-                        // Check if character has completed this chain category
-                        if (!in_array($requiredCategory, $completedChains)) {
-                            return false;
-                        }
+                        // Handle decimal format (e.g., '4.1' -> base: 4, branch: 1)
+                        // Branch points (4.1, 4.2) mean "after completing step 4, choose branch 1 or 2"
+                        $isBranchPoint = strpos($requiredStepRaw, '.') !== false;
+                        $requiredStep = (int) floor((float) $requiredStepRaw);
                         
-                        // Also check chain_progress for the specific step
-                        $chainProgress = $character->character_state['chain_progress'] ?? [];
-                        $currentStep = $chainProgress[$requiredCategory] ?? 0;
+                        // Get all completed steps for this category
+                        $completedSteps = $character->character_state['completed_chain_steps'] ?? [];
+                        $categoryCompletedSteps = $completedSteps[$requiredCategory] ?? [];
                         
-                        if ($currentStep < $requiredStep) {
-                            return false;
+                        if ($isBranchPoint) {
+                            // For branch points (e.g., education_4.1), check:
+                            // 1. Base step (4) is completed
+                            // 2. Either the specific branch OR the base step is completed
+                            // Branch points are alternatives - completing any branch after base is valid
+                            $baseStepCompleted = in_array($requiredStep, $categoryCompletedSteps);
+                            $specificBranchCompleted = in_array((float)$requiredStepRaw, array_map('floatval', $categoryCompletedSteps)) 
+                                || in_array((int)$requiredStepRaw, $categoryCompletedSteps);
+                            
+                            // If base step is done OR the specific branch is done, allow access
+                            // This supports branching: after step 4, you can do branch 4.1 OR 4.2
+                            if (!$baseStepCompleted && !$specificBranchCompleted) {
+                                Log::info('Branch point prerequisite not met', [
+                                    'category' => $requiredCategory,
+                                    'required_step' => $requiredStepRaw,
+                                    'completed_steps' => $categoryCompletedSteps,
+                                ]);
+                                return false;
+                            }
+                        } else {
+                            // For regular steps, verify ALL previous steps (1 to requiredStep) are completed sequentially
+                            for ($i = 1; $i <= $requiredStep; $i++) {
+                                if (!in_array($i, $categoryCompletedSteps)) {
+                                    Log::info('Chain prerequisite not met', [
+                                        'category' => $requiredCategory,
+                                        'required_step' => $requiredStep,
+                                        'completed_steps' => $categoryCompletedSteps,
+                                        'missing_step' => $i,
+                                    ]);
+                                    return false;
+                                }
+                            }
                         }
                     } else {
-                        // Simple format: just check if category is in completed_chains
+                        // Simple format: check if category is in completed_chains
+                        // For step 1 or no step specified, just check if category started
+                        $completedChains = $character->completed_event_chains ?? [];
                         if (!in_array($requiredChain, $completedChains)) {
                             return false;
                         }
@@ -1291,16 +1459,82 @@ $character->current_narrative = $narrative . (($outcomeType === 'positive') ? '_
     }
 
     /**
-     * Complete event chain (EXISTING)
+     * Complete event chain (FIXED)
+     * Properly tracks chain progression with step-by-step tracking
+     * Now also preserves decision_profile for AdaptiveNarrative flags
+     * Handles branch points (e.g., 4.1, 4.2) as floats
      */
     public function completeEventChain(Character $character, string $category, string $outcomeType, int $chainOrder = 1): void
     {
         $completedChains = $character->completed_event_chains ?? [];
         $characterState = $character->character_state ?? [];
         
-        if (!in_array($category, $completedChains)) {
+        // Get chain_id from event (use category as fallback)
+        $chainId = $category;
+        
+        // FIX #1: Track chain progress properly - store highest step completed (as float for branch points)
+        $chainProgress = $characterState['chain_progress'] ?? [];
+        $currentMaxStep = $chainProgress[$category] ?? 0;
+        
+        // Handle decimal chain orders (e.g., 4.1, 4.2) - convert to float
+        $chainOrderFloat = (float) $chainOrder;
+        
+        // Only update if this step is higher than what we have
+        if ($chainOrderFloat > $currentMaxStep) {
+            $chainProgress[$category] = $chainOrderFloat;
+        }
+        $characterState['chain_progress'] = $chainProgress;
+        
+        // FIX #2: Track all completed steps in an array for granular tracking (store as floats)
+        $completedSteps = $characterState['completed_chain_steps'] ?? [];
+        if (!isset($completedSteps[$category])) {
+            $completedSteps[$category] = [];
+        }
+        // Store as float to preserve branch point info (4.1 vs 4.2)
+        if (!in_array($chainOrderFloat, $completedSteps[$category])) {
+            $completedSteps[$category][] = $chainOrderFloat;
+            sort($completedSteps[$category]); // Keep sorted for sequential checks
+        }
+        $characterState['completed_chain_steps'] = $completedSteps;
+        
+        // FIX #3: Only add to completed_chains if this is the first step (step 1)
+        // This ensures sequential progression is enforced via chain_progress
+        if ($chainOrder === 1 && !in_array($category, $completedChains)) {
             $completedChains[] = $category;
             $character->completed_event_chains = $completedChains;
+        }
+        
+        // NEW: Track pending chains for cross-age continuity
+        // When chain step > 1, add to pending_chains if not already there
+        if ($chainOrder > 1) {
+            $pendingChain = $character->getPendingChain($chainId);
+            if (!$pendingChain) {
+                // Start tracking this chain in pending (cross-age)
+                $character->startChainProgress($chainId, $chainOrder, [
+                    'category' => $category,
+                    'last_outcome' => $outcomeType,
+                ]);
+            } else {
+                // Update progress
+                $character->updatePendingChainProgress($chainId, $chainOrder, [
+                    'category' => $category,
+                    'last_outcome' => $outcomeType,
+                ]);
+            }
+        } else if ($chainOrder === 1) {
+            // First step - start tracking
+            $pendingChain = $character->getPendingChain($chainId);
+            if (!$pendingChain) {
+                $character->startChainProgress($chainId, 1, [
+                    'category' => $category,
+                    'last_outcome' => $outcomeType,
+                ]);
+            } else {
+                $character->updatePendingChainProgress($chainId, 1, [
+                    'category' => $category,
+                    'last_outcome' => $outcomeType,
+                ]);
+            }
         }
         
         // Store outcome in character_state JSON (chain_outcomes)
@@ -1308,25 +1542,102 @@ $character->current_narrative = $narrative . (($outcomeType === 'positive') ? '_
         $chainOutcomes[$category] = $outcomeType;
         $characterState['chain_outcomes'] = $chainOutcomes;
         
-        // Store chain progress (current step in each chain)
-        $chainProgress = $characterState['chain_progress'] ?? [];
-        $chainProgress[$category] = $chainOrder;
-        $characterState['chain_progress'] = $chainProgress;
+        // Restore preserved decision_profile
+        $characterState['decision_profile'] = $preservedDecisionProfile ?? [];
         
         $character->character_state = $characterState;
         
-        if (isset(self::CATEGORIES[$category])) {
-            $nextCategory = self::CATEGORIES[$category]['next'];
+        // Log chain completion for debugging
+        Log::info('Chain completed', [
+            'character_id' => $character->id,
+            'category' => $category,
+            'chain_order' => $chainOrder,
+            'chain_order_float' => $chainOrderFloat,
+            'current_progress' => $chainProgress[$category] ?? 0,
+            'completed_steps' => $completedSteps[$category] ?? [],
+        ]);
+        
+        // Map simple category to detailed category based on age group for cross-category triggers
+        $detailedCategory = $this->mapToDetailedCategory($category, $character->age_group ?? 'adult');
+        
+        if (isset(self::CATEGORIES[$detailedCategory])) {
+            $nextCategory = self::CATEGORIES[$detailedCategory]['next'];
             if ($nextCategory) {
                 $activePaths = $character->active_event_paths ?? [];
+                // Add both the detailed and simple category to active paths
                 if (!in_array($nextCategory, $activePaths)) {
                     $activePaths[] = $nextCategory;
                     $character->active_event_paths = $activePaths;
                 }
+                // Also add the simple category name for narrative weighting
+                if (!in_array($category, $activePaths)) {
+                    $activePaths[] = $category;
+                    $character->active_event_paths = $activePaths;
+                }
+            }
+        } else {
+            // Fallback: if no detailed category match, still add simple category to active paths
+            $activePaths = $character->active_event_paths ?? [];
+            if (!in_array($category, $activePaths)) {
+                $activePaths[] = $category;
+                $character->active_event_paths = $activePaths;
             }
         }
         
         $character->save();
+    }
+
+    /**
+     * Map simple category to detailed category based on age group
+     */
+    private function mapToDetailedCategory(string $category, string $ageGroup): string
+    {
+        $mapping = [
+            'education' => [
+                'child' => 'education_elementary',
+                'teenager' => 'education_high_school', 
+                'adult' => 'education_college',
+                'old' => 'education_college',
+            ],
+            'career' => [
+                'child' => 'career_start',
+                'teenager' => 'career_start',
+                'adult' => 'career_start',
+                'old' => 'career_advancement',
+            ],
+            'family' => [
+                'child' => 'family_relationship',
+                'teenager' => 'family_relationship',
+                'adult' => 'family_marriage',
+                'old' => 'family_parenthood',
+            ],
+            'health' => [
+                'child' => 'health_crisis',
+                'teenager' => 'health_crisis',
+                'adult' => 'health_crisis',
+                'old' => 'health_recovery',
+            ],
+            'social' => [
+                'child' => 'social_friendship',
+                'teenager' => 'social_romantic',
+                'adult' => 'social_relationship',
+                'old' => 'social_relationship',
+            ],
+            'wealth' => [
+                'child' => 'career_start',
+                'teenager' => 'career_start',
+                'adult' => 'career_advancement',
+                'old' => 'career_master',
+            ],
+            'skill' => [
+                'child' => 'skill_learning',
+                'teenager' => 'skill_development',
+                'adult' => 'skill_mastery',
+                'old' => 'skill_mastery',
+            ],
+        ];
+        
+        return $mapping[$category][$ageGroup] ?? $category;
     }
 
     /**
@@ -1428,8 +1739,10 @@ $character->current_narrative = $narrative . (($outcomeType === 'positive') ? '_
      * Process choice consequences for branching system
      * This is called when a choice is made to track long-term effects
      */
-    public function processChoiceConsequences(Character $character, string $eventCategory, string $choiceId, string $outcomeType, $statEffects, ?string $nextChainCategory = null, array $choiceRandomOutcomes = []): void
+    public function processChoiceConsequences(Character $character, string $eventCategory, string $choiceId, string $outcomeType, $statEffects, ?string $nextChainCategory = null, array $choiceRandomOutcomes = []): ?array
     {
+        // Return value to store random outcome info for API response
+        $randomOutcomeInfo = null;
         // Get or create consequence record for this chain
         $consequence = \App\Models\CharacterChoiceConsequence::getOrCreateForChain($character, $eventCategory);
         
@@ -1456,13 +1769,21 @@ $character->current_narrative = $narrative . (($outcomeType === 'positive') ? '_
                 $randomType = 'both';
             }
             
+            // Extract configurable values from choice data
+            $randomChance = $choiceRandomOutcomes[0]['chance'] ?? 30; // Default 30%, can be overridden per choice
+            $positiveWeight = $choiceRandomOutcomes[0]['positive_weight'] ?? 50;
+            $negativeWeight = $choiceRandomOutcomes[0]['negative_weight'] ?? 50;
+            
+            // Clamp the chance value between 0-100
+            $randomChance = max(0, min(100, (int)$randomChance));
+            
             // Configure random outcomes on the consequence
             $consequence->setRandomOutcomes(
-                30, // 30% chance to trigger random outcome
+                $randomChance,
                 $randomType,
                 $choiceRandomOutcomes,
-                50, // positive weight
-                50  // negative weight
+                $positiveWeight,
+                $negativeWeight
             );
             
             // Generate and apply random outcome
@@ -1470,6 +1791,15 @@ $character->current_narrative = $narrative . (($outcomeType === 'positive') ? '_
             if ($randomResult) {
                 // Apply the random outcome effects to character
                 $appliedEffects = $consequence->applyRandomOutcomeEffects($character);
+                
+                // Store random outcome info for API response
+                $randomOutcomeInfo = [
+                    'occurred' => true,
+                    'name' => $randomResult['name'],
+                    'description' => $randomResult['description'] ?? '',
+                    'type' => $randomResult['type'],
+                    'effects' => $appliedEffects,
+                ];
                 
                 // Log the random outcome in the character history
                 $character->recordChoice(
@@ -1524,6 +1854,9 @@ $character->current_narrative = $narrative . (($outcomeType === 'positive') ? '_
         if ($consequence->chain_order >= 3 && $outcomeType === 'positive') {
             $character->addAchievement($eventCategory . '_master', 'Completed major milestone in ' . $eventCategory);
         }
+        
+        // Return random outcome info if it occurred
+        return $randomOutcomeInfo;
     }
 
     /**

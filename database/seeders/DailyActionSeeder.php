@@ -14,7 +14,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Eat',
                 'description' => 'Take care of your body with a proper meal.',
-                'image' => '/css/images/event-placeholder.jpg',
+                'image' => '/css/images/dailyevents/meal.png',
                 'type' => 'system',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -31,7 +31,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Exercise',
                 'description' => 'Train your body and clear your mind.',
-                'image' => '/css/images/event-placeholder.jpg',
+                'image' => '/css/images/dailyevents/gym.png',
                 'type' => 'system',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -52,7 +52,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Doctor Visit',
                 'description' => 'Get medical help to stabilize your condition.',
-                'image' => '/css/images/event-placeholder.jpg',
+                'image' => '/css/images/dailyevents/doctor-checkup.png',
                 'type' => 'system',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -71,14 +71,14 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Doctor Visit',
                 'description' => 'Get medical help to stabilize your condition.',
-                'image' => '/css/images/event-placeholder.jpg',
+                'image' => '/css/images/dailyevents/doctor-checkup.png',
                 'type' => 'system',
                 'deck_label' => 'Action',
                 'repeatable' => true,
                 'weight' => 0,
                 'auto_resolve' => false,
                 'days_to_advance' => 0,
-                'display_order' => 3,
+                'display_order' => 3.01,
                 'choices' => [
                     ['text' => 'Schedule a check-up', 'stat_effects' => '+6 Health, -2 Wealth, -1 Burnout', 'days_to_advance' => 0],
                     ['text' => 'Ignore it', 'stat_effects' => '-4 Health, +2 Burnout', 'days_to_advance' => 0],
@@ -88,16 +88,16 @@ class DailyActionSeeder extends Seeder
                 ],
             ],
             [
-                'title' => 'Doctor Visit',
-                'description' => 'Get medical help to stabilize your condition.',
-                'image' => '/css/images/event-placeholder.jpg',
+                'title' => 'Doctor Visit - Critical',
+                'description' => 'Get immediate medical help for critical condition.',
+                'image' => '/css/images/dailyevents/doctor-checkup.png',
                 'type' => 'system',
                 'deck_label' => 'Action',
                 'repeatable' => true,
                 'weight' => 0,
                 'auto_resolve' => false,
                 'days_to_advance' => 0,
-                'display_order' => 3,
+                'display_order' => 3.1,
                 'choices' => [
                     ['text' => 'Schedule a check-up', 'stat_effects' => '+6 Health, -2 Wealth, -1 Burnout', 'days_to_advance' => 0],
                     ['text' => 'Ignore it', 'stat_effects' => '-4 Health, +2 Burnout', 'days_to_advance' => 0],
@@ -107,16 +107,16 @@ class DailyActionSeeder extends Seeder
                 ],
             ],
             [
-                'title' => 'Doctor Visit',
-                'description' => 'Get medical help to stabilize your condition.',
-                'image' => '/css/images/event-placeholder.jpg',
+                'title' => 'Doctor Visit - Cancer',
+                'description' => 'Get treatment for cancer.',
+                'image' => '/css/images/dailyevents/medication.png',
                 'type' => 'system',
                 'deck_label' => 'Action',
                 'repeatable' => true,
                 'weight' => 0,
                 'auto_resolve' => false,
                 'days_to_advance' => 0,
-                'display_order' => 3,
+                'display_order' => 3.2,
                 'choices' => [
                     ['text' => 'Schedule a check-up', 'stat_effects' => '+6 Health, -2 Wealth, -1 Burnout', 'days_to_advance' => 0],
                     ['text' => 'Ignore it', 'stat_effects' => '-4 Health, +2 Burnout', 'days_to_advance' => 0],
@@ -130,7 +130,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Pay Bills',
                 'description' => 'Manage obligations so debt does not spiral.',
-                'image' => '/css/images/event-placeholder.jpg',
+                'image' => '/css/images/dailyevents/bills.png',
                 'type' => 'system',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -149,7 +149,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Pay Bills',
                 'description' => 'Manage obligations so debt does not spiral.',
-                'image' => '/css/images/event-placeholder.jpg',
+                'image' => '/css/images/dailyevents/bills.png',
                 'type' => 'system',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -168,7 +168,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Pay Bills',
                 'description' => 'Manage obligations so debt does not spiral.',
-                'image' => '/css/images/event-placeholder.jpg',
+                'image' => '/css/images/dailyevents/bills.png',
                 'type' => 'system',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -189,7 +189,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Rest',
                 'description' => 'Recover before you burn out completely.',
-                'image' => '/css/images/event-placeholder.jpg',
+                'image' => '/css/images/dailyevents/bedtime.png',
                 'type' => 'system',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -210,7 +210,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Study',
                 'description' => 'Learn something new while you are young.',
-                'image' => '/css/images/event-placeholder.jpg',
+                'image' => '/css/images/dailyevents/study.png',
                 'type' => 'system',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -231,7 +231,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Part-time Job',
                 'description' => 'Earn money and build discipline.',
-                'image' => '/css/images/event-placeholder.jpg',
+                'image' => '/css/images/dailyevents/part-time-job.png',
                 'type' => 'system',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -252,7 +252,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Work',
                 'description' => 'Push your career and income forward.',
-                'image' => '/css/images/event-placeholder.jpg',
+                'image' => '/css/images/dailyevents/work.png',
                 'type' => 'system',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -271,7 +271,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Work',
                 'description' => 'Push your career and income forward.',
-                'image' => '/css/images/event-placeholder.jpg',
+                'image' => '/css/images/dailyevents/work.png',
                 'type' => 'system',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -290,7 +290,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Work',
                 'description' => 'Push your career and income forward.',
-                'image' => '/css/images/event-placeholder.jpg',
+                'image' => '/css/images/dailyevents/work.png',
                 'type' => 'system',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -309,7 +309,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Work',
                 'description' => 'Push your career and income forward.',
-                'image' => '/css/images/event-placeholder.jpg',
+                'image' => '/css/images/dailyevents/work.png',
                 'type' => 'system',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -331,7 +331,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Rehab',
                 'description' => 'Attempt to regain control of your life.',
-                'image' => '/css/images/event-placeholder.jpg',
+                'image' => '/css/images/dailyevents/medication.png',
                 'type' => 'system',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -666,7 +666,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Learn to Read',
                 'description' => 'Start your journey into the world of books.',
-                'image' => '/css/images/skill/reading.png',
+                'image' => '/css/images/skill/Reading.png',
                 'type' => 'learning',
                 'deck_label' => 'Action',
                 'repeatable' => false,
@@ -674,9 +674,14 @@ class DailyActionSeeder extends Seeder
                 'auto_resolve' => false,
                 'days_to_advance' => 0,
                 'display_order' => 50,
+                'mini_game_type' => 'memory_match',
+                'mini_game_difficulty' => 1,
+                'mini_game_category' => 'education',
                 'choices' => [
-                    ['text' => 'Start reading basics', 'stat_effects' => '+2 Intelligence, +1 Isolation', 'days_to_advance' => 0, 'learn_skill' => 'Reading'],
-                    ['text' => 'Get a tutor', 'stat_effects' => '+3 Intelligence, -2 Wealth', 'days_to_advance' => 0, 'learn_skill' => 'Reading'],
+                    // Choice 1: Triggers mini-game to learn the skill
+                    ['text' => 'Learn Skill', 'stat_effects' => '+2 Intelligence, +1 Isolation', 'days_to_advance' => 0, 'learn_skill' => 'Reading', 'mini_game' => 'memory_match'],
+                    // Choice 2: Skip - check another skill (no mini-game, no skill learned)
+                    ['text' => 'Check another skill', 'stat_effects' => '+1 Intelligence', 'days_to_advance' => 0],
                 ],
                 'conditions' => [
                     'lacks_skill' => 'Reading',
@@ -695,9 +700,14 @@ class DailyActionSeeder extends Seeder
                 'auto_resolve' => false,
                 'days_to_advance' => 0,
                 'display_order' => 51,
+                'mini_game_type' => 'timing',
+                'mini_game_difficulty' => 1,
+                'mini_game_category' => 'health',
                 'choices' => [
-                    ['text' => 'Follow simple recipes', 'stat_effects' => '+2 Creativity, +1 Health', 'days_to_advance' => 0, 'learn_skill' => 'Cooking Basics'],
-                    ['text' => 'Take a cooking class', 'stat_effects' => '+3 Creativity, -3 Wealth', 'days_to_advance' => 0, 'learn_skill' => 'Cooking'],
+                    // Choice 1: Triggers mini-game to learn the skill
+                    ['text' => 'Learn Skill', 'stat_effects' => '+2 Creativity, +1 Health', 'days_to_advance' => 0, 'learn_skill' => 'Cooking Basics', 'mini_game' => 'timing'],
+                    // Choice 2: Skip - check another skill (no mini-game, no skill learned)
+                    ['text' => 'Check another skill', 'stat_effects' => '+1 Creativity', 'days_to_advance' => 0],
                 ],
                 'conditions' => [
                     'lacks_skill' => ['Cooking', 'Cooking Basics'],
@@ -716,9 +726,14 @@ class DailyActionSeeder extends Seeder
                 'auto_resolve' => false,
                 'days_to_advance' => 0,
                 'display_order' => 52,
+                'mini_game_type' => 'choice_chain',
+                'mini_game_difficulty' => 1,
+                'mini_game_category' => 'health',
                 'choices' => [
-                    ['text' => 'Practice breathing exercises', 'stat_effects' => '+2 Discipline, +1 Morality', 'days_to_advance' => 0, 'learn_skill' => 'Meditation'],
-                    ['text' => 'Join a meditation group', 'stat_effects' => '+3 Discipline, +2 Morality, -1 Happiness', 'days_to_advance' => 0, 'learn_skill' => 'Meditation'],
+                    // Choice 1: Triggers mini-game to learn the skill
+                    ['text' => 'Learn Skill', 'stat_effects' => '+2 Discipline, +1 Morality', 'days_to_advance' => 0, 'learn_skill' => 'Meditation', 'mini_game' => 'choice_chain'],
+                    // Choice 2: Skip - check another skill (no mini-game, no skill learned)
+                    ['text' => 'Check another skill', 'stat_effects' => '+1 Discipline', 'days_to_advance' => 0],
                 ],
                 'conditions' => [
                     'lacks_skill' => 'Meditation',
@@ -738,9 +753,14 @@ class DailyActionSeeder extends Seeder
                 'auto_resolve' => false,
                 'days_to_advance' => 0,
                 'display_order' => 53,
+                'mini_game_type' => 'qte',
+                'mini_game_difficulty' => 1,
+                'mini_game_category' => 'health',
                 'choices' => [
-                    ['text' => 'Home workout', 'stat_effects' => '+2 Strength, +1 Health', 'days_to_advance' => 0, 'learn_skill' => 'Fitness'],
-                    ['text' => 'Join a gym', 'stat_effects' => '+3 Strength, -3 Wealth', 'days_to_advance' => 0, 'learn_skill' => 'Fitness'],
+                    // Choice 1: Triggers mini-game to learn the skill
+                    ['text' => 'Learn Skill', 'stat_effects' => '+2 Strength, +1 Health', 'days_to_advance' => 0, 'learn_skill' => 'Fitness', 'mini_game' => 'qte'],
+                    // Choice 2: Skip - check another skill (no mini-game, no skill learned)
+                    ['text' => 'Check another skill', 'stat_effects' => '+1 Strength', 'days_to_advance' => 0],
                 ],
                 'conditions' => [
                     'lacks_skill' => 'Fitness',
@@ -760,9 +780,14 @@ class DailyActionSeeder extends Seeder
                 'auto_resolve' => false,
                 'days_to_advance' => 0,
                 'display_order' => 54,
+                'mini_game_type' => 'choice_chain',
+                'mini_game_difficulty' => 1,
+                'mini_game_category' => 'social',
                 'choices' => [
-                    ['text' => 'Practice with friends', 'stat_effects' => '+2 Charisma, +1 Reputation', 'days_to_advance' => 0, 'learn_skill' => 'Conversation'],
-                    ['text' => 'Take a public speaking course', 'stat_effects' => '+3 Charisma, +2 Reputation, -2 Wealth', 'days_to_advance' => 0, 'learn_skill' => 'Public Speaking'],
+                    // Choice 1: Triggers mini-game to learn the skill
+                    ['text' => 'Learn Skill', 'stat_effects' => '+2 Charisma, +1 Reputation', 'days_to_advance' => 0, 'learn_skill' => 'Conversation', 'mini_game' => 'choice_chain'],
+                    // Choice 2: Skip - check another skill (no mini-game, no skill learned)
+                    ['text' => 'Check another skill', 'stat_effects' => '+1 Charisma', 'days_to_advance' => 0],
                 ],
                 'conditions' => [
                     'lacks_skill' => ['Conversation', 'Public Speaking'],
@@ -781,9 +806,14 @@ class DailyActionSeeder extends Seeder
                 'auto_resolve' => false,
                 'days_to_advance' => 0,
                 'display_order' => 55,
+                'mini_game_type' => 'memory_match',
+                'mini_game_difficulty' => 1,
+                'mini_game_category' => 'wealth',
                 'choices' => [
-                    ['text' => 'Self-study budgeting', 'stat_effects' => '+2 Wealth, +1 Discipline', 'days_to_advance' => 0, 'learn_skill' => 'Budgeting'],
-                    ['text' => 'Hire a financial advisor', 'stat_effects' => '+3 Wealth, -4 Wealth', 'days_to_advance' => 0, 'learn_skill' => 'Planning'],
+                    // Choice 1: Triggers mini-game to learn the skill
+                    ['text' => 'Learn Skill', 'stat_effects' => '+2 Wealth, +1 Discipline', 'days_to_advance' => 0, 'learn_skill' => 'Budgeting', 'mini_game' => 'memory_match'],
+                    // Choice 2: Skip - check another skill (no mini-game, no skill learned)
+                    ['text' => 'Check another skill', 'stat_effects' => '+1 Wealth', 'days_to_advance' => 0],
                 ],
                 'conditions' => [
                     'lacks_skill' => ['Budgeting', 'Planning'],
@@ -803,9 +833,14 @@ class DailyActionSeeder extends Seeder
                 'auto_resolve' => false,
                 'days_to_advance' => 0,
                 'display_order' => 56,
+                'mini_game_type' => 'choice_chain',
+                'mini_game_difficulty' => 1,
+                'mini_game_category' => 'health',
                 'choices' => [
-                    ['text' => 'Online course', 'stat_effects' => '+2 Intelligence, +1 Health', 'days_to_advance' => 0, 'learn_skill' => 'Basic First Aid'],
-                    ['text' => 'In-person training', 'stat_effects' => '+3 Intelligence, +2 Health, -2 Wealth', 'days_to_advance' => 0, 'learn_skill' => 'Basic First Aid'],
+                    // Choice 1: Triggers mini-game to learn the skill
+                    ['text' => 'Learn Skill', 'stat_effects' => '+2 Intelligence, +1 Health', 'days_to_advance' => 0, 'learn_skill' => 'Basic First Aid', 'mini_game' => 'qte'],
+                    // Choice 2: Skip - check another skill (no mini-game, no skill learned)
+                    ['text' => 'Check another skill', 'stat_effects' => '+1 Intelligence', 'days_to_advance' => 0],
                 ],
                 'conditions' => [
                     'lacks_skill' => 'Basic First Aid',
@@ -824,9 +859,14 @@ class DailyActionSeeder extends Seeder
                 'auto_resolve' => false,
                 'days_to_advance' => 0,
                 'display_order' => 57,
+                'mini_game_type' => 'qte',
+                'mini_game_difficulty' => 2,
+                'mini_game_category' => 'skill',
                 'choices' => [
-                    ['text' => 'Learn from family', 'stat_effects' => '+2 Luck, +1 Intelligence', 'days_to_advance' => 0, 'learn_skill' => 'Driving'],
-                    ['text' => 'Driving school', 'stat_effects' => '+3 Luck, -3 Wealth', 'days_to_advance' => 0, 'learn_skill' => 'Driving'],
+                    // Choice 1: Triggers mini-game to learn the skill
+                    ['text' => 'Learn Skill', 'stat_effects' => '+2 Luck, +1 Intelligence', 'days_to_advance' => 0, 'learn_skill' => 'Driving', 'mini_game' => 'timing'],
+                    // Choice 2: Skip - check another skill (no mini-game, no skill learned)
+                    ['text' => 'Check another skill', 'stat_effects' => '+1 Luck', 'days_to_advance' => 0],
                 ],
                 'conditions' => [
                     'lacks_skill' => 'Driving',
@@ -847,9 +887,14 @@ class DailyActionSeeder extends Seeder
                 'auto_resolve' => false,
                 'days_to_advance' => 0,
                 'display_order' => 58,
+                'mini_game_type' => 'timing',
+                'mini_game_difficulty' => 1,
+                'mini_game_category' => 'health',
                 'choices' => [
-                    ['text' => 'Community pool lessons', 'stat_effects' => '+2 Strength, +1 Health', 'days_to_advance' => 0, 'learn_skill' => 'Swimming'],
-                    ['text' => 'Private instructor', 'stat_effects' => '+3 Strength, -3 Wealth', 'days_to_advance' => 0, 'learn_skill' => 'Swimming'],
+                    // Choice 1: Triggers mini-game to learn the skill
+                    ['text' => 'Learn Skill', 'stat_effects' => '+2 Strength, +1 Health', 'days_to_advance' => 0, 'learn_skill' => 'Swimming', 'mini_game' => 'choice_chain'],
+                    // Choice 2: Skip - check another skill (no mini-game, no skill learned)
+                    ['text' => 'Check another skill', 'stat_effects' => '+1 Strength', 'days_to_advance' => 0],
                 ],
                 'conditions' => [
                     'lacks_skill' => 'Swimming',
@@ -869,9 +914,14 @@ class DailyActionSeeder extends Seeder
                 'auto_resolve' => false,
                 'days_to_advance' => 0,
                 'display_order' => 59,
+                'mini_game_type' => 'memory_match',
+                'mini_game_difficulty' => 2,
+                'mini_game_category' => 'creativity',
                 'choices' => [
-                    ['text' => 'Self-taught', 'stat_effects' => '+2 Creativity, +1 Isolation', 'days_to_advance' => 0, 'learn_skill' => 'Music'],
-                    ['text' => 'Music lessons', 'stat_effects' => '+3 Creativity, -3 Wealth', 'days_to_advance' => 0, 'learn_skill' => 'Music'],
+                    // Choice 1: Triggers mini-game to learn the skill
+                    ['text' => 'Learn Skill', 'stat_effects' => '+2 Creativity, +1 Isolation', 'days_to_advance' => 0, 'learn_skill' => 'Music', 'mini_game' => 'memory_match'],
+                    // Choice 2: Skip - check another skill (no mini-game, no skill learned)
+                    ['text' => 'Check another skill', 'stat_effects' => '+1 Creativity', 'days_to_advance' => 0],
                 ],
                 'conditions' => [
                     'lacks_skill' => 'Music',
@@ -891,9 +941,14 @@ class DailyActionSeeder extends Seeder
                 'auto_resolve' => false,
                 'days_to_advance' => 0,
                 'display_order' => 60,
+                'mini_game_type' => 'choice_chain',
+                'mini_game_difficulty' => 1,
+                'mini_game_category' => 'creativity',
                 'choices' => [
-                    ['text' => 'Practice daily', 'stat_effects' => '+2 Creativity, +1 Isolation', 'days_to_advance' => 0, 'learn_skill' => 'Drawing'],
-                    ['text' => 'Art classes', 'stat_effects' => '+3 Creativity, -2 Wealth', 'days_to_advance' => 0, 'learn_skill' => 'Drawing'],
+                    // Choice 1: Triggers mini-game to learn the skill
+                    ['text' => 'Learn Skill', 'stat_effects' => '+2 Creativity, +1 Isolation', 'days_to_advance' => 0, 'learn_skill' => 'Drawing', 'mini_game' => 'choice_chain'],
+                    // Choice 2: Skip - check another skill (no mini-game, no skill learned)
+                    ['text' => 'Check another skill', 'stat_effects' => '+1 Creativity', 'days_to_advance' => 0],
                 ],
                 'conditions' => [
                     'lacks_skill' => 'Drawing',
@@ -1017,7 +1072,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Therapy Session',
                 'description' => 'Professional help to manage anxiety.',
-                'image' => '/css/images/health/therapy.png',
+                'image' => '/css/images/skill/meditation.png',
                 'type' => 'healing',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -1038,7 +1093,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Depression Treatment',
                 'description' => 'Seek professional help for depression.',
-                'image' => '/css/images/health/mental.png',
+                'image' => '/css/images/skill/meditation.png',
                 'type' => 'healing',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -1059,7 +1114,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'PTSD Treatment',
                 'description' => 'Specialized trauma therapy for PTSD.',
-                'image' => '/css/images/health/ptsd.png',
+                'image' => '/css/images/skill/meditation.png',
                 'type' => 'healing',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -1080,7 +1135,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Mindfulness Practice',
                 'description' => 'Holistic approach to heal mental health.',
-                'image' => '/css/images/health/mindfulness.png',
+                'image' => '/css/images/skill/meditation.png',
                 'type' => 'healing',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -1106,7 +1161,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Ask Someone Out',
                 'description' => 'Take a chance on love.',
-                'image' => '/css/images/relationship/dating.png',
+                'image' => '/css/images/dailyevents/date-night.png',
                 'type' => 'romance',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -1128,7 +1183,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Propose Marriage',
                 'description' => 'Take your relationship to the next level.',
-                'image' => '/css/images/relationship/engaged.png',
+                'image' => '/css/images/dailyevents/family-time.png',
                 'type' => 'romance',
                 'deck_label' => 'Action',
                 'repeatable' => false,
@@ -1150,7 +1205,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Get Married',
                 'description' => 'The big day has arrived!',
-                'image' => '/css/images/relationship/married.png',
+                'image' => '/css/images/dailyevents/family-time.png',
                 'type' => 'romance',
                 'deck_label' => 'Action',
                 'repeatable' => false,
@@ -1171,7 +1226,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Family Reunion',
                 'description' => 'Spend quality time with family.',
-                'image' => '/css/images/relationship/family.png',
+                'image' => '/css/images/dailyevents/family-time.png',
                 'type' => 'social',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -1193,7 +1248,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Join Social Group',
                 'description' => 'Meet new people and make friends.',
-                'image' => '/css/images/relationship/friends.png',
+                'image' => '/css/images/dailyevents/friends.png',
                 'type' => 'social',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -1215,7 +1270,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Find Mentor',
                 'description' => 'Seek guidance from someone experienced in your field.',
-                'image' => '/css/images/relationship/mentor.png',
+                'image' => '/css/images/dailyevents/reading.png',
                 'type' => 'social',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -1237,7 +1292,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Start Dating',
                 'description' => 'Put yourself out there and look for romance.',
-                'image' => '/css/images/relationship/dating.png',
+                'image' => '/css/images/dailyevents/date-night.png',
                 'type' => 'social',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -1259,7 +1314,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Reconnect with Family',
                 'description' => 'Reach out to family members you have lost touch with.',
-                'image' => '/css/images/relationship/family.png',
+                'image' => '/css/images/dailyevents/family-time.png',
                 'type' => 'social',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -1280,7 +1335,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Network at Work',
                 'description' => 'Build professional relationships with coworkers.',
-                'image' => '/css/images/relationship/work.png',
+                'image' => '/css/images/dailyevents/work.png',
                 'type' => 'social',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -1305,7 +1360,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Plan Vacation',
                 'description' => 'Take a break and travel somewhere new.',
-                'image' => '/css/images/environment/vacation.png',
+                'image' => '/css/images/dailyevents/garden.png',
                 'type' => 'travel',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -1328,7 +1383,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Relocate',
                 'description' => 'Move to a new location for opportunities.',
-                'image' => '/css/images/environment/moving.png',
+                'image' => '/css/images/dailyevents/commute.png',
                 'type' => 'travel',
                 'deck_label' => 'Action',
                 'repeatable' => false,
@@ -1351,14 +1406,14 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Spring Festival',
                 'description' => 'Enjoy the arrival of spring.',
-                'image' => '/css/images/environment/spring.png',
+                'image' => '/css/images/dailyevents/garden.png',
                 'type' => 'seasonal',
                 'deck_label' => 'Action',
                 'repeatable' => true,
                 'weight' => 2,
                 'auto_resolve' => false,
                 'days_to_advance' => 0,
-                'display_order' => 93,
+                'display_order' => 93.1,
                 'choices' => [
                     ['text' => 'Plant a garden', 'stat_effects' => '+3 Happiness, +1 Health', 'days_to_advance' => 0],
                     ['text' => 'Spring cleaning', 'stat_effects' => '+2 Happiness, +1 Discipline', 'days_to_advance' => 0],
@@ -1372,7 +1427,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Winter Activities',
                 'description' => 'Enjoy the winter season.',
-                'image' => '/css/images/environment/winter.png',
+                'image' => '/css/images/dailyevents/bedtime.png',
                 'type' => 'seasonal',
                 'deck_label' => 'Action',
                 'repeatable' => true,
@@ -1394,7 +1449,7 @@ class DailyActionSeeder extends Seeder
             [
                 'title' => 'Outdoor Adventures',
                 'description' => 'Perfect weather for outdoor activities.',
-                'image' => '/css/images/environment/outdoor.png',
+                'image' => '/css/images/dailyevents/morning-walk.png',
                 'type' => 'activity',
                 'deck_label' => 'Action',
                 'repeatable' => true,

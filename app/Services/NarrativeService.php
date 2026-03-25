@@ -130,6 +130,8 @@ class NarrativeService
 
     /**
      * Get daily events with narrative weighting
+     * Now supports cross-age chain continuity
+     * Now includes interruption prevention for in-progress chains
      */
     protected function getDailyEventsWithNarrative(Character $character, array $activePaths, string $ageGroup): Collection
     {
@@ -141,30 +143,196 @@ class NarrativeService
         $eventService = app(EventService::class);
         $events = $events->filter(fn($event) => $eventService->checkEventPrerequisites($event, $character));
 
-        // Apply narrative weighting
-        $events = $events->map(function ($event) use ($activePaths) {
-            $weight = (float) ($event->weight ?? 1);
-            $eventCategory = $event->event_category ?? '';
+        // Get completed chains for this character
+        $completedChains = $character->getCompletedChainIds();
+        
+        // Get pending chains (chains started but not completed)
+        $pendingChains = $character->getPendingChains();
+        $pendingChainIds = collect($pendingChains)->pluck('chain_id')->toArray();
+        $pendingChainProgress = [];
+        foreach ($pendingChains as $chain) {
+            $pendingChainProgress[$chain['chain_id']] = $chain['progress'] ?? 0;
+        }
+        
+        // INTERRUPTION PREVENTION: Get chain cooldown tracking
+        $characterState = $character->character_state ?? [];
+        $chainCooldowns = $characterState['chain_cooldowns'] ?? []; // ['chain_id' => last_day_seen]
+        $currentDay = $character->current_day;
+        
+        // RELATIONSHIP CHAINS: Get NPC relationship info
+        $relationshipChains = $character->getRelationshipChains();
+        $npcProgress = [];
+        foreach ($relationshipChains as $chain) {
+            $key = ($chain['npc_name'] ?? '') . '_' . ($chain['relationship_type'] ?? 'default');
+            $npcProgress[$key] = $chain['progress'] ?? 0;
+        }
+        
+        // Separate chain events from standalone events
+        $chainEvents = [];
+        $standaloneEvents = [];
+        $continuingChainEvents = []; // Events that continue pending chains from previous age group
+        $overdueChainEvents = [];
+        $npcRelationshipEvents = []; // Events that continue NPC relationship chains
+        
+        foreach ($events as $event) {
+            $hasChain = !empty($event->parent_category);
+            $chainOrder = $event->chain_order ?? 0;
+            $chainId = $event->chain_id ?? $event->parent_category;
             
-            // Boost events that match active narrative paths
-            foreach ($activePaths as $path) {
-                $pathConfig = self::STORY_PATHS[$path] ?? null;
-                if ($pathConfig && in_array($eventCategory, $pathConfig['events'])) {
-                    $weight *= 1.5; // 50% boost for matching narrative
-                    break;
+            // Check cooldown status
+            $lastSeenDay = $chainCooldowns[$chainId] ?? null;
+            $daysSinceSeen = $lastSeenDay ? ($currentDay - $lastSeenDay) : PHP_INT_MAX;
+            
+            // Check if this event continues a pending chain from a previous age group
+            $isContinuingChain = in_array($chainId, $pendingChainIds);
+            $currentProgress = $pendingChainProgress[$chainId] ?? 0;
+            $isNextStep = $chainOrder == ($currentProgress + 1);
+            
+            // Mark as overdue if chain in progress but not seen recently
+            $isInProgress = in_array($chainId, $pendingChainIds) || in_array($chainId, $completedChains);
+            $isOverdue = $isInProgress && $daysSinceSeen >= 3; // 3+ days since chain event = overdue
+            
+            if ($isContinuingChain && $isNextStep) {
+                // This event continues a chain from a previous age group - highest priority
+                $event->is_continuing_chain = true;
+                $event->is_overdue = $isOverdue;
+                $continuingChainEvents[] = $event;
+            } elseif ($isOverdue) {
+                // Chain event is overdue - force it to appear
+                $event->is_overdue = true;
+                $event->is_continuing_chain = false;
+                $overdueChainEvents[] = $event;
+            } elseif ($hasChain) {
+                // Check if parent chain was completed
+                $parentCompleted = in_array($event->parent_category, $completedChains);
+                // Also allow if chain_order is 1 (start of chain)
+                $isChainStart = $chainOrder == 1;
+                
+                if ($parentCompleted || $isChainStart) {
+                    $chainEvents[] = $event;
+                } else {
+                    // Parent not completed, can't show this event yet
+                    continue;
+                }
+            } else {
+                // Check for NPC relationship chain events
+                $relatedNPC = $event->related_npc ?? null;
+                if ($relatedNPC) {
+                    $relationshipType = $event->relationship_type ?? 'default';
+                    $npcKey = $relatedNPC . '_' . $relationshipType;
+                    $currentNPCProgress = $npcProgress[$npcKey] ?? 0;
+                    $minLevel = $event->min_relationship_level ?? 1;
+                    
+                    // Event requires specific NPC relationship level
+                    if ($currentNPCProgress >= $minLevel) {
+                        $event->is_npc_chain = true;
+                        $npcRelationshipEvents[] = $event;
+                    } else {
+                        // NPC requirement not met yet
+                        continue;
+                    }
+                } else {
+                    $standaloneEvents[] = $event;
                 }
             }
-            
-            $event->narrative_weight = $weight;
-            return $event;
+        }
+        
+        // Apply narrative weighting - highest for continuing chains and overdue
+        $continuingChainEvents = collect($continuingChainEvents)->map(function ($event) use ($activePaths) {
+            return $this->applyNarrativeWeight($event, $activePaths, 3.0); // Highest priority
+        });
+        
+        // Overdue chains get very high priority to force appearance
+        $overdueChainEvents = collect($overdueChainEvents)->map(function ($event) use ($activePaths) {
+            return $this->applyNarrativeWeight($event, $activePaths, 4.0); // Force appearance
+        });
+        
+        // NPC relationship events get high priority
+        $npcRelationshipEvents = collect($npcRelationshipEvents)->map(function ($event) use ($activePaths) {
+            return $this->applyNarrativeWeight($event, $activePaths, 2.2); // High priority for relationship chains
+        });
+        
+        // Apply narrative weighting to chain events
+        $chainEvents = collect($chainEvents)->map(function ($event) use ($activePaths) {
+            return $this->applyNarrativeWeight($event, $activePaths, 1.8); // Stronger boost for chains
         });
 
-        // Select top events
-        return $this->selectWeightedEvents($events, 10);
+        // Apply narrative weighting to standalone events
+        $standaloneEvents = collect($standaloneEvents)->map(function ($event) use ($activePaths) {
+            return $this->applyNarrativeWeight($event, $activePaths, 1.5);
+        });
+
+        // INTERRUPTION PREVENTION: Guarantee slots for chain events
+        // 1. First, guarantee slots for overdue chains (must appear)
+        $selectedOverdue = $this->selectWeightedEvents($overdueChainEvents, 3);
+        
+        // 2. Then ensure continuing chains appear (minimum 2 guaranteed)
+        $selectedContinuing = $this->selectWeightedEvents($continuingChainEvents, 2);
+        
+        // 3. Then NPC relationship events
+        $selectedNPC = $this->selectWeightedEvents($npcRelationshipEvents, 2);
+        
+        // 4. Then regular chain events (minimum 2 guaranteed)
+        $selectedChains = $this->selectWeightedEvents($chainEvents, 2);
+        
+        // 5. Fill remaining slots with standalone
+        $remainingSlots = 10 - $selectedOverdue->count() - $selectedContinuing->count() - $selectedNPC->count() - $selectedChains->count();
+        $remainingSlots = max(0, $remainingSlots);
+        $selectedStandalone = $this->selectWeightedEvents($standaloneEvents, $remainingSlots);
+        
+        // Update cooldowns for chains that were selected
+        $selectedEvents = $selectedOverdue->merge($selectedContinuing)->merge($selectedChains)->merge($selectedNPC);
+        $this->updateChainCooldowns($character, $selectedEvents, $currentDay);
+        
+        return $selectedOverdue->merge($selectedContinuing)->merge($selectedNPC)->merge($selectedChains)->merge($selectedStandalone)->take(10);
+    }
+
+    /**
+     * Update chain cooldown tracking after event selection
+     * This ensures we track which chains have appeared recently
+     */
+    private function updateChainCooldowns(Character $character, Collection $selectedEvents, int $currentDay): void
+    {
+        $characterState = $character->character_state ?? [];
+        $chainCooldowns = $characterState['chain_cooldowns'] ?? [];
+        
+        foreach ($selectedEvents as $event) {
+            $chainId = $event->chain_id ?? $event->parent_category ?? null;
+            if ($chainId) {
+                $chainCooldowns[$chainId] = $currentDay;
+            }
+        }
+        
+        $characterState['chain_cooldowns'] = $chainCooldowns;
+        $character->character_state = $characterState;
+        $character->save();
+    }
+
+    /**
+     * Apply narrative weight boost to an event
+     */
+    private function applyNarrativeWeight($event, array $activePaths, float $boostMultiplier = 1.5): object
+    {
+        $weight = (float) ($event->weight ?? 1);
+        $eventCategory = $event->event_category ?? '';
+        
+        // Boost events that match active narrative paths
+        foreach ($activePaths as $path) {
+            $pathConfig = self::STORY_PATHS[$path] ?? null;
+            if ($pathConfig && in_array($eventCategory, $pathConfig['events'])) {
+                $weight *= $boostMultiplier;
+                break;
+            }
+        }
+        
+        $event->narrative_weight = $weight;
+        return $event;
     }
 
     /**
      * Get cultural events with narrative weighting
+     * Now supports cross-age chain continuity
+     * Now includes interruption prevention
      */
     protected function getCulturalEventsWithNarrative(Character $character, array $activePaths): Collection
     {
@@ -174,24 +342,125 @@ class NarrativeService
         $eventService = app(EventService::class);
         $events = $events->filter(fn($event) => $eventService->checkEventPrerequisites($event, $character));
 
-        // Apply narrative weighting
-        $events = $events->map(function ($event) use ($activePaths) {
-            $weight = (float) ($event->weight ?? 1);
-            $eventCategory = $event->event_category ?? '';
+        // Get completed chains
+        $completedChains = $character->getCompletedChainIds();
+        
+        // Get pending chains (chains started but not completed)
+        $pendingChains = $character->getPendingChains();
+        $pendingChainIds = collect($pendingChains)->pluck('chain_id')->toArray();
+        $pendingChainProgress = [];
+        foreach ($pendingChains as $chain) {
+            $pendingChainProgress[$chain['chain_id']] = $chain['progress'] ?? 0;
+        }
+        
+        // INTERRUPTION PREVENTION: Get chain cooldown tracking
+        $characterState = $character->character_state ?? [];
+        $chainCooldowns = $characterState['chain_cooldowns'] ?? [];
+        $currentDay = $character->current_day;
+        
+        // RELATIONSHIP CHAINS: Get NPC relationship info
+        $relationshipChains = $character->getRelationshipChains();
+        $npcProgress = [];
+        foreach ($relationshipChains as $chain) {
+            $key = ($chain['npc_name'] ?? '') . '_' . ($chain['relationship_type'] ?? 'default');
+            $npcProgress[$key] = $chain['progress'] ?? 0;
+        }
+        
+        // Separate chain events from standalone events
+        $chainEvents = [];
+        $standaloneEvents = [];
+        $continuingChainEvents = [];
+        $overdueChainEvents = [];
+        $npcRelationshipEvents = [];
+        
+        foreach ($events as $event) {
+            $hasChain = !empty($event->parent_category);
+            $chainOrder = $event->chain_order ?? 0;
+            $chainId = $event->chain_id ?? $event->parent_category;
             
-            foreach ($activePaths as $path) {
-                $pathConfig = self::STORY_PATHS[$path] ?? null;
-                if ($pathConfig && in_array($eventCategory, $pathConfig['events'])) {
-                    $weight *= 1.5;
-                    break;
+            // Check cooldown status
+            $lastSeenDay = $chainCooldowns[$chainId] ?? null;
+            $daysSinceSeen = $lastSeenDay ? ($currentDay - $lastSeenDay) : PHP_INT_MAX;
+            
+            // Check if this event continues a pending chain
+            $isContinuingChain = in_array($chainId, $pendingChainIds);
+            $currentProgress = $pendingChainProgress[$chainId] ?? 0;
+            $isNextStep = $chainOrder == ($currentProgress + 1);
+            
+            // Check overdue status
+            $isInProgress = in_array($chainId, $pendingChainIds) || in_array($chainId, $completedChains);
+            $isOverdue = $isInProgress && $daysSinceSeen >= 3;
+            
+            if ($isContinuingChain && $isNextStep) {
+                $event->is_continuing_chain = true;
+                $event->is_overdue = $isOverdue;
+                $continuingChainEvents[] = $event;
+            } elseif ($isOverdue) {
+                $event->is_overdue = true;
+                $event->is_continuing_chain = false;
+                $overdueChainEvents[] = $event;
+            } elseif ($hasChain) {
+                $parentCompleted = in_array($event->parent_category, $completedChains);
+                $isChainStart = $chainOrder == 1;
+                
+                if ($parentCompleted || $isChainStart) {
+                    $chainEvents[] = $event;
+                } else {
+                    continue;
+                }
+            } else {
+                // Check for NPC relationship chain events
+                $relatedNPC = $event->related_npc ?? null;
+                if ($relatedNPC) {
+                    $relationshipType = $event->relationship_type ?? 'default';
+                    $npcKey = $relatedNPC . '_' . $relationshipType;
+                    $currentNPCProgress = $npcProgress[$npcKey] ?? 0;
+                    $minLevel = $event->min_relationship_level ?? 1;
+                    
+                    if ($currentNPCProgress >= $minLevel) {
+                        $event->is_npc_chain = true;
+                        $npcRelationshipEvents[] = $event;
+                    } else {
+                        continue;
+                    }
+                } else {
+                    $standaloneEvents[] = $event;
                 }
             }
-            
-            $event->narrative_weight = $weight;
-            return $event;
+        }
+        
+        // Apply narrative weighting
+        $continuingChainEvents = collect($continuingChainEvents)->map(function ($event) use ($activePaths) {
+            return $this->applyNarrativeWeight($event, $activePaths, 3.0);
+        });
+        
+        $overdueChainEvents = collect($overdueChainEvents)->map(function ($event) use ($activePaths) {
+            return $this->applyNarrativeWeight($event, $activePaths, 4.0);
+        });
+        
+        $npcRelationshipEvents = collect($npcRelationshipEvents)->map(function ($event) use ($activePaths) {
+            return $this->applyNarrativeWeight($event, $activePaths, 2.2);
+        });
+        
+        $chainEvents = collect($chainEvents)->map(function ($event) use ($activePaths) {
+            return $this->applyNarrativeWeight($event, $activePaths, 1.8);
+        });
+        
+        $standaloneEvents = collect($standaloneEvents)->map(function ($event) use ($activePaths) {
+            return $this->applyNarrativeWeight($event, $activePaths, 1.5);
         });
 
-        return $this->selectWeightedEvents($events, 5);
+        // INTERRUPTION PREVENTION: Guarantee slots
+        $selectedOverdue = $this->selectWeightedEvents($overdueChainEvents, 2);
+        $selectedContinuing = $this->selectWeightedEvents($continuingChainEvents, 2);
+        $selectedNPC = $this->selectWeightedEvents($npcRelationshipEvents, 2);
+        $selectedChains = $this->selectWeightedEvents($chainEvents, 2);
+        
+        $remainingSlots = 5 - $selectedOverdue->count() - $selectedContinuing->count() - $selectedNPC->count() - $selectedChains->count();
+        $remainingSlots = max(0, $remainingSlots);
+        $selectedStandalone = $this->selectWeightedEvents($standaloneEvents, $remainingSlots);
+        
+        return $selectedOverdue->merge($selectedContinuing)->merge($selectedNPC)->merge($selectedChains)->merge($selectedStandalone)->take(5);
     }
 
     /**

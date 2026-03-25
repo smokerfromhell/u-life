@@ -47,6 +47,7 @@ class Character extends Model
         'current_day',
         'shown_event_ids',
         'completed_event_chains',
+        'pending_chains',
         'active_event_paths',
         'current_narrative',
         // Branching system fields
@@ -104,6 +105,7 @@ class Character extends Model
         'effective_stats' => 'array',
         'character_state' => 'array',
         'completed_event_chains' => 'array',
+        'pending_chains' => 'array',
         'active_event_paths' => 'array',
         'shown_event_ids' => 'array',
         // Branching system casts
@@ -128,6 +130,7 @@ class Character extends Model
         'character_state' => '{"life_stage": "child", "profession_state": "unemployed", "relationship_status": "single", "health_condition": "healthy", "is_dead": false}',
         'shown_event_ids' => '[]',
         'completed_event_chains' => '[]',
+        'pending_chains' => '[]',
         'active_event_paths' => '[]',
         // Branching system defaults
         'choice_history' => '[]',
@@ -642,6 +645,145 @@ class Character extends Model
     }
 
     /**
+     * Relationship Chain Tracking
+     * Enables NPC-based narrative chains (e.g., Meet → Befriend → Help → Ally)
+     */
+
+    /**
+     * Start or update progress in a relationship chain with an NPC.
+     * @param string $npcName The name of the NPC
+     * @param string $relationshipType Type of relationship (friend, mentor, rival, etc.)
+     * @param int $progress Current progress step (1 = just met, higher = more established)
+     * @param array $metadata Additional data about the relationship
+     */
+    public function updateRelationshipChainProgress(string $npcName, string $relationshipType, int $progress, array $metadata = []): void
+    {
+        $characterState = is_array($this->character_state) ? $this->character_state : [];
+        $relationshipChains = $characterState['relationship_chains'] ?? [];
+        
+        // Find existing or create new
+        $found = false;
+        foreach ($relationshipChains as &$chain) {
+            if ($chain['npc_name'] === $npcName && $chain['relationship_type'] === $relationshipType) {
+                $chain['progress'] = $progress;
+                $chain['last_updated'] = now()->toISOString();
+                $chain['metadata'] = array_merge($chain['metadata'] ?? [], $metadata);
+                $found = true;
+                break;
+            }
+        }
+        
+        if (!$found) {
+            $relationshipChains[] = [
+                'npc_name' => $npcName,
+                'relationship_type' => $relationshipType,
+                'progress' => $progress,
+                'started_at' => $this->current_day,
+                'started_age_group' => $this->age_group,
+                'last_updated' => now()->toISOString(),
+                'metadata' => $metadata,
+            ];
+        }
+        
+        $characterState['relationship_chains'] = $relationshipChains;
+        $this->character_state = $characterState;
+        $this->save();
+    }
+
+    /**
+     * Get all relationship chain progress for a character.
+     * @return array Array of relationship chains with their progress
+     */
+    public function getRelationshipChains(): array
+    {
+        $characterState = is_array($this->character_state) ? $this->character_state : [];
+        return $characterState['relationship_chains'] ?? [];
+    }
+
+    /**
+     * Get the current progress with a specific NPC.
+     * @param string $npcName The name of the NPC
+     * @param string $relationshipType Optional type of relationship
+     * @return int Progress level (0 if no relationship)
+     */
+    public function getRelationshipProgress(string $npcName, string $relationshipType = null): int
+    {
+        $relationshipChains = $this->getRelationshipChains();
+        
+        foreach ($relationshipChains as $chain) {
+            if ($chain['npc_name'] === $npcName) {
+                if ($relationshipType === null || ($chain['relationship_type'] ?? '') === $relationshipType) {
+                    return $chain['progress'] ?? 0;
+                }
+            }
+        }
+        
+        return 0;
+    }
+
+    /**
+     * Check if character has met a specific NPC.
+     * @param string $npcName The name of the NPC
+     * @return bool True if character has any relationship with this NPC
+     */
+    public function hasMetNPC(string $npcName): bool
+    {
+        return $this->getRelationshipProgress($npcName) > 0;
+    }
+
+    /**
+     * Get all NPCs the character has a relationship with.
+     * @param string|null $relationshipType Filter by type (friend, mentor, etc.)
+     * @return array List of NPC names
+     */
+    public function getKnownNPCs(string $relationshipType = null): array
+    {
+        $relationshipChains = $this->getRelationshipChains();
+        $npcs = [];
+        
+        foreach ($relationshipChains as $chain) {
+            if ($relationshipType === null || ($chain['relationship_type'] ?? '') === $relationshipType) {
+                $npcs[] = $chain['npc_name'];
+            }
+        }
+        
+        return array_unique($npcs);
+    }
+
+    /**
+     * Get the relationship level with an NPC.
+     * This is derived from progress and can be used for event prerequisites.
+     * @param string $npcName The name of the NPC
+     * @return string Level: 'stranger', 'acquaintance', 'friend', 'close_friend', 'ally'
+     */
+    public function getRelationshipLevel(string $npcName): string
+    {
+        $progress = $this->getRelationshipProgress($npcName);
+        
+        if ($progress >= 4) return 'ally';
+        if ($progress >= 3) return 'close_friend';
+        if ($progress >= 2) return 'friend';
+        if ($progress >= 1) return 'acquaintance';
+        return 'stranger';
+    }
+
+    /**
+     * Get events that are unlocked based on NPC relationships.
+     * @param object $event The event to check
+     * @return bool True if event requirements are met
+     */
+    public function meetsNPCRelationshipRequirements(object $event): bool
+    {
+        $requiredNPC = $event->related_npc ?? null;
+        if (!$requiredNPC) return true; // No NPC requirement
+        
+        $minLevel = $event->min_relationship_level ?? 1;
+        $currentProgress = $this->getRelationshipProgress($requiredNPC);
+        
+        return $currentProgress >= $minLevel;
+    }
+
+    /**
      * Set current location.
      */
     public function setLocation(string $location): void
@@ -915,5 +1057,341 @@ class Character extends Model
     public function getAchievementPoints(): int
     {
         return $this->achievements()->sum('points');
+    }
+
+    // =============================================
+    // EVENT CHAIN TRACKING METHODS
+    // =============================================
+
+    /**
+     * Record completion of an event chain.
+     * @param string $chainId The unique identifier for the chain
+     * @param array $metadata Optional metadata about the completion
+     */
+    public function recordChainCompletion(string $chainId, array $metadata = []): void
+    {
+        $completedChains = $this->completed_event_chains ?? [];
+        
+        // Check if already completed
+        $alreadyCompleted = collect($completedChains)->contains('chain_id', $chainId);
+        
+        if (!$alreadyCompleted) {
+            $completedChains[] = [
+                'chain_id' => $chainId,
+                'day_completed' => $this->current_day,
+                'age_group' => $this->age_group,
+                'timestamp' => now()->toISOString(),
+                'metadata' => $metadata,
+            ];
+            $this->completed_event_chains = $completedChains;
+            $this->save();
+        }
+    }
+
+    /**
+     * Check if a specific event chain has been completed.
+     * @param string $chainId The unique identifier for the chain
+     * @return bool True if the chain has been completed
+     */
+    public function hasCompletedChain(string $chainId): bool
+    {
+        $completedChains = $this->completed_event_chains ?? [];
+        return collect($completedChains)->contains('chain_id', $chainId);
+    }
+
+    /**
+     * Get all completed chain IDs.
+     * @return array List of completed chain IDs
+     */
+    public function getCompletedChainIds(): array
+    {
+        $completedChains = $this->completed_event_chains ?? [];
+        return collect($completedChains)->pluck('chain_id')->toArray();
+    }
+
+    /**
+     * Get chain completion details.
+     * @param string $chainId The unique identifier for the chain
+     * @return array|null The chain completion data or null if not found
+     */
+    public function getChainCompletion(string $chainId): ?array
+    {
+        $completedChains = $this->completed_event_chains ?? [];
+        $chain = collect($completedChains)->firstWhere('chain_id', $chainId);
+        return $chain ?? null;
+    }
+
+    /**
+     * Check if character has completed ALL chains in a category.
+     * @param string $category The category to check (e.g., 'career', 'relationship')
+     * @param array $chainIds List of chain IDs that belong to this category
+     * @return bool True if all chains in the category are completed
+     */
+    public function hasCompletedAllChainsInCategory(string $category, array $chainIds): bool
+    {
+        $completedIds = $this->getCompletedChainIds();
+        $completedInCategory = array_intersect($completedIds, $chainIds);
+        return count($completedInCategory) === count($chainIds);
+    }
+
+    /**
+     * Get the current position in an event chain.
+     * @param string $chainId The unique identifier for the chain
+     * @return int The current order position (0 if not started)
+     */
+    public function getChainProgress(string $chainId): int
+    {
+        $completedChains = $this->completed_event_chains ?? [];
+        $chain = collect($completedChains)->firstWhere('chain_id', $chainId);
+        return $chain ? ($chain['progress'] ?? 0) : 0;
+    }
+
+    /**
+     * Update progress in an event chain.
+     * @param string $chainId The unique identifier for the chain
+     * @param int $progress The current progress position
+     * @param array $metadata Optional metadata
+     */
+    public function updateChainProgress(string $chainId, int $progress, array $metadata = []): void
+    {
+        $completedChains = $this->completed_event_chains ?? [];
+        $found = false;
+        
+        foreach ($completedChains as &$chain) {
+            if ($chain['chain_id'] === $chainId) {
+                $chain['progress'] = $progress;
+                $chain['metadata'] = array_merge($chain['metadata'] ?? [], $metadata);
+                $chain['last_updated'] = now()->toISOString();
+                $found = true;
+                break;
+            }
+        }
+        
+        if (!$found) {
+            // Start new chain progress
+            $completedChains[] = [
+                'chain_id' => $chainId,
+                'progress' => $progress,
+                'started_at' => $this->current_day,
+                'age_group' => $this->age_group,
+                'timestamp' => now()->toISOString(),
+                'metadata' => $metadata,
+            ];
+        }
+        
+        $this->completed_event_chains = $completedChains;
+        $this->save();
+    }
+
+    /**
+     * Mark a chain as started (in progress).
+     * @param string $chainId The unique identifier for the chain
+     * @param int $progress Current progress position (0 = just started)
+     * @param array $metadata Optional metadata about the chain
+     */
+    public function startChainProgress(string $chainId, int $progress = 0, array $metadata = []): void
+    {
+        $pendingChains = $this->pending_chains ?? [];
+        
+        // Check if already tracking this chain
+        $alreadyTracking = collect($pendingChains)->contains('chain_id', $chainId);
+        
+        if (!$alreadyTracking) {
+            $pendingChains[] = [
+                'chain_id' => $chainId,
+                'progress' => $progress,
+                'started_at' => $this->current_day,
+                'started_age_group' => $this->age_group,
+                'last_updated' => now()->toISOString(),
+                'metadata' => $metadata,
+            ];
+            $this->pending_chains = $pendingChains;
+            $this->save();
+        }
+    }
+
+    /**
+     * Update progress in a pending chain.
+     * @param string $chainId The unique identifier for the chain
+     * @param int $progress The new progress position
+     * @param array $metadata Optional metadata
+     */
+    public function updatePendingChainProgress(string $chainId, int $progress, array $metadata = []): void
+    {
+        $pendingChains = $this->pending_chains ?? [];
+        $found = false;
+        
+        foreach ($pendingChains as &$chain) {
+            if ($chain['chain_id'] === $chainId) {
+                $chain['progress'] = $progress;
+                $chain['last_updated'] = now()->toISOString();
+                $chain['metadata'] = array_merge($chain['metadata'] ?? [], $metadata);
+                $found = true;
+                break;
+            }
+        }
+        
+        if (!$found) {
+            $this->startChainProgress($chainId, $progress, $metadata);
+        } else {
+            $this->pending_chains = $pendingChains;
+            $this->save();
+        }
+    }
+
+    /**
+     * Get all pending chains.
+     * @return array List of pending chains with their progress
+     */
+    public function getPendingChains(): array
+    {
+        return $this->pending_chains ?? [];
+    }
+
+    /**
+     * Get a specific pending chain.
+     * @param string $chainId The unique identifier for the chain
+     * @return array|null The pending chain data or null if not found
+     */
+    public function getPendingChain(string $chainId): ?array
+    {
+        $pendingChains = $this->pending_chains ?? [];
+        return collect($pendingChains)->firstWhere('chain_id', $chainId) ?? null;
+    }
+
+    /**
+     * Remove a chain from pending list (either completed or abandoned).
+     * @param string $chainId The unique identifier for the chain
+     * @param bool $completed Whether the chain was completed (true) or abandoned (false)
+     */
+    public function removePendingChain(string $chainId, bool $completed = false): void
+    {
+        $pendingChains = $this->pending_chains ?? [];
+        $pendingChains = array_values(array_filter($pendingChains, function ($chain) use ($chainId) {
+            return $chain['chain_id'] !== $chainId;
+        }));
+        
+        $this->pending_chains = $pendingChains;
+        $this->save();
+    }
+
+    /**
+     * Get chains that can continue in the new age group.
+     * These are chains that were started in a previous age group and can continue.
+     * @param string $newAgeGroup The age group to check compatibility for
+     * @return array List of chain IDs that can continue
+     */
+    public function getContinuableChains(string $newAgeGroup): array
+    {
+        $pendingChains = $this->pending_chains ?? [];
+        $continuable = [];
+        
+        foreach ($pendingChains as $chain) {
+            $startedAge = $chain['started_age_group'] ?? null;
+            // Chains can continue to next age group (e.g., child->teen, teen->adult)
+            $compatibleAges = $this->getCompatibleAgeGroups($startedAge);
+            
+            if (in_array($newAgeGroup, $compatibleAges)) {
+                $continuable[] = $chain;
+            }
+        }
+        
+        return $continuable;
+    }
+
+    /**
+     * Get compatible age groups for continuing a chain.
+     * @param string $startAge The age group where chain started
+     * @return array List of age groups that can continue the chain
+     */
+    private function getCompatibleAgeGroups(string $startAge): array
+    {
+        $ageFlow = [
+            'child' => ['child', 'teen'],
+            'teen' => ['teen', 'adult'],
+            'adult' => ['adult', 'middle'],
+            'middle' => ['middle', 'senior'],
+            'senior' => ['senior'],
+        ];
+        
+        return $ageFlow[$startAge] ?? [$startAge];
+    }
+
+    /**
+     * Handle age group transition - record the transition and prepare for continuity.
+     * @param string $newAgeGroup The new age group being transitioned to
+     * @param string $transitionEventId Optional ID of the event that triggered the transition
+     */
+    public function transitionToAgeGroup(string $newAgeGroup, ?string $transitionEventId = null): void
+    {
+        $previousAgeGroup = $this->age_group;
+        
+        // Store previous age group for continuity
+        $this->previous_age_group = $previousAgeGroup;
+        
+        // Update current age group
+        $this->age_group = $newAgeGroup;
+        
+        // Update character state
+        $state = is_array($this->character_state) ? $this->character_state : [];
+        $state['life_stage'] = $newAgeGroup;
+        $state['previous_life_stage'] = $previousAgeGroup;
+        $state['age_transition_day'] = $this->current_day;
+        $this->character_state = $state;
+        
+        // Record the transition in choice history for continuity tracking
+        $this->recordChoice('age_transition', $transitionEventId ?? 'age_up', $newAgeGroup, [
+            'previous_age_group' => $previousAgeGroup,
+            'transition_day' => $this->current_day,
+        ]);
+        
+        $this->save();
+    }
+
+    /**
+     * Check if character recently transitioned age groups.
+     * @param int $days Number of days to check
+     * @return bool True if transition happened within the specified days
+     */
+    public function hasRecentAgeTransition(int $days = 7): bool
+    {
+        $state = is_array($this->character_state) ? $this->character_state : [];
+        $transitionDay = $state['age_transition_day'] ?? null;
+        
+        if ($transitionDay === null) {
+            return false;
+        }
+        
+        return ($this->current_day - $transitionDay) <= $days;
+    }
+
+    /**
+     * Get the previous age group.
+     * @return string|null The previous age group or null if not set
+     */
+    public function getPreviousAgeGroup(): ?string
+    {
+        return $this->previous_age_group ?? null;
+    }
+
+    /**
+     * Get age continuity events - events that should appear after age transition.
+     * These are events with next_age_group matching current age group
+     * that continue from previous age group choices.
+     */
+    public function getAgeContinuityEvents()
+    {
+        $previousAgeGroup = $this->getPreviousAgeGroup();
+        if (!$previousAgeGroup) {
+            return collect([]);
+        }
+
+        return DailyEvent::where('next_age_group', $this->age_group)
+            ->where(function ($query) use ($previousAgeGroup) {
+                $query->where('age_group', $previousAgeGroup)
+                    ->orWhere('parent_category', '!=', null);
+            })
+            ->orderBy('chain_order', 'asc')
+            ->get();
     }
 }

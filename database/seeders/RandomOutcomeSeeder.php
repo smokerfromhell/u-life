@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\AgeSpecificEvent;
 use App\Models\CulturalEvent;
+use App\Models\DailyAction;
 use App\Models\DailyEvent;
 use App\Models\ProfessionPathEvent;
 use App\Models\ProfessionTrigger;
@@ -22,6 +23,7 @@ class RandomOutcomeSeeder extends Seeder
         $this->seedCulturalEvents();
         $this->seedProfessionPathEvents();
         $this->seedProfessionTriggers();
+        $this->seedDailyActions();
     }
 
     /**
@@ -90,6 +92,56 @@ class RandomOutcomeSeeder extends Seeder
                 $event->save();
             }
         }
+    }
+
+    /**
+     * Seed random outcomes for Daily Actions
+     * This handles daily actions like eating, sleeping, exercising, etc.
+     */
+    protected function seedDailyActions(): void
+    {
+        $actions = DailyAction::all();
+        
+        foreach ($actions as $action) {
+            $choices = $action->choices;
+            if (!is_array($choices)) {
+                continue;
+            }
+            
+            $updated = false;
+            foreach ($choices as &$choice) {
+                // Get random outcomes based on choice text and action title
+                // Use the action type as category, or 'random' as fallback
+                $category = $this->mapActionTypeToCategory($action->type ?? 'random');
+                $choice['random_outcomes'] = $this->getRandomOutcomesForCategory(
+                    $category,
+                    $choice,
+                    $action->title ?? ''
+                );
+                $updated = true;
+            }
+            
+            if ($updated) {
+                $action->choices = $choices;
+                $action->save();
+            }
+        }
+    }
+
+    /**
+     * Map action type to event category for random outcomes
+     */
+    private function mapActionTypeToCategory(string $type): string
+    {
+        return match($type) {
+            'health' => 'health',
+            'social' => 'social',
+            'education' => 'education',
+            'career' => 'career',
+            'creative' => 'creative',
+            'competition' => 'competition',
+            default => 'random',
+        };
     }
 
     /**
@@ -485,6 +537,84 @@ class RandomOutcomeSeeder extends Seeder
                             'type' => 'negative',
                             'chance' => 25,
                             'stat_effects' => ['Health' => -10, 'Burnout' => 5]
+                        ]
+                    ];
+                } elseif (in_array('eat', $keywords) || in_array('food', $keywords) || in_array('meal', $keywords) || in_array('breakfast', $keywords) || in_array('lunch', $keywords) || in_array('dinner', $keywords) || in_array('cook', $keywords) || in_array('vegetable', $keywords) || in_array('fruit', $keywords) || in_array('meat', $keywords)) {
+                    // Eating/Food related choices
+                    $outcomes = [
+                        [
+                            'name' => 'Food Poisoning',
+                            'description' => 'You accidentally ate something bad and get sick',
+                            'type' => 'negative',
+                            'chance' => 15,
+                            'stat_effects' => ['Health' => -10, 'Happiness' => -5]
+                        ],
+                        [
+                            'name' => 'Extra Energy',
+                            'description' => 'The meal gives you unexpected energy',
+                            'type' => 'positive',
+                            'chance' => 25,
+                            'stat_effects' => ['Health' => 5, 'Happiness' => 3]
+                        ],
+                        [
+                            'name' => 'Delicious Surprise',
+                            'description' => 'The food was even better than expected',
+                            'type' => 'positive',
+                            'chance' => 20,
+                            'stat_effects' => ['Happiness' => 5, 'Reputation' => 2]
+                        ],
+                        [
+                            'name' => 'Upset Stomach',
+                            'description' => 'Something doesn\'t agree with you',
+                            'type' => 'negative',
+                            'chance' => 20,
+                            'stat_effects' => ['Health' => -4, 'Happiness' => -3]
+                        ],
+                        [
+                            'name' => 'Nutritious Boost',
+                            'description' => 'You feel the health benefits of good nutrition',
+                            'type' => 'positive',
+                            'chance' => 30,
+                            'stat_effects' => ['Health' => 6, 'Discipline' => 2]
+                        ]
+                    ];
+                } elseif (in_array('sleep', $keywords) || in_array('nap', $keywords) || in_array('rest', $keywords) || in_array('bed', $keywords) || in_array('wake', $keywords) || in_array('sleeping', $keywords)) {
+                    // Sleeping/Rest related choices
+                    $outcomes = [
+                        [
+                            'name' => 'Overslept',
+                            'description' => 'You slept too long and wasted precious time',
+                            'type' => 'negative',
+                            'chance' => 20,
+                            'stat_effects' => ['Discipline' => -3, 'Happiness' => -2]
+                        ],
+                        [
+                            'name' => 'Fully Rested',
+                            'description' => 'You wake up feeling completely refreshed',
+                            'type' => 'positive',
+                            'chance' => 30,
+                            'stat_effects' => ['Health' => 6, 'Happiness' => 5, 'Discipline' => 2]
+                        ],
+                        [
+                            'name' => 'Vivid Dream',
+                            'description' => 'You had an interesting dream that stays with you',
+                            'type' => 'neutral',
+                            'chance' => 15,
+                            'stat_effects' => ['Creativity' => 3, 'Happiness' => 2]
+                        ],
+                        [
+                            'name' => 'Nightmare',
+                            'description' => 'A bad dream disturbs your rest',
+                            'type' => 'negative',
+                            'chance' => 15,
+                            'stat_effects' => ['Happiness' => -4, 'Burnout' => 2]
+                        ],
+                        [
+                            'name' => 'Productive Rest',
+                            'description' => 'You feel rejuvenated and ready for anything',
+                            'type' => 'positive',
+                            'chance' => 25,
+                            'stat_effects' => ['Health' => 4, 'Intelligence' => 2]
                         ]
                     ];
                 } else {
@@ -2189,36 +2319,211 @@ class RandomOutcomeSeeder extends Seeder
                 
             case 'random':
             default:
-                $outcomes = [
-                    [
-                        'name' => 'Lucky Break',
-                        'description' => 'Fortune smiles upon you',
-                        'type' => 'positive',
-                        'chance' => 25,
-                        'stat_effects' => ['Luck' => 10, 'Happiness' => 3]
-                    ],
-                    [
-                        'name' => 'Misfortune',
-                        'description' => 'Something unexpected goes wrong',
-                        'type' => 'negative',
-                        'chance' => 25,
-                        'stat_effects' => ['Happiness' => -5, 'Health' => -3]
-                    ],
-                    [
-                        'name' => 'Serendipity',
-                        'description' => 'A fortunate coincidence occurs',
-                        'type' => 'positive',
-                        'chance' => 15,
-                        'stat_effects' => ['Luck' => 5, 'Reputation' => 2]
-                    ],
-                    [
-                        'name' => 'Setback',
-                        'description' => 'Unexpected obstacles appear',
-                        'type' => 'negative',
-                        'chance' => 20,
-                        'stat_effects' => ['Discipline' => -3, 'Wealth' => -2]
-                    ]
-                ];
+                // Handle additional daily action keywords - shopping, cleaning, entertainment, traveling, etc.
+                if (in_array('shop', $keywords) || in_array('buy', $keywords) || in_array('market', $keywords) || in_array('store', $keywords) || in_array('purchase', $keywords)) {
+                    // Shopping related choices
+                    $outcomes = [
+                        [
+                            'name' => 'Great Find',
+                            'description' => 'You find exactly what you were looking for at a great price',
+                            'type' => 'positive',
+                            'chance' => 25,
+                            'stat_effects' => ['Happiness' => 5, 'Wealth' => 3]
+                        ],
+                        [
+                            'name' => 'Buyer\'s Remorse',
+                            'description' => 'You spend more than you wanted to',
+                            'type' => 'negative',
+                            'chance' => 20,
+                            'stat_effects' => ['Wealth' => -5, 'Happiness' => -3]
+                        ],
+                        [
+                            'name' => 'Perfect Match',
+                            'description' => 'The item is even better than expected',
+                            'type' => 'positive',
+                            'chance' => 20,
+                            'stat_effects' => ['Happiness' => 6, 'Reputation' => 2]
+                        ],
+                        [
+                            'name' => 'Scam',
+                            'description' => 'You realize you were scammed',
+                            'type' => 'negative',
+                            'chance' => 10,
+                            'stat_effects' => ['Wealth' => -8, 'Happiness' => -5]
+                        ]
+                    ];
+                } elseif (in_array('clean', $keywords) || in_array('wash', $keywords) || in_array('tidy', $keywords) || in_array('shower', $keywords) || in_array('bath', $keywords) || in_array('brush', $keywords)) {
+                    // Cleaning/Hygiene related choices
+                    $outcomes = [
+                        [
+                            'name' => 'Sparkling Clean',
+                            'description' => 'Everything is perfectly clean and fresh',
+                            'type' => 'positive',
+                            'chance' => 30,
+                            'stat_effects' => ['Health' => 5, 'Happiness' => 3]
+                        ],
+                        [
+                            'name' => 'Accident',
+                            'description' => 'Something goes wrong during cleaning',
+                            'type' => 'negative',
+                            'chance' => 15,
+                            'stat_effects' => ['Health' => -3, 'Wealth' => -2]
+                        ],
+                        [
+                            'name' => 'Surprise Clean',
+                            'description' => 'You find something valuable while cleaning',
+                            'type' => 'positive',
+                            'chance' => 15,
+                            'stat_effects' => ['Wealth' => 5, 'Happiness' => 3]
+                        ]
+                    ];
+                } elseif (in_array('watch', $keywords) || in_array('movie', $keywords) || in_array('game', $keywords) || in_array('play', $keywords) || in_array('tv', $keywords) || in_array('film', $keywords) || in_array('netflix', $keywords) || in_array('youtube', $keywords)) {
+                    // Entertainment related choices
+                    $outcomes = [
+                        [
+                            'name' => 'Great Entertainment',
+                            'description' => 'You really enjoy the entertainment',
+                            'type' => 'positive',
+                            'chance' => 30,
+                            'stat_effects' => ['Happiness' => 6, 'Creativity' => 2]
+                        ],
+                        [
+                            'name' => 'Bored',
+                            'description' => 'It\'s not as interesting as you hoped',
+                            'type' => 'negative',
+                            'chance' => 20,
+                            'stat_effects' => ['Happiness' => -3, 'Burnout' => 2]
+                        ],
+                        [
+                            'name' => 'Addicted',
+                            'description' => 'You spend too much time on it',
+                            'type' => 'negative',
+                            'chance' => 15,
+                            'stat_effects' => ['Discipline' => -4, 'Burnout' => 3]
+                        ],
+                        [
+                            'name' => 'Hidden Gem',
+                            'description' => 'You discover something amazing',
+                            'type' => 'positive',
+                            'chance' => 20,
+                            'stat_effects' => ['Creativity' => 5, 'Intelligence' => 3]
+                        ]
+                    ];
+                } elseif (in_array('travel', $keywords) || in_array('trip', $keywords) || in_array('journey', $keywords) || in_array('visit', $keywords) || in_array('go', $keywords) || in_array('vacation', $keywords) || in_array('holiday', $keywords)) {
+                    // Traveling related choices
+                    $outcomes = [
+                        [
+                            'name' => 'Smooth Journey',
+                            'description' => 'Everything goes perfectly',
+                            'type' => 'positive',
+                            'chance' => 30,
+                            'stat_effects' => ['Happiness' => 8, 'Reputation' => 3]
+                        ],
+                        [
+                            'name' => 'Travel Delay',
+                            'description' => 'Your trip is delayed or interrupted',
+                            'type' => 'negative',
+                            'chance' => 25,
+                            'stat_effects' => ['Happiness' => -4, 'Discipline' => -2]
+                        ],
+                        [
+                            'name' => 'Unexpected Adventure',
+                            'description' => 'Something exciting happens along the way',
+                            'type' => 'positive',
+                            'chance' => 20,
+                            'stat_effects' => ['Luck' => 5, 'Happiness' => 4]
+                        ],
+                        [
+                            'name' => 'Lost',
+                            'description' => 'You get lost and waste time',
+                            'type' => 'negative',
+                            'chance' => 15,
+                            'stat_effects' => ['Happiness' => -5, 'Wealth' => -2]
+                        ]
+                    ];
+                } elseif (in_array('talk', $keywords) || in_array('chat', $keywords) || in_array('call', $keywords) || in_array('hang', $keywords) || in_array('meet', $keywords)) {
+                    // Communication related choices
+                    $outcomes = [
+                        [
+                            'name' => 'Great Conversation',
+                            'description' => 'You have a wonderful chat',
+                            'type' => 'positive',
+                            'chance' => 30,
+                            'stat_effects' => ['Happiness' => 6, 'Reputation' => 2]
+                        ],
+                        [
+                            'name' => 'Awkward Silence',
+                            'description' => 'The conversation falls flat',
+                            'type' => 'negative',
+                            'chance' => 20,
+                            'stat_effects' => ['Happiness' => -3, 'Isolation' => 2]
+                        ],
+                        [
+                            'name' => 'New Insight',
+                            'description' => 'You learn something valuable',
+                            'type' => 'positive',
+                            'chance' => 25,
+                            'stat_effects' => ['Intelligence' => 4, 'Happiness' => 3]
+                        ]
+                    ];
+                } elseif (in_array('relax', $keywords) || in_array('vacation', $keywords) || in_array('holiday', $keywords) || in_array('leisure', $keywords) || in_array('unwind', $keywords)) {
+                    // Relaxation related choices
+                    $outcomes = [
+                        [
+                            'name' => 'Perfect Relaxation',
+                            'description' => 'You feel completely refreshed',
+                            'type' => 'positive',
+                            'chance' => 35,
+                            'stat_effects' => ['Health' => 6, 'Happiness' => 5, 'Burnout' => -3]
+                        ],
+                        [
+                            'name' => 'Interrupted',
+                            'description' => 'Someone disturbs your peace',
+                            'type' => 'negative',
+                            'chance' => 20,
+                            'stat_effects' => ['Happiness' => -4, 'Burnout' => 2]
+                        ],
+                        [
+                            'name' => 'Deep Peace',
+                            'description' => 'You achieve inner calm',
+                            'type' => 'positive',
+                            'chance' => 25,
+                            'stat_effects' => ['Health' => 4, 'Morality' => 3]
+                        ]
+                    ];
+                } else {
+                    // Default random outcomes (fallback)
+                    $outcomes = [
+                        [
+                            'name' => 'Lucky Break',
+                            'description' => 'Fortune smiles upon you',
+                            'type' => 'positive',
+                            'chance' => 25,
+                            'stat_effects' => ['Luck' => 10, 'Happiness' => 3]
+                        ],
+                        [
+                            'name' => 'Misfortune',
+                            'description' => 'Something unexpected goes wrong',
+                            'type' => 'negative',
+                            'chance' => 25,
+                            'stat_effects' => ['Happiness' => -5, 'Health' => -3]
+                        ],
+                        [
+                            'name' => 'Serendipity',
+                            'description' => 'A fortunate coincidence occurs',
+                            'type' => 'positive',
+                            'chance' => 15,
+                            'stat_effects' => ['Luck' => 5, 'Reputation' => 2]
+                        ],
+                        [
+                            'name' => 'Setback',
+                            'description' => 'Unexpected obstacles appear',
+                            'type' => 'negative',
+                            'chance' => 20,
+                            'stat_effects' => ['Discipline' => -3, 'Wealth' => -2]
+                        ]
+                    ];
+                }
                 break;
         }
         
@@ -2244,6 +2549,15 @@ class RandomOutcomeSeeder extends Seeder
             'festival', 'celebration', 'holiday', 'art', 'museum', 'music', 'dance',
             'food', 'cuisine', 'restaurant', 'culture', 'tradition', 'heritage',
             'theater', 'concert', 'exhibition', 'cultural',
+            // NEW: Daily action keywords
+            'eat', 'meal', 'breakfast', 'lunch', 'dinner', 'cook', 'vegetable', 'fruit', 'meat', 'fast food', 'healthy', 'junk',
+            'sleep', 'nap', 'rest', 'bed', 'wake', 'sleeping',
+            'shop', 'buy', 'market', 'store', 'purchase',
+            'clean', 'wash', 'tidy', 'shower', 'bath', 'brush',
+            'watch', 'movie', 'game', 'play', 'tv', 'film', 'netflix', 'youtube',
+            'travel', 'trip', 'journey', 'visit', 'vacation',
+            'relax', 'leisure', 'unwind',
+            'chat', 'call', 'hang',
             // Profession keywords
             'medical', 'doctor', 'nurse', 'health', 'legal', 'lawyer', 'court', 'judge',
             'tech', 'engineer', 'developer', 'code', 'business', 'entrepreneur', 'company',

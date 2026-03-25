@@ -23,6 +23,9 @@ class DailyAction extends Model
         'choices',
         'conditions',
         'display_order',
+        'mini_game_type',
+        'mini_game_difficulty',
+        'mini_game_category',
     ];
 
     protected $casts = [
@@ -33,6 +36,7 @@ class DailyAction extends Model
         'display_order' => 'integer',
         'choices' => 'array',
         'conditions' => 'array',
+        'mini_game_difficulty' => 'integer',
     ];
 
     /**
@@ -391,6 +395,10 @@ class DailyAction extends Model
             'weight' => $this->weight,
             'auto_resolve' => $this->auto_resolve,
             'days_to_advance' => $this->days_to_advance,
+            // Mini-game fields for skill learning events
+            'mini_game' => $this->mini_game_type,
+            'mini_game_difficulty' => $this->mini_game_difficulty,
+            'mini_game_category' => $this->mini_game_category,
         ];
     }
 

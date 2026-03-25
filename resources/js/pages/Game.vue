@@ -32,37 +32,6 @@
                 <v-img :src="character.image" alt="player portrait" class="character-avatar" />
                 <div class="avatar-ring"></div>
               </div>
-              
-              <!-- Action Buttons Below Avatar -->
-              <div class="avatar-actions">
-                <v-btn
-                  size="x-small"
-                  class="retro-btn"
-                  prepend-icon="mdi-pencil"
-                  @click="editProfile"
-                >
-                  Edit
-                </v-btn>
-                <v-btn
-                  size="x-small"
-                  class="retro-btn"
-                  color="warning"
-                  prepend-icon="mdi-floppy"
-                  @click="saveGame"
-                  :loading="isSavingGame"
-                >
-                  Save
-                </v-btn>
-                <v-btn
-                  size="x-small"
-                  class="retro-btn"
-                  color="error"
-                  prepend-icon="mdi-power"
-                  @click="logout"
-                >
-                  Exit
-                </v-btn>
-              </div>
             </div>
             
             <!-- RIGHT COLUMN: Info -->
@@ -70,7 +39,14 @@
               <!-- NAME AND META ROW -->
               <div class="character-header-row">
                 <div class="character-info">
-                  <h2 class="character-name">{{ character.name }}</h2>
+                  <div class="character-name-row">
+                    <h2 class="character-name">{{ character.name }}</h2>
+                    <!-- Health Status Display - Right of name -->
+                    <div v-if="character.healthStatus" class="health-status-badge-inline" :class="getHealthStatusClass(character.healthStatus)">
+                      <v-icon size="14">{{ getHealthStatusIcon(character.healthStatus) }}</v-icon>
+                      <span>{{ healthStatusLabel }}</span>
+                    </div>
+                  </div>
                   <div class="character-meta">
                     <span class="meta-badge">{{ character.ageGroup }}</span>
                     <span class="meta-badge gender-badge">{{ character.gender }}</span>
@@ -81,6 +57,71 @@
                       {{ formatRelationshipStatus(character.relationshipStatus) }}
                     </span>
                   </div>
+                </div>
+                <div class="header-actions">
+                  <v-btn
+                    size="x-small"
+                    class="retro-btn"
+                    @click="showStatsDialog = true"
+                    prepend-icon="mdi-chart-box"
+                    color="purple"
+                  >
+                    All Stats
+                  </v-btn>
+                  <v-btn
+                    size="x-small"
+                    class="retro-btn"
+                    @click="toggleStats"
+                    prepend-icon="mdi-account"
+                    :color="showStats ? 'warning' : 'info'"
+                  >
+                    {{ showStats ? 'Hide Skills' : 'Show Skills' }}
+                  </v-btn>
+                  <v-btn
+                    size="x-small"
+                    class="retro-btn"
+                    color="info"
+                    prepend-icon="mdi-book-open-variant"
+                    @click="showStoryRecap = true"
+                  >
+                    Story
+                  </v-btn>
+                  <v-btn
+                    size="x-small"
+                    class="retro-btn"
+                    color="success"
+                    prepend-icon="mdi-help-circle"
+                    @click="showHowToPlay = true"
+                  >
+                    Help
+                  </v-btn>
+                  <v-btn
+                    size="x-small"
+                    class="retro-btn"
+                    prepend-icon="mdi-pencil"
+                    @click="editProfile"
+                  >
+                    Edit
+                  </v-btn>
+                  <v-btn
+                    size="x-small"
+                    class="retro-btn"
+                    color="warning"
+                    prepend-icon="mdi-floppy"
+                    @click="saveGame"
+                    :loading="isSavingGame"
+                  >
+                    Save
+                  </v-btn>
+                  <v-btn
+                    size="x-small"
+                    class="retro-btn"
+                    color="error"
+                    prepend-icon="mdi-power"
+                    @click="logout"
+                  >
+                    Exit
+                  </v-btn>
                 </div>
               </div>
               
@@ -104,81 +145,29 @@
               <!-- STATUS AND ACTIONS ROW -->
               <div class="character-footer-row">
                 <div class="status-section">
-                  <v-btn
-                    size="x-small"
-                    class="retro-btn"
-                    @click="showStatsDialog = true"
-                    prepend-icon="mdi-chart-box"
-                    color="purple"
-                  >
-                    All Stats
-                  </v-btn>
-                  <v-btn
-                    size="x-small"
-                    class="retro-btn"
-                    @click="toggleStats"
-                    prepend-icon="mdi-account"
-                    :color="showStats ? 'warning' : 'info'"
-                  >
-                    {{ showStats ? 'Hide Skills' : 'Show Skills' }}
-                  </v-btn>
-                  <v-btn
-                    size="x-small"
-                    class="retro-btn"
-                    color="success"
-                    prepend-icon="mdi-help-circle"
-                    @click="showHowToPlay = true"
-                  >
-                    Help
-                  </v-btn>
-                  
-                  <!-- Health Status Display -->
-                  <div v-if="character.healthStatus" class="health-status-badge" :class="getHealthStatusClass(character.healthStatus)">
-                    <v-icon size="16">{{ getHealthStatusIcon(character.healthStatus) }}</v-icon>
-                    <span>{{ healthStatusLabel }}</span>
-                  </div>
                 </div>
               </div>
               
-              <!-- State Strip -->
+              <!-- State Strip - Balanced: Show narrative + path + key consequences -->
               <div v-if="currentNarrativeLabel || activePathBadges.length || activeConsequenceBadges.length" class="state-strip">
                 <div v-if="currentNarrativeLabel" class="state-pill narrative-pill">
                   <v-icon size="14">mdi-source-branch</v-icon>
                   <span>{{ currentNarrativeLabel }}</span>
                 </div>
-                <div v-for="path in activePathBadges" :key="`path-${path}`" class="state-pill path-pill">
+                <!-- Show first active path if exists -->
+                <div v-if="activePathBadges.length > 0" class="state-pill path-pill">
                   <v-icon size="14">mdi-map-marker-path</v-icon>
-                  <span>{{ path }}</span>
+                  <span>{{ activePathBadges[0] }}</span>
                 </div>
-                <div v-for="flag in activeConsequenceBadges" :key="`flag-${flag.key}`" class="state-pill consequence-pill">
+                <!-- Show up to 2 key consequences -->
+                <div v-for="(flag, idx) in activeConsequenceBadges.slice(0, 2)" :key="`cf-${idx}`" class="state-pill consequence-pill">
                   <v-icon size="14">{{ flag.icon }}</v-icon>
                   <span>{{ flag.label }}</span>
                 </div>
+                <!-- More consequences in Story Recap -->
               </div>
             </div>
-            
-            <!-- Story Paths - Below Card -->
-            <div v-if="pathProgressBadges.length > 0" class="path-progress-strip">
-              <div class="path-progress-title">
-                <v-icon size="14">mdi-timeline-outline</v-icon>
-                <span>Story Paths</span>
-              </div>
-              <div class="path-progress-list">
-                <div 
-                  v-for="p in pathProgressBadges" 
-                  :key="`progress-${p.path}`"
-                  class="path-progress-item"
-                  :class="{ 'active-path': p.isActive, 'current-path': p.isCurrent, 'inactive-path': !p.isActive }"
-                >
-                  <div class="path-name">{{ p.label }}</div>
-                  <div class="path-stage">{{ p.stage }}</div>
-                  <div class="path-bar-container">
-                    <div class="path-bar" :style="{ width: p.progressPercent + '%' }"></div>
-                  </div>
-                  <div class="path-stage-info">{{ p.stageIndex }}/{{ p.totalStages }}</div>
-                </div>
-              </div>
-            </div>
+
           </div>
 
           <v-expand-transition>
@@ -258,24 +247,7 @@
           </div>
         </div>
 
-        <div v-if="activeConsequenceBadges.length > 0" class="memory-panel-enhanced life-pressure-panel">
-          <div class="memory-header">
-            <div class="d-flex align-center ga-2">
-              <v-icon class="memory-title">mdi-pulse</v-icon>
-              <h4 class="memory-title">ACTIVE LIFE PRESSURES</h4>
-            </div>
-            <span class="pressure-arc" v-if="currentNarrativeLabel">{{ currentNarrativeLabel }}</span>
-          </div>
-          <div class="pressure-grid">
-            <div v-for="flag in activeConsequenceBadges" :key="`pressure-${flag.key}`" class="pressure-card">
-              <div class="pressure-card-header">
-                <v-icon size="16">{{ flag.icon }}</v-icon>
-                <span>{{ flag.label }}</span>
-              </div>
-              <p class="pressure-card-copy">{{ flag.description }}</p>
-            </div>
-          </div>
-        </div>
+        <!-- Life Pressures now shown in Story Recap Dialog - consolidated -->
 
         <div class="action-section">
           <div class="action-buttons">
@@ -333,6 +305,9 @@
                 <div class="card-visual">
                   <v-img :src="event.image" cover class="card-img" />
                   <div class="card-type-badge skill">Skill</div>
+                  <div v-if="event.mini_game" class="mini-game-badge" title="This event has a mini-game">
+                    <v-icon size="14" color="#00ffcc">mdi-gamepad-variant</v-icon>
+                  </div>
                 </div>
                 <div class="card-content">
                   <h4 class="card-title">{{ event.title }}</h4>
@@ -360,6 +335,9 @@
                 <div class="card-visual">
                   <v-img :src="event.image" cover class="card-img" />
                   <div class="card-type-badge" :class="getCardBadgeClass(event)">{{ getCardBadgeLabel(event) }}</div>
+                  <div v-if="event.mini_game" class="mini-game-badge" title="This event has a mini-game">
+                    <v-icon size="14" color="#00ffcc">mdi-gamepad-variant</v-icon>
+                  </div>
                 </div>
                 <div class="card-content">
                   <h4 class="card-title">{{ event.title }}</h4>
@@ -387,6 +365,9 @@
                 <div class="card-visual">
                   <v-img :src="event.image" cover class="card-img" />
                   <div class="card-type-badge" :class="getCardBadgeClass(event)">{{ getCardBadgeLabel(event) }}</div>
+                  <div v-if="event.mini_game" class="mini-game-badge" title="This event has a mini-game">
+                    <v-icon size="14" color="#00ffcc">mdi-gamepad-variant</v-icon>
+                  </div>
                 </div>
                 <div class="card-content">
                   <h4 class="card-title">{{ event.title }}</h4>
@@ -413,6 +394,9 @@
                 <div class="card-visual">
                   <v-img :src="event.image" cover class="card-img" />
                   <div class="card-type-badge" :class="getCardBadgeClass(event)">{{ getCardBadgeLabel(event) }}</div>
+                  <div v-if="event.mini_game" class="mini-game-badge" title="This event has a mini-game">
+                    <v-icon size="14" color="#00ffcc">mdi-gamepad-variant</v-icon>
+                  </div>
                 </div>
                 <div class="card-content">
                   <h4 class="card-title">{{ event.title }}</h4>
@@ -439,6 +423,9 @@
                 <div class="card-visual">
                   <v-img :src="event.image" cover class="card-img" />
                   <div class="card-type-badge" :class="getCardBadgeClass(event)">{{ getCardBadgeLabel(event) }}</div>
+                  <div v-if="event.mini_game" class="mini-game-badge" title="This event has a mini-game">
+                    <v-icon size="14" color="#00ffcc">mdi-gamepad-variant</v-icon>
+                  </div>
                 </div>
                 <div class="card-content">
                   <h4 class="card-title">{{ event.title }}</h4>
@@ -464,6 +451,9 @@
                 <div class="card-visual">
                   <v-img :src="event.image || '/css/images/milestone.jpg'" cover class="card-img" />
                   <div class="card-type-badge" :class="getCardBadgeClass(event)">{{ getCardBadgeLabel(event) }}</div>
+                  <div v-if="event.mini_game" class="mini-game-badge" title="This event has a mini-game">
+                    <v-icon size="14" color="#00ffcc">mdi-gamepad-variant</v-icon>
+                  </div>
                 </div>
                 <div class="card-content">
                   <h4 class="card-title">{{ event.title }}</h4>
@@ -502,6 +492,9 @@
                 <div class="card-visual">
                   <v-img :src="event.image" cover class="card-img" />
                   <div class="card-type-badge" :class="getCardBadgeClass(event)">{{ getCardBadgeLabel(event) }}</div>
+                  <div v-if="event.mini_game" class="mini-game-badge" title="This event has a mini-game">
+                    <v-icon size="14" color="#00ffcc">mdi-gamepad-variant</v-icon>
+                  </div>
                 </div>
                 <div class="card-content">
                   <h4 class="card-title">{{ event.title }}</h4>
@@ -540,6 +533,9 @@
                 <div class="card-visual">
                   <v-img :src="event.image" cover class="card-img" />
                   <div class="card-type-badge" :class="getCardBadgeClass(event)">{{ getCardBadgeLabel(event) }}</div>
+                  <div v-if="event.mini_game" class="mini-game-badge" title="This event has a mini-game">
+                    <v-icon size="14" color="#00ffcc">mdi-gamepad-variant</v-icon>
+                  </div>
                 </div>
                 <div class="card-content">
                   <h4 class="card-title">{{ event.title }}</h4>
@@ -578,6 +574,9 @@
                 <div class="card-visual">
                   <v-img :src="event.image" cover class="card-img" />
                   <div class="card-type-badge" :class="getCardBadgeClass(event)">{{ getCardBadgeLabel(event) }}</div>
+                  <div v-if="event.mini_game" class="mini-game-badge" title="This event has a mini-game">
+                    <v-icon size="14" color="#00ffcc">mdi-gamepad-variant</v-icon>
+                  </div>
                 </div>
                 <div class="card-content">
                   <h4 class="card-title">{{ event.title }}</h4>
@@ -616,6 +615,9 @@
                 <div class="card-visual">
                   <v-img :src="event.image" cover class="card-img" />
                   <div class="card-type-badge" :class="getCardBadgeClass(event)">{{ getCardBadgeLabel(event) }}</div>
+                  <div v-if="event.mini_game" class="mini-game-badge" title="This event has a mini-game">
+                    <v-icon size="14" color="#00ffcc">mdi-gamepad-variant</v-icon>
+                  </div>
                 </div>
                 <div class="card-content">
                   <h4 class="card-title">{{ event.title }}</h4>
@@ -691,6 +693,9 @@
           </div>
         </div>
         <v-card-text class="dialog-text px-6 py-4">
+          <p v-if="selectedEvent.narrative_description" class="text-body1 mb-3 text-center narrative-text">
+            {{ selectedEvent.narrative_description }}
+          </p>
           <p class="text-body1 mb-6 text-center">{{ selectedEvent.description }}</p>
 
           <div v-if="selectedEventMeta.length > 0" class="selected-event-meta">
@@ -699,6 +704,10 @@
           
           <div v-if="selectedEvent.choices && selectedEvent.choices.length > 0" class="choices-container">
             <p class="text-subtitle2 mb-4 text-center choices-title">How will you respond?</p>
+            <div v-if="selectedEvent.mini_game" class="mini-game-indicator mb-3">
+              <v-icon size="18" color="#00ffcc">mdi-gamepad-variant</v-icon>
+              <span class="ml-2">This event includes a mini-game!</span>
+            </div>
             <div class="d-flex flex-column gap-3">
               <v-btn
                 v-for="(choice, idx) in selectedEvent.choices"
@@ -708,28 +717,21 @@
                 class="choice-btn"
                 :class="{ 
                   'choice-with-effects': choice.stat_effects || choice.outcomes,
-                  'choice-locked': choice.is_locked
+                  'choice-locked': choice.is_locked,
+                  'choice-with-minigame': selectedEvent.mini_game
                 }"
                 @click="handleChoiceClick(idx)"
                 :disabled="applyingOutcome || choice.is_locked"
               >
                 <div class="choice-btn-content">
-                  <span v-if="choice.is_locked" class="locked-indicator">
-                    <v-icon size="14">mdi-lock</v-icon>
+                  <span v-if="choice.is_locked" class="locked-indicator" :title="choice.lock_reason || 'Requires previous choice'">
+                    <v-icon size="16">mdi-chain</v-icon>
+                  </span>
+                  <span v-if="selectedEvent.mini_game && !choice.is_locked" class="mini-game-icon mr-2" title="This choice will trigger a mini-game">
+                    <v-icon size="16" color="#00ffcc">mdi-gamepad-variant</v-icon>
                   </span>
                   <span class="choice-btn-label">{{ formatChoiceLabel(choice) }}</span>
-                  <!-- Consequence Preview -->
-                  <div v-if="choice.stat_effects || getChoiceOutcomes(choice).length > 0" class="choice-effects-preview">
-                    <div v-if="choice.stat_effects" class="stat-effects-text">
-                      {{ formatStatEffects(choice.stat_effects) }}
-                    </div>
-                    <div v-if="getChoiceOutcomes(choice).length > 0" class="outcome-preview">
-                      <span class="outcome-label">Outcomes:</span>
-                      <span v-for="(outcome, oi) in getChoiceOutcomes(choice).slice(0, 2)" :key="oi" class="outcome-badge" :class="outcome.tier">
-                        {{ outcome.tier }}
-                      </span>
-                    </div>
-                  </div>
+                  <span v-if="choice.is_locked" class="locked-text">LOCKED</span>
                 </div>
               </v-btn>
             </div>
@@ -1015,6 +1017,90 @@
           >
             <v-icon left>mdi-play</v-icon>
             LET'S PLAY!
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Story Recap Dialog -->
+    <v-dialog v-model="showStoryRecap" max-width="700" max-height="85vh" persistent rounded="0" content-class="story-dialog-content">
+      <v-card class="retro-pixel-card" style="min-height: 400px; max-height: 85vh; overflow-y: auto; image-rendering: pixelated;">
+        <v-card-title class="story-recap-title" style="font-size: 1.8rem; padding: 20px; text-align: center;">
+          📖 STORY RECAP
+        </v-card-title>
+        <v-card-subtitle class="text-center mb-4" style="font-size: 1rem; color: #9e9e9e;">
+          Your narrative journey so far
+        </v-card-subtitle>
+        <v-card-text>
+          <div v-if="pathProgressBadges.length === 0" class="text-center pa-6">
+            <v-icon size="64" color="grey">mdi-book-off</v-icon>
+            <p class="mt-4" style="font-size: 1.1rem; color: #9e9e9e;">No story paths started yet</p>
+            <p style="color: #757575;">Make choices to begin your journey</p>
+          </div>
+          <div v-else class="path-progress-grid">
+            <div 
+              v-for="path in pathProgressBadges" 
+              :key="path.path"
+              class="path-progress-card"
+              :class="{ 'active-path': path.isActive, 'current-path': path.isCurrent }"
+            >
+              <div class="path-header">
+                <span class="path-icon">{{ getPathIcon(path.path) }}</span>
+                <span class="path-label">{{ path.label }}</span>
+                <v-chip 
+                  v-if="path.isCurrent" 
+                  size="x-small" 
+                  color="warning" 
+                  class="ml-2"
+                >
+                  Current
+                </v-chip>
+                <v-chip 
+                  v-else-if="path.isActive" 
+                  size="x-small" 
+                  color="info" 
+                  class="ml-2"
+                >
+                  Active
+                </v-chip>
+              </div>
+              <div class="path-progress-bar-container">
+                <div class="path-progress-bar" :style="{ width: path.progressPercent + '%' }"></div>
+              </div>
+              <div class="path-stage-info">
+                Stage {{ path.stageIndex + 1 }} of {{ path.totalStages }}: <strong>{{ path.stage }}</strong>
+                <span class="path-percentage">({{ path.progressPercent }}%)</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Active Consequences Summary -->
+          <div v-if="activeConsequenceBadges.length > 0" class="mt-6">
+            <v-divider class="mb-4"></v-divider>
+            <h4 style="text-align: center; margin-bottom: 12px; color: #ff7043;">🔥 Active Story Effects</h4>
+            <div class="consequence-badges">
+              <v-chip 
+                v-for="badge in activeConsequenceBadges" 
+                :key="badge.key"
+                :color="badge.color || 'error'"
+                size="small"
+                class="ma-1"
+              >
+                {{ badge.label || badge.key }}
+              </v-chip>
+            </div>
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn 
+            class="retro-btn" 
+            color="primary" 
+            @click="showStoryRecap = false"
+            style="font-size: 1rem; padding: 12px 40px;"
+          >
+            <v-icon left>mdi-check</v-icon>
+            Got it!
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -1478,9 +1564,26 @@ const formatBadgeLabel = (value) => {
     .replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
+const getPathIcon = (path) => {
+  const icons = {
+    'education': '🎓',
+    'career': '💼',
+    'family': '👨‍👩‍👧',
+    'health': '❤️',
+    'wealth': '💰',
+    'social': '🤝',
+    'adventure': '🗺️',
+    'creativity': '🎨',
+    'spirituality': '🧘',
+    'legacy': '🏛️'
+  }
+  return icons[path] || '⭐'
+}
+
 const formatNarrativeLabel = (value) => {
   if (!value) return ''
-  return `Arc: ${formatBadgeLabel(value)}`
+  // Just show the clean label without "Arc:" prefix
+  return formatBadgeLabel(value)
 }
 
 const normalizeEventsPayload = (data = {}) => ({
@@ -1583,6 +1686,7 @@ const getRouteCharacterId = () => {
 const loading = ref(false)
 const showStats = ref(false)
 const showHowToPlay = ref(false)
+const showStoryRecap = ref(false)
 const selectedEvent = ref(null)
 const showEventDialog = ref(false)
 const applyingOutcome = ref(false)
@@ -1776,7 +1880,8 @@ const pathProgressBadges = computed(() => {
     totalStages: p.total_stages,
     isActive: p.is_active,
     isCurrent: p.is_current,
-    progressPercent: p.total_stages > 0 ? Math.round((p.stage_index / p.total_stages) * 100) : 0
+    // Use backend-calculated progress_percent if available, otherwise calculate locally
+    progressPercent: p.progress_percent ?? (p.total_stages > 0 ? Math.round((p.stage_index / p.total_stages) * 100) : 0)
   }))
 })
 
@@ -2109,14 +2214,14 @@ const onDialogClosed = () => {
 
 // Mini-game functions
 const triggerMiniGame = async (event, choice, choiceIndex) => {
-  const miniGameType = choice.mini_game || event.mini_game
-  if (!miniGameType) return null
+  const gameType = choice.mini_game || event.mini_game
+  if (!gameType) return null
   
   const difficulty = choice.mini_game_difficulty || event.mini_game_difficulty || 1
   const category = choice.category || 'career'
   
   try {
-    const response = await fetch(`/api/characters/${character.value.id}/mini-game?game_type=${miniGameType}&difficulty=${difficulty}&category=${category}&event_id=${event.id}&event_type=${event.type}`, {
+    const response = await fetch(`/api/characters/${character.value.id}/mini-game?game_type=${gameType}&difficulty=${difficulty}&category=${category}&event_id=${event.id}&event_type=${event.type}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json'
@@ -2131,7 +2236,7 @@ const triggerMiniGame = async (event, choice, choiceIndex) => {
     pendingChoiceApply.value = { choiceIndex, choice, event }
     
     // Open mini-game dialog
-    miniGameType.value = miniGameType
+    miniGameType.value = gameType
     miniGameData.value = data.game_data
     miniGameEventId.value = event.id
     miniGameEventType.value = event.type
@@ -2168,13 +2273,89 @@ const handleMiniGameComplete = (result) => {
 }
 
 const applyChoiceWithEffects = async (choiceIndex, additionalEffects = {}, message = '') => {
-  // Similar to applyChoice but merges the additional effects
+  // Similar to applyChoice but merges the additional effects from mini-game
   if (!selectedEvent.value) return
   
-  // This is a simplified version - in reality you'd call the API with modified effects
-  // For now, we'll let the main applyChoice handle it but show the message
-  if (message) {
-    narrationHistory.value.push(`🎮 ${message}`)
+  try {
+    applyingOutcome.value = true
+    
+    const choice = selectedEvent.value.choices[choiceIndex]
+    const choiceText = choice?.text || 'Accept'
+    
+    // Get the mini-game score from the pending choice
+    const miniGameScore = choice._miniGameScore ?? null
+    
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+    
+    const response = await fetch(`/api/characters/${character.value.id}/apply-event`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': csrfToken || ''
+      },
+      body: JSON.stringify({
+        event_type: selectedEvent.value.type,
+        event_id: selectedEvent.value.id,
+        choice_index: choiceIndex,
+        mini_game_score: miniGameScore
+      }),
+      credentials: 'include'
+    })
+    
+    // Check if response is ok, if not throw detailed error
+    if (!response.ok) {
+      let errorMessage = 'Failed to apply event outcome'
+      try {
+        const errorData = await response.json()
+        errorMessage = errorData.message || errorData.error || errorMessage
+        console.error('Server error details:', errorData)
+      } catch (e) {
+        console.error('Error response:', response.status, response.statusText)
+      }
+      throw new Error(errorMessage)
+    }
+    
+    const data = await response.json()
+    console.log('Apply choice with effects response:', data)
+    
+    // Show mini-game message if any
+    if (message) {
+      narrationHistory.value.push(`🎮 ${message}`)
+    }
+    
+    // Update character stats - create new object to trigger Vue reactivity
+    if (data.character || data.character_state || data.active_paths || data.narrative_path) {
+      // Update skills and talents if they changed
+      if (data.skills) {
+        character.value.skills = data.skills
+      }
+      if (data.talents) {
+        character.value.talents = data.talents
+      }
+      // Update relationship status and social connections if changed
+      if (data.character?.relationship_status) {
+        character.value.relationshipStatus = data.character.relationship_status
+      }
+      if (data.character?.social_connections) {
+        character.value.socialConnections = data.character.social_connections
+      }
+      syncCharacterRuntime({
+        ...data,
+        narrative: data.narrative || data.outcome || `${choiceText} - ${message || 'Completed'}`
+      })
+    }
+    
+    // Close the event dialog and refresh events
+    selectedEvent.value = null
+    showEventDialog.value = false
+    await fetchEvents()
+    
+  } catch (error) {
+    console.error('Error applying choice with effects:', error)
+    narrationHistory.value.push(`❌ Error: ${error.message}`)
+  } finally {
+    applyingOutcome.value = false
   }
 }
 
@@ -2182,16 +2363,22 @@ const applyChoiceWithEffects = async (choiceIndex, additionalEffects = {}, messa
  * Check if event/choice has mini-game
  */
 const hasMiniGame = (event, choice) => {
-  return !!(choice?.mini_game || event?.mini_game)
+  const hasGame = !!(choice?.mini_game || event?.mini_game)
+  console.log('hasMiniGame check:', { eventMiniGame: event?.mini_game, choiceMiniGame: choice?.mini_game, result: hasGame })
+  return hasGame
 }
 
 /**
  * Handle choice click - check for mini-game first
  */
 const handleChoiceClick = async (choiceIndex) => {
+  console.log('DEBUG: handleChoiceClick called', { choiceIndex, event: selectedEvent.value, choices: selectedEvent.value?.choices })
   if (!selectedEvent.value) return
   
   const choice = selectedEvent.value.choices[choiceIndex]
+  console.log('DEBUG: Choice clicked:', choice)
+  console.log('DEBUG: Event mini_game:', selectedEvent.value.mini_game)
+  console.log('DEBUG: Choice mini_game:', choice?.mini_game)
   
   // Check if this choice has a mini-game
   const hasMiniGameNow = await checkAndTriggerMiniGame(selectedEvent.value, choice, choiceIndex)
@@ -2318,6 +2505,22 @@ const applyChoice = async (choiceIndex) => {
         .map(([stat, value]) => `${value > 0 ? '+' : ''}${value} ${stat}`)
         .join(', ')
       narrationHistory.value.push(`Effects: ${effectsText}`)
+    }
+    
+    // Handle random outcome - show to player!
+    if (data.random_outcome && data.random_outcome.occurred) {
+      const ro = data.random_outcome
+      const typeIcon = ro.type === 'positive' ? '✨' : ro.type === 'negative' ? '💔' : '🎲'
+      narrationHistory.value.push(`${typeIcon} Random Event: ${ro.name}`)
+      if (ro.description) {
+        narrationHistory.value.push(`  "${ro.description}"`)
+      }
+      if (ro.effects && Object.keys(ro.effects).length > 0) {
+        const roEffectsText = Object.entries(ro.effects)
+          .map(([stat, value]) => `${value > 0 ? '+' : ''}${value} ${stat}`)
+          .join(', ')
+        narrationHistory.value.push(`  Bonus Effects: ${roEffectsText}`)
+      }
     }
     
     // Close dialog and prepare for next round
@@ -3493,8 +3696,21 @@ const startNewGame = () => {
 
 .character-header-row {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  align-items: center;
   gap: 12px;
+}
+
+.header-actions {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+  gap: 8px;
+  align-items: center;
+  white-space: nowrap;
 }
 
 .character-footer-row {
@@ -3519,7 +3735,8 @@ const startNewGame = () => {
 }
 
 .character-info {
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .character-name {
@@ -3557,7 +3774,8 @@ const startNewGame = () => {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 8px;
+  max-width: 100%;
 }
 
 .meta-badge {
@@ -3639,6 +3857,28 @@ const startNewGame = () => {
   text-transform: uppercase;
   letter-spacing: 1px;
   margin-top: 8px;
+}
+
+/* Inline Health Status Badge - Next to name */
+.health-status-badge-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 12px;
+  vertical-align: middle;
+}
+
+.character-name-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .status-healthy {
@@ -3822,27 +4062,34 @@ const startNewGame = () => {
     0 0 15px rgba(139,92,246,0.2);
 }
 
-/* Retro Pixel Header Buttons - Enhanced */
+/* Retro Pixel Header Buttons - Enhanced Galaxy Theme */
 .retro-btn {
   font-family: 'Press Start 2P', 'VT323', monospace !important;
   text-transform: uppercase !important;
   letter-spacing: 0.08em !important;
   image-rendering: pixelated !important;
   border-radius: 0px !important;
-  border: 3px solid !important;
+  border: 2px solid !important;
   box-shadow: 
+    0 0 0 1px rgba(0,0,0,0.8),
     0 4px 0 rgba(0,0,0,0.5),
     0 6px 12px rgba(0,0,0,0.4),
+    0 0 15px rgba(139, 92, 246, 0.3),
     inset 0 1px 0 rgba(255,255,255,0.25) !important;
   transition: all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
   font-weight: 700 !important;
   font-size: 0.5rem !important;
-  padding: 6px 10px !important;
+  padding: 6px 12px !important;
   min-height: 32px !important;
   min-width: auto !important;
   position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #6366f1 0%, #4f46e5 50%, #3730a3 100%) !important;
+  border-color: #818cf8 !important;
+  color: #e0e7ff !important;
 }
 
+/* Pixel scanline overlay */
 .retro-btn::before {
   content: '';
   position: absolute;
@@ -3851,38 +4098,66 @@ const startNewGame = () => {
     0deg,
     transparent 0px,
     transparent 2px,
-    rgba(255,255,255,0.02) 2px,
-    rgba(255,255,255,0.02) 4px
+    rgba(255,255,255,0.03) 2px,
+    rgba(255,255,255,0.03) 4px
   );
   pointer-events: none;
+}
+
+/* Star sparkle effect */
+.retro-btn::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 4px;
+  height: 4px;
+  background: white;
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  animation: btn-sparkle 2s ease-in-out infinite;
+  opacity: 0.6;
+}
+
+@keyframes btn-sparkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 0.8; transform: scale(1.1); }
 }
 
 .retro-btn:hover:not(:disabled) {
   transform: translateY(-2px) !important;
   box-shadow: 
+    0 0 0 1px rgba(0,0,0,0.8),
     0 6px 0 rgba(0,0,0,0.5),
     0 10px 20px rgba(0,0,0,0.5),
-    0 0 20px currentColor,
+    0 0 30px rgba(139, 92, 246, 0.5),
+    0 0 60px rgba(0,255,204,0.3),
     inset 0 1px 0 rgba(255,255,255,0.4) !important;
+  background: linear-gradient(180deg, #818cf8 0%, #6366f1 50%, #4f46e5 100%) !important;
 }
 
 .retro-btn:active:not(:disabled) {
   transform: translateY(2px) !important;
   box-shadow: 
+    0 0 0 1px rgba(0,0,0,0.8),
     0 2px 0 rgba(0,0,0,0.5),
     0 3px 6px rgba(0,0,0,0.4),
     inset 0 2px 4px rgba(0,0,0,0.3) !important;
 }
 
+/* Retro Stats Button - Blue cyan glow */
 .retro-stats-btn {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
+  background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 50%, #1e3a8a 100%) !important;
   border-color: #60a5fa !important;
-  color: white !important;
+  color: #00ffcc !important;
+  text-shadow: 0 0 10px rgba(0,255,204,0.5) !important;
 }
 
 .retro-stats-btn:hover { 
-  background: linear-gradient(135deg, #60a5fa, #3b82f6) !important;
-  box-shadow: 0 6px 12px rgba(59, 130, 246, 0.4), 0 0 20px rgba(59, 130, 246, 0.3) !important;
+  background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 50%, #1d4ed8 100%) !important;
+  box-shadow: 
+    0 0 20px rgba(0,255,204,0.4),
+    0 6px 12px rgba(59, 130, 246, 0.5),
+    0 0 40px rgba(0,255,204,0.2) !important;
 }
 
 .retro-edit-btn {
@@ -4172,7 +4447,7 @@ const startNewGame = () => {
    ======================================== */
 .header-actions {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 8px;
 }
 
@@ -4418,7 +4693,7 @@ body::-webkit-scrollbar-corner,
   font-family: 'Press Start 2P', monospace;
   font-size: 0.92rem;
   font-weight: 700;
-  color: #ffffff;
+  color: #e0e7ff;
   margin-bottom: 18px;
   padding: 10px 0;
   width: 100%;
@@ -4426,8 +4701,9 @@ body::-webkit-scrollbar-corner,
   text-align: center;
   letter-spacing: 0.14em;
   text-shadow:
-    0 0 12px rgba(var(--accent-rgb), 0.18),
-    0 0 20px rgba(var(--accent2-rgb), 0.12);
+    0 0 15px rgba(139, 92, 246, 0.6),
+    0 0 30px rgba(0, 255, 204, 0.4),
+    2px 2px 0 #000;
 }
 
 .section-header-wrapper {
@@ -4466,7 +4742,7 @@ body::-webkit-scrollbar-corner,
 
 .section-header.daily::before {
   content: '♦';
-  color: rgb(var(--accent-rgb));
+  color: #00ffcc;
 }
 
 .section-header.cultural::before {
@@ -4485,7 +4761,11 @@ body::-webkit-scrollbar-corner,
 }
 
 .section-header.milestone {
-  color: #fbbf24;
+  color: #a855f7;
+  text-shadow:
+    0 0 15px rgba(168, 85, 247, 0.6),
+    0 0 30px rgba(0, 255, 204, 0.4),
+    2px 2px 0 #000;
 }
 
 .section-header.game-over {
@@ -4493,11 +4773,12 @@ body::-webkit-scrollbar-corner,
 }
 
 .header-icon {
-  color: rgb(var(--accent-rgb)) !important;
+  color: #a855f7 !important;
+  filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.6));
 }
 
 .section-header.milestone .header-icon {
-  color: #fbbf24 !important;
+  color: #a855f7 !important;
 }
 
 .section-header.game-over .header-icon {
@@ -4531,11 +4812,11 @@ body::-webkit-scrollbar-corner,
   --card-offset: 4px;
 }
 
-/* Event Card Item - Playing Card Style */
+/* Event Card Item - Galaxy Playing Card Style */
 .event-card-item {
-  background: linear-gradient(160deg, rgba(20,15,30,0.95), rgba(30,25,45,0.98));
-  border: 2px solid rgba(255,255,255,0.25);
-  border-radius: 10px;
+  background: linear-gradient(170deg, rgba(35, 25, 55, 0.98) 0%, rgba(20, 15, 40, 0.98) 50%, rgba(15, 10, 30, 0.98) 100%);
+  border: 2px solid rgba(139, 92, 246, 0.4);
+  border-radius: 4px;
   overflow: hidden;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
@@ -4544,22 +4825,43 @@ body::-webkit-scrollbar-corner,
   position: relative;
   box-shadow: 
     0 8px 25px rgba(0,0,0,0.6),
+    0 0 15px rgba(139, 92, 246, 0.2),
     inset 0 1px 0 rgba(255,255,255,0.15),
-    0 0 20px rgba(0,255,204,0.2);
+    inset 0 0 30px rgba(139, 92, 246, 0.05);
   font-family: 'VT323', monospace;
   image-rendering: pixelated;
   transform-style: preserve-3d;
 }
 
+/* Pixel corner decorations */
+.event-card-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    linear-gradient(90deg, rgba(139, 92, 246, 0.3) 0%, transparent 3%) no-repeat,
+    linear-gradient(180deg, rgba(139, 92, 246, 0.3) 0%, transparent 3%) no-repeat,
+    linear-gradient(270deg, rgba(139, 92, 246, 0.3) 0%, transparent 3%) no-repeat,
+    linear-gradient(0deg, rgba(139, 92, 246, 0.3) 0%, transparent 3%) no-repeat;
+  background-size: 100% 2px, 2px 100%, 100% 2px, 2px 100%;
+  background-position: top left, top left, bottom right, bottom right;
+  pointer-events: none;
+  z-index: 1;
+}
+
 /* Card hover effect - lift and glow like picking up a card */
 .event-card-item:hover:not(.disabled) {
-  border-color: #00ffcc !important;
-  transform: translateY(-8px) scale(1.05) rotateY(8deg) !important;
+  border-color: rgba(168, 85, 247, 0.8) !important;
+  transform: translateY(-10px) scale(1.03) rotateY(5deg) !important;
   box-shadow: 
-    0 20px 50px rgba(0,255,204,0.4),
-    0 0 40px rgba(0,255,204,0.6),
+    0 25px 60px rgba(0,0,0,0.5),
+    0 0 40px rgba(139, 92, 246, 0.5),
+    0 0 80px rgba(0, 255, 204, 0.3),
     inset 0 1px 0 rgba(255,255,255,0.3),
-    0 0 0 1px rgba(0,255,204,0.8) !important;
+    0 0 0 2px rgba(168, 85, 247, 0.6) !important;
   z-index: 10;
 }
 
@@ -4572,25 +4874,27 @@ body::-webkit-scrollbar-corner,
 
 /* Card flip hint on hover */
 .event-card-item:hover:not(.disabled) .card-img {
-  transform: scale(1.05);
-  filter: brightness(1.1);
+  transform: scale(1.08);
+  filter: brightness(1.15);
 }
 
 .milestone-card {
-  border-color: rgba(251, 191, 36, 0.5);
-  background: linear-gradient(155deg, #292222 0%, #1a1515 100%);
+  border-color: rgba(168, 85, 247, 0.5);
+  background: linear-gradient(170deg, rgba(40, 25, 50, 0.98) 0%, rgba(25, 15, 35, 0.98) 100%);
 }
 
 .milestone-card::before,
 .milestone-card::after {
-  border-color: rgba(251, 191, 36, 0.5);
+  border-color: rgba(168, 85, 247, 0.6);
 }
 
 .milestone-card:hover:not(.disabled) {
-  border-color: #fbbf24;
+  border-color: #a855f7;
   box-shadow: 
-    0 20px 40px rgba(251, 191, 36, 0.3),
-    0 8px 16px rgba(0, 0, 0, 0.4);
+    0 25px 50px rgba(0,0,0,0.5),
+    0 0 40px rgba(168, 85, 247, 0.5),
+    0 0 80px rgba(0, 255, 204, 0.3),
+    inset 0 1px 0 rgba(255,255,255,0.3) !important;
 }
 
 /* Card Visual */
@@ -4599,7 +4903,7 @@ body::-webkit-scrollbar-corner,
   height: 140px;
   overflow: hidden;
   /* Card image area */
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 2px solid rgba(139, 92, 246, 0.3);
 }
 
 .card-img {
@@ -4609,7 +4913,7 @@ body::-webkit-scrollbar-corner,
 }
 
 .event-card-item:hover:not(.disabled) .card-img {
-  transform: scale(1.1);
+  transform: scale(1.12);
 }
 
 .card-type-badge {
@@ -4620,47 +4924,87 @@ body::-webkit-scrollbar-corner,
   font-size: 0.45rem !important;
   font-weight: 800 !important;
   padding: 6px 10px !important;
-  border-radius: 6px !important;
+  border-radius: 0px !important;
   text-transform: uppercase !important;
   letter-spacing: 0.12em !important;
   border: 2px solid !important;
   image-rendering: pixelated !important;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.6);
+  box-shadow: 
+    0 3px 8px rgba(0,0,0,0.6),
+    0 0 10px rgba(139, 92, 246, 0.3);
 }
 
 .card-type-badge.daily {
-  background: linear-gradient(135deg, rgb(var(--accent2-rgb)) 0%, rgb(var(--indigo-rgb)) 55%, rgb(var(--teal-rgb)) 100%);
-  color: #fff;
+  background: linear-gradient(180deg, rgba(0,255,204,0.9) 0%, rgba(0,200,180,0.9) 50%, rgba(0,150,140,0.9) 100%);
+  color: #001a15;
+  border-color: #00ffcc !important;
+  box-shadow: 0 0 15px rgba(0,255,204,0.5), 0 3px 8px rgba(0,0,0,0.6);
 }
 
 .card-type-badge.actions {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
-  color: #001b10;
+  background: linear-gradient(180deg, #22c55e 0%, #16a34a 50%, #0f5728 100%);
+  color: #bbf7d0;
+  border-color: #4ade80 !important;
 }
 
 .card-type-badge.cultural {
-  background: linear-gradient(135deg, #a855f7, #7c3aed);
-  color: #fff;
+  background: linear-gradient(180deg, #a855f7 0%, #7c3aed 50%, #5b21b6 100%);
+  color: #f3e8ff;
+  border-color: #c084fc !important;
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.5), 0 3px 8px rgba(0,0,0,0.6);
 }
 
 .card-type-badge.story {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: linear-gradient(180deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
   color: #000;
+  border-color: #fbbf24 !important;
 }
 
 .card-type-badge.career {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  color: #fff;
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%);
+  color: #e0f2fe;
+  border-color: #60a5fa !important;
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.5), 0 3px 8px rgba(0,0,0,0.6);
 }
 
 .card-type-badge.skill {
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  background: linear-gradient(180deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
+  color: #f3e8ff;
+  border-color: #a78bfa !important;
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.5), 0 3px 8px rgba(0,0,0,0.6);
 }
 
 .card-type-badge.milestone {
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
   color: #000;
   font-size: 0.7rem;
+  border-color: #fcd34d !important;
+  box-shadow: 0 0 15px rgba(251, 191, 36, 0.5), 0 3px 8px rgba(0,0,0,0.6);
+}
+
+.mini-game-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid #00ffcc;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(0, 255, 204, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(0, 255, 204, 0.8);
+  }
 }
 
 /* Card Content */
@@ -4669,17 +5013,18 @@ body::-webkit-scrollbar-corner,
   flex: 1;
   display: flex;
   flex-direction: column;
+  background: linear-gradient(180deg, transparent 0%, rgba(139, 92, 246, 0.05) 100%);
 }
 
 .card-title {
   font-family: 'Press Start 2P', monospace !important;
   font-size: 0.85rem !important;
   font-weight: 700 !important;
-  color: #ffffff !important;
+  color: #e0e7ff !important;
   margin-bottom: 10px !important;
   line-height: 1.1 !important;
   letter-spacing: 0.08em !important;
-  text-shadow: 2px 2px 0 #000, 0 0 10px rgba(255,255,255,0.5);
+  text-shadow: 2px 2px 0 #000, 0 0 15px rgba(139, 92, 246, 0.6), 0 0 30px rgba(0,255,204,0.3);
   text-transform: uppercase;
 }
 
@@ -4915,7 +5260,7 @@ body::-webkit-scrollbar-corner,
 }
 
 /* ========================================
-   ALL STATS DIALOG STYLES
+   ALL STATS DIALOG STYLES (Reference: Purple Galaxy Theme)
    ======================================== */
 .stats-dialog-card {
   background: linear-gradient(180deg, rgba(25, 20, 45, 0.98) 0%, rgba(15, 15, 30, 0.98) 100%) !important;
@@ -5044,22 +5389,22 @@ body::-webkit-scrollbar-corner,
 }
 
 /* ========================================
-   EVENT DIALOG STYLES - Card Reveal Effect
+   EVENT DIALOG STYLES - Card Reveal Effect - Galaxy Theme
    ======================================== */
 .event-dialog {
   position: relative;
   border: 2px solid transparent !important;
-  border-radius: 24px !important;
+  border-radius: 12px !important;
   overflow: hidden !important;
   overflow-y: hidden !important;
   max-height: calc(100dvh - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   background:
-    linear-gradient(180deg, rgba(25, 20, 45, 0.98) 0%, rgba(15, 15, 30, 0.98) 100%) padding-box,
-    linear-gradient(135deg, rgba(var(--accent2-rgb), 0.55) 0%, rgba(var(--indigo-rgb), 0.35) 45%, rgba(var(--accent-rgb), 0.55) 100%) border-box !important;
+    linear-gradient(180deg, rgba(35, 25, 55, 0.98) 0%, rgba(20, 15, 40, 0.98) 50%, rgba(15, 10, 30, 0.98) 100%) padding-box,
+    linear-gradient(135deg, rgba(0, 255, 204, 0.5) 0%, rgba(139, 92, 246, 0.4) 50%, rgba(0, 255, 204, 0.5) 100%) border-box !important;
   box-shadow: 
     0 25px 80px rgba(0, 0, 0, 0.6),
-    0 0 40px rgba(var(--accent-rgb), 0.22),
-    0 0 60px rgba(var(--accent2-rgb), 0.14),
+    0 0 40px rgba(139, 92, 246, 0.3),
+    0 0 80px rgba(0, 255, 204, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
   animation: dialogReveal 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   backdrop-filter: blur(18px);
@@ -5088,8 +5433,8 @@ body::-webkit-scrollbar-corner,
   position: absolute;
   inset: -40px;
   background:
-    radial-gradient(ellipse at 20% 20%, rgba(var(--accent2-rgb), 0.20) 0%, transparent 55%),
-    radial-gradient(ellipse at 80% 80%, rgba(var(--accent-rgb), 0.14) 0%, transparent 60%);
+    radial-gradient(ellipse at 20% 20%, rgba(139, 92, 246, 0.3) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 80%, rgba(0, 255, 204, 0.2) 0%, transparent 60%);
   filter: blur(24px);
   z-index: 0;
   pointer-events: none;
@@ -5194,12 +5539,12 @@ body::-webkit-scrollbar-corner,
   font-family: 'Press Start 2P', monospace;
   font-size: 1.05rem;
   font-weight: 800;
-  color: #ffffff;
+  color: #e0e7ff;
   letter-spacing: 0.08em;
   text-shadow:
     2px 2px 0 rgba(0, 0, 0, 0.75),
-    0 0 18px rgba(var(--accent-rgb), 0.25),
-    0 0 26px rgba(var(--accent2-rgb), 0.18);
+    0 0 20px rgba(139, 92, 246, 0.6),
+    0 0 40px rgba(0, 255, 204, 0.4);
 }
 
 .dialog-title-text.glitch {
@@ -5216,14 +5561,14 @@ body::-webkit-scrollbar-corner,
 }
 
 .dialog-title-text.glitch::before {
-  color: rgb(var(--accent-rgb));
+  color: #a855f7;
   transform: translate(-2px, 0);
   clip-path: polygon(0 0, 100% 0, 100% 38%, 0 38%);
   animation: dialog-glitch-1 3.1s infinite;
 }
 
 .dialog-title-text.glitch::after {
-  color: rgb(var(--accent2-rgb));
+  color: #00ffcc;
   transform: translate(2px, 0);
   clip-path: polygon(0 64%, 100% 64%, 100% 100%, 0 100%);
   animation: dialog-glitch-2 3.1s infinite;
@@ -5252,8 +5597,8 @@ body::-webkit-scrollbar-corner,
   font-size: 1rem !important;
   line-height: 1.7;
   padding: 20px 28px !important;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.18));
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(35, 25, 55, 0.4), rgba(15, 10, 30, 0.3));
+  border-top: 1px solid rgba(139, 92, 246, 0.3);
   margin: 0 !important;
   font-family: 'VT323', monospace;
   letter-spacing: 0.02em;
@@ -5270,13 +5615,14 @@ body::-webkit-scrollbar-corner,
 .choices-container {
   margin: 24px 0;
   padding: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  background: linear-gradient(180deg, rgba(25, 20, 45, 0.72), rgba(15, 15, 30, 0.82));
+  border: 2px solid rgba(139, 92, 246, 0.4);
+  border-radius: 4px;
+  background: linear-gradient(180deg, rgba(35, 25, 55, 0.85), rgba(20, 15, 40, 0.9));
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
 }
 
 .choices-title {
-  color: rgb(var(--accent-rgb)) !important;
+  color: #a855f7 !important;
   font-family: 'Press Start 2P', monospace !important;
   font-size: 0.9rem !important;
   font-weight: 700 !important;
@@ -5284,92 +5630,137 @@ body::-webkit-scrollbar-corner,
   letter-spacing: 0.15em;
   margin-bottom: 16px !important;
   text-align: center;
+  text-shadow: 0 0 15px rgba(168, 85, 247, 0.6);
   text-shadow: 0 0 10px rgba(var(--accent-rgb), 0.35);
 }
 
 .choice-btn {
-  font-family: 'VT323', monospace !important;
-  font-size: 0.95rem !important;
+  font-family: 'Press Start 2P', 'VT323', monospace !important;
+  font-size: 0.85rem !important;
   font-weight: 600 !important;
-  border: 1px solid rgba(255, 255, 255, 0.14) !important;
-  color: #e2e8f0 !important;
+  border: 2px solid rgba(139, 92, 246, 0.4) !important;
+  color: #e0e7ff !important;
   margin-bottom: 12px;
-  padding: 14px 20px !important;
-  border-radius: 12px !important;
-  background: linear-gradient(180deg, rgba(25, 20, 45, 0.9), rgba(15, 15, 30, 0.95)) !important;
+  padding: 16px 24px !important;
+  border-radius: 0px !important;
+  background: linear-gradient(180deg, rgba(35, 25, 55, 0.95) 0%, rgba(20, 15, 40, 0.98) 100%) !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.3),
+    0 0 10px rgba(139, 92, 246, 0.2);
+  width: 100%;
+  text-align: center;
+  justify-content: center;
 }
 
 .choice-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(var(--accent2-rgb), 0.18), rgba(var(--accent-rgb), 0.08)) !important;
-  border-color: rgba(var(--accent-rgb), 0.45) !important;
-  color: rgb(var(--accent-rgb)) !important;
-  transform: translateX(8px);
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.25) 0%, rgba(90, 60, 175, 0.2) 100%) !important;
+  border-color: rgba(168, 85, 247, 0.7) !important;
+  color: #00ffcc !important;
+  transform: translateY(-4px);
   box-shadow: 
-    0 6px 20px rgba(var(--accent-rgb), 0.22),
-    0 0 30px rgba(var(--accent2-rgb), 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    0 8px 25px rgba(0, 0, 0, 0.4),
+    0 0 30px rgba(139, 92, 246, 0.4),
+    0 0 60px rgba(0, 255, 204, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 .choice-btn:active:not(:disabled) {
-  transform: translateX(4px) scale(0.98);
+  transform: translateY(-2px);
 }
 
-/* Choice Effects Preview */
-.choice-btn.choice-with-effects {
-  padding: 12px 16px !important;
-  background: linear-gradient(180deg, rgba(25, 35, 55, 0.92), rgba(15, 20, 40, 0.95)) !important;
+.choice-btn-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  gap: 8px;
 }
 
+/* Locked choice styling */
 .choice-btn.choice-locked {
-  opacity: 0.5 !important;
-  cursor: not-allowed !important;
-  background: linear-gradient(180deg, rgba(30, 30, 40, 0.8), rgba(20, 20, 30, 0.85)) !important;
-  border-color: rgba(100, 100, 100, 0.3) !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  background: linear-gradient(180deg, rgba(55, 20, 20, 0.95) 0%, rgba(40, 15, 15, 0.98) 100%) !important;
+  opacity: 0.7;
 }
 
-.choice-btn.choice-locked:hover {
-  transform: none !important;
-  box-shadow: none !important;
+.choice-btn.choice-locked .choice-btn-label {
+  color: #fca5a5 !important;
+}
+
+/* Mini-game indicator styling */
+.mini-game-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  background: linear-gradient(90deg, rgba(0, 255, 204, 0.1) 0%, rgba(0, 255, 204, 0.05) 100%);
+  border: 1px solid rgba(0, 255, 204, 0.3);
+  border-radius: 8px;
+  color: #00ffcc;
+  font-family: 'Press Start 2P', 'VT323', monospace;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(0, 255, 204, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(0, 255, 204, 0.5);
+  }
+}
+
+.mini-game-icon {
+  display: inline-flex;
+  align-items: center;
+  animation: icon-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes icon-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+.choice-btn.choice-with-minigame:not(.choice-locked):hover:not(:disabled) {
+  border-color: rgba(0, 255, 204, 0.6) !important;
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.4),
+    0 0 30px rgba(0, 255, 204, 0.3),
+    0 0 60px rgba(0, 255, 204, 0.15) !important;
 }
 
 .locked-indicator {
   display: inline-flex;
   align-items: center;
-  margin-right: 6px;
-  color: #ef4444;
+  justify-content: center;
+  color: #fca5a5;
+  margin-right: 8px;
+  animation: pulse-lock 2s infinite;
 }
 
-.choice-btn-content {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  width: 100%;
-  gap: 6px;
+.locked-text {
+  font-size: 0.65rem;
+  font-weight: bold;
+  color: #fca5a5;
+  margin-left: 8px;
+  padding: 2px 6px;
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  border-radius: 4px;
+  background: rgba(55, 20, 20, 0.5);
 }
 
-.choice-effects-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 100%;
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.stat-effects-text {
-  font-size: 0.75rem;
-  color: #86efac;
-  font-family: 'VT323', monospace;
-}
-
-.outcome-preview {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
+@keyframes pulse-lock {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
 .outcome-label {
@@ -5412,37 +5803,40 @@ body::-webkit-scrollbar-corner,
   letter-spacing: 0.12em !important;
   font-size: 0.75rem !important;
   padding: 14px 34px !important;
-  border-radius: 14px !important;
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.92), rgba(168, 85, 247, 0.70)) !important;
+  border-radius: 0px !important;
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.95) 0%, rgba(185, 28, 28, 0.95) 50%, rgba(127, 29, 29, 0.98) 100%) !important;
   color: #ffffff !important;
   box-shadow:
-    0 10px 30px rgba(239, 68, 68, 0.25),
-    0 0 28px rgba(var(--accent2-rgb), 0.14),
+    0 4px 0 rgba(127, 29, 29, 0.8),
+    0 10px 30px rgba(239, 68, 68, 0.3),
+    0 0 20px rgba(239, 68, 68, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
-  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border: 2px solid rgba(248, 113, 113, 0.6) !important;
   transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
 
 .cancel-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  filter: brightness(1.05);
+  filter: brightness(1.1);
   box-shadow:
-    0 14px 38px rgba(239, 68, 68, 0.32),
-    0 0 36px rgba(var(--accent2-rgb), 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+    0 6px 0 rgba(127, 29, 29, 0.8),
+    0 14px 38px rgba(239, 68, 68, 0.4),
+    0 0 40px rgba(239, 68, 68, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
 }
 
 .cancel-btn:active:not(:disabled) {
-  transform: translateY(0) scale(0.99);
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 rgba(127, 29, 29, 0.8) !important;
 }
 
 /* Dialog Card corners */
 .event-dialog::before,
 .event-dialog::after {
-  content: '♠';
+  content: '✦';
   position: absolute;
-  font-size: 2rem;
-  color: rgba(var(--accent-rgb), 0.25);
+  font-size: 1.5rem;
+  color: rgba(139, 92, 246, 0.5);
   z-index: 10;
   pointer-events: none;
 }
@@ -5513,11 +5907,11 @@ body::-webkit-scrollbar-corner,
   overflow-y: hidden !important;
   max-height: calc(100dvh - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   background:
-    linear-gradient(180deg, rgba(25, 20, 45, 0.86) 0%, rgba(15, 15, 30, 0.90) 100%) padding-box,
-    linear-gradient(135deg, rgba(var(--accent2-rgb), 0.45) 0%, rgba(var(--indigo-rgb), 0.28) 45%, rgba(var(--accent-rgb), 0.55) 100%) border-box !important;
+    linear-gradient(180deg, rgba(30, 20, 50, 0.98) 0%, rgba(15, 10, 30, 0.98) 100%) padding-box,
+    linear-gradient(135deg, rgba(0,255,204,0.45) 0%, rgba(168,85,247,0.35) 45%, rgba(0,255,204,0.55) 100%) border-box !important;
   box-shadow: 
     0 20px 60px rgba(0, 0, 0, 0.6),
-    0 0 30px rgba(var(--accent2-rgb), 0.16) !important;
+    0 0 30px rgba(0, 255, 204, 0.2) !important;
   backdrop-filter: blur(16px);
   display: flex;
   flex-direction: column;
@@ -5526,16 +5920,16 @@ body::-webkit-scrollbar-corner,
 .profile-dialog--kiosk {
   border-radius: 12px !important;
   background: 
-    linear-gradient(180deg, rgba(10,8,20,0.98), rgba(20,15,35,0.99)) padding-box,
-    linear-gradient(135deg, rgba(0,255,204,0.6), rgba(139,92,246,0.4), rgba(0,255,204,0.6)) border-box !important;
+    linear-gradient(180deg, rgba(30, 20, 50, 0.98), rgba(20, 15, 40, 0.99)) padding-box,
+    linear-gradient(135deg, rgba(0,255,204,0.6), rgba(168,85,247,0.5), rgba(0,255,204,0.6)) border-box !important;
   box-shadow: 
     0 0 0 2px rgba(0,255,204,0.6),
     0 30px 90px rgba(0,0,0,0.8),
-    0 0 60px rgba(0,255,204,0.3),
+    0 0 60px rgba(168,85,247,0.3),
     inset 0 0 20px rgba(0,0,0,0.5) !important;
   font-family: 'Press Start 2P', monospace !important;
   image-rendering: pixelated !important;
-  border: 3px solid rgba(0,255,204,0.8) !important;
+  border: 3px solid rgba(168,85,247,0.8) !important;
   position: relative;
   overflow: hidden;
 }
@@ -6123,6 +6517,28 @@ body::-webkit-scrollbar-corner,
     min-width: 80px;
     padding: 10px 12px;
   }
+
+  /* Ensure buttons stay horizontal on tablet */
+  .header-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
+
+/* Desktop: Force horizontal buttons */
+@media (min-width: 961px) {
+  .header-actions {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .header-actions .v-btn {
+    min-width: 80px;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
 }
 
 @media (max-width: 640px) {
@@ -6160,6 +6576,17 @@ body::-webkit-scrollbar-corner,
     flex-direction: row;
     justify-content: center;
     flex-wrap: wrap;
+  }
+
+  /* Stack buttons vertically on mobile */
+  .header-actions {
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .header-actions .v-btn {
+    width: 100%;
   }
 
   .avatar-actions {
@@ -7124,14 +7551,14 @@ body::-webkit-scrollbar-corner,
 
 .retro-pixel-howtoplay {
   background: 
-    linear-gradient(170deg, #1a1a0a 0%, #0f0f05 50%, #080805 100%),
+    linear-gradient(170deg, rgba(30, 20, 50, 0.98) 0%, rgba(15, 10, 30, 0.98) 50%, rgba(10, 8, 20, 0.98) 100%),
     #111;
-  border: 4px solid #ffaa00 !important;
+  border: 4px solid rgba(168, 85, 247, 0.6) !important;
   box-shadow: 
     inset 0 0 0 2px rgba(255,255,255,0.1),
-    0 0 0 2px #ffaa00,
-    0 40px 120px rgba(255,170,0,0.35),
-    0 0 80px rgba(255,170,0,0.25),
+    0 0 0 2px rgba(168, 85, 247, 0.6),
+    0 40px 120px rgba(168, 85, 247, 0.35),
+    0 0 80px rgba(0, 255, 204, 0.25),
     inset 0 0 40px rgba(0,0,0,0.8);
   font-family: 'Press Start 2P', monospace !important;
   text-rendering: optimizeSpeed;
@@ -7146,19 +7573,19 @@ body::-webkit-scrollbar-corner,
   text-align: center;
   justify-content: center;
   padding: 20px 16px 10px !important;
-  background: linear-gradient(180deg, rgba(255,180,0,0.15), transparent);
-  color: #ffcc00 !important;
+  background: linear-gradient(180deg, rgba(168, 85, 247, 0.15), transparent);
+  color: #a855f7 !important;
   text-shadow: 
-    0 0 20px #ffaa00,
-    3px 0 0 #000, -3px 0 0 #ffaa00,
-    0 3px 0 #000, 0 -3px 0 #ffaa00,
-    2px 2px 0 rgba(255,170,0,0.5) !important;
+    0 0 20px rgba(168, 85, 247, 0.8),
+    3px 0 0 #000, -3px 0 0 rgba(168, 85, 247, 0.5),
+    0 3px 0 #000, 0 -3px 0 rgba(168, 85, 247, 0.5),
+    2px 2px 0 rgba(168, 85, 247, 0.5) !important;
   animation: htp-title-glow 2s ease-in-out infinite alternate;
 }
 
 @keyframes htp-title-glow {
-  from { text-shadow: 0 0 20px #ffaa00, 3px 0 0 #000, -3px 0 0 #ffaa00, 0 3px 0 #000, 0 -3px 0 #ffaa00; }
-  to { text-shadow: 0 0 40px #ffdd00, 3px 0 0 #000, -3px 0 0 #ffaa00, 0 3px 0 #000, 0 -3px 0 #ffaa00, 0 0 60px rgba(255,200,0,0.5); }
+  from { text-shadow: 0 0 20px rgba(168, 85, 247, 0.8), 3px 0 0 #000, -3px 0 0 rgba(168, 85, 247, 0.5), 0 3px 0 #000, 0 -3px 0 rgba(168, 85, 247, 0.5); }
+  to { text-shadow: 0 0 40px rgba(192, 132, 252, 1), 3px 0 0 #000, -3px 0 0 rgba(168, 85, 247, 0.8), 0 3px 0 #000, 0 -3px 0 rgba(168, 85, 247, 0.8), 0 0 60px rgba(168, 85, 247, 0.5); }
 }
 
 @keyframes htp-bounce {
@@ -7346,6 +7773,100 @@ body::-webkit-scrollbar-corner,
   box-shadow: none !important;
 }
 
+/* Story Recap Dialog */
+.story-dialog-content {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.story-recap-title {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: bold;
+  letter-spacing: 2px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.path-progress-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.path-progress-card {
+  background: #1e1e2e;
+  border-radius: 12px;
+  padding: 16px;
+  border: 2px solid #333;
+  transition: all 0.3s ease;
+}
+
+.path-progress-card.active-path {
+  border-color: #42a5f5;
+  background: linear-gradient(135deg, #1e1e2e 0%, #263238 100%);
+}
+
+.path-progress-card.current-path {
+  border-color: #ffa726;
+  background: linear-gradient(135deg, #1e1e2e 0%, #3e2723 100%);
+  box-shadow: 0 0 15px rgba(255, 167, 38, 0.3);
+}
+
+.path-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.path-icon {
+  font-size: 1.8rem;
+  margin-right: 10px;
+}
+
+.path-label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.path-progress-bar-container {
+  background: #333;
+  border-radius: 8px;
+  height: 12px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.path-progress-bar {
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  height: 100%;
+  border-radius: 8px;
+  transition: width 0.5s ease;
+}
+
+.path-progress-card.active-path .path-progress-bar {
+  background: linear-gradient(90deg, #42a5f5 0%, #1976d2 100%);
+}
+
+.path-progress-card.current-path .path-progress-bar {
+  background: linear-gradient(90deg, #ffa726 0%, #f57c00 100%);
+}
+
+.path-stage-info {
+  font-size: 0.9rem;
+  color: #9e9e9e;
+}
+
+.path-percentage {
+  color: #bdbdbd;
+  font-size: 0.85rem;
+}
+
+.consequence-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
 /* Mobile Responsive */
 @media (max-width: 600px) {
   .steps-grid {
@@ -7480,27 +8001,46 @@ body::-webkit-scrollbar-corner,
   display: flex;
   align-items: center;
   gap: 24px;
-  max-width: 600px;
+  max-width: 900px;
   width: 100%;
+  justify-content: center;
 }
 
 .action-btn {
   flex: 1;
-  min-width: 120px !important;
-  max-width: 150px !important;
+  min-width: 180px !important;
+  max-width: 250px !important;
   font-weight: 600 !important;
-  font-size: 0.65rem !important;
+  font-size: 0.7rem !important;
   letter-spacing: 0.3px !important;
   text-transform: uppercase !important;
-  border-radius: 8px !important;
+  border-radius: 0px !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   padding: 0 4px !important;
-  height: 44px !important;
+  height: 52px !important;
+  font-family: 'Press Start 2P', 'VT323', monospace !important;
+  image-rendering: pixelated !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Pixel border effect */
+.action-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 2px,
+    rgba(255,255,255,0.02) 2px,
+    rgba(255,255,255,0.02) 4px
+  );
+  pointer-events: none;
 }
 
 .action-btn:hover:not(:disabled) {
   transform: translateY(-3px) scale(1.02) !important;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35) !important;
 }
 
 .action-btn:active:not(:disabled) {
@@ -7508,33 +8048,66 @@ body::-webkit-scrollbar-corner,
 }
 
 .end-day-btn {
-  background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
+  background: linear-gradient(180deg, #6366f1 0%, #4f46e5 50%, #3730a3 100%) !important;
   border: 2px solid #818cf8 !important;
+  font-family: 'Press Start 2P', 'VT323', monospace !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+  box-shadow: 
+    0 0 15px rgba(99, 102, 241, 0.3),
+    0 4px 0 #3730a3,
+    0 6px 15px rgba(0,0,0,0.4) !important;
 }
 
 .end-day-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #818cf8, #6366f1) !important;
-  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.45) !important;
+  background: linear-gradient(180deg, #818cf8 0%, #6366f1 50%, #4f46e5 100%) !important;
+  box-shadow: 
+    0 0 30px rgba(0,255,204,0.5),
+    0 0 60px rgba(99, 102, 241, 0.4),
+    0 6px 0 #3730a3,
+    0 10px 25px rgba(0,0,0,0.5) !important;
 }
 
 .achievements-btn {
-  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  background: linear-gradient(180deg, #f59e0b 0%, #d97706 50%, #b45309 100%) !important;
   border: 2px solid #fbbf24 !important;
+  font-family: 'Press Start 2P', 'VT323', monospace !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+  box-shadow: 
+    0 0 15px rgba(245, 158, 11, 0.3),
+    0 4px 0 #b45309,
+    0 6px 15px rgba(0,0,0,0.4) !important;
 }
 
 .achievements-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #fbbf24, #f59e0b) !important;
-  box-shadow: 0 8px 30px rgba(245, 158, 11, 0.45) !important;
+  background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%) !important;
+  box-shadow: 
+    0 0 30px rgba(251, 191, 36, 0.5),
+    0 0 60px rgba(245, 158, 11, 0.4),
+    0 6px 0 #b45309,
+    0 10px 25px rgba(0,0,0,0.5) !important;
 }
 
 .suicide-btn {
-  background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+  background: linear-gradient(180deg, #dc2626 0%, #b91c1c 50%, #7f1d1d 100%) !important;
   border: 2px solid #ef4444 !important;
+  font-family: 'Press Start 2P', 'VT323', monospace !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+  box-shadow: 
+    0 0 15px rgba(239, 68, 68, 0.3),
+    0 4px 0 #7f1d1d,
+    0 6px 15px rgba(0,0,0,0.4) !important;
 }
 
 .suicide-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
-  box-shadow: 0 8px 30px rgba(239, 68, 68, 0.45) !important;
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%) !important;
+  box-shadow: 
+    0 0 30px rgba(239, 68, 68, 0.6),
+    0 0 60px rgba(220, 38, 38, 0.4),
+    0 6px 0 #7f1d1d,
+    0 10px 25px rgba(0,0,0,0.5) !important;
 }
 
 /* Enhanced Retro Pixel Suicide Dialog */
@@ -8212,11 +8785,7 @@ body::-webkit-scrollbar-corner,
   margin-bottom: 20px;
 }
 
-.pressure-arc {
-  color: #94a3b8;
-  font-family: 'VT323', monospace;
-  font-size: 1rem;
-}
+/* Removed .pressure-arc */
 
 .pressure-grid {
   display: grid;
@@ -8316,6 +8885,23 @@ body::-webkit-scrollbar-corner,
     0 2px 0 rgba(0,0,0,0.4),
     0 0 10px rgba(252, 165, 165, 0.3),
     inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+/* Clickable indicator for consequences - opens Story Recap */
+.consequence-indicator {
+  color: #fbbf24;
+  background: linear-gradient(135deg, rgba(180, 83, 9, 0.5), rgba(245, 158, 11, 0.4));
+  border-color: rgba(251, 191, 36, 0.6);
+  cursor: pointer;
+  box-shadow: 
+    0 2px 0 rgba(0,0,0,0.4),
+    0 0 10px rgba(251, 191, 36, 0.3),
+    inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.consequence-indicator:hover {
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.6), rgba(249, 115, 22, 0.5));
+  transform: translateY(-1px);
 }
 
 .character-card-enhanced + .path-progress-strip {

@@ -192,13 +192,13 @@ class CharacterChoiceConsequence extends Model
         $positiveRoll = rand(1, (int)$totalWeight);
         $isPositive = $positiveRoll <= $this->positive_outcome_weight;
         
-        // Filter outcomes by type
+        // Filter outcomes by type - include neutral outcomes for both positive and negative rolls
         $eligibleOutcomes = array_filter($this->random_outcomes, function($outcome) use ($isPositive) {
             $outcomeType = $outcome['type'] ?? 'neutral';
             if ($isPositive) {
-                return in_array($outcomeType, ['positive', 'luck', 'both']);
+                return in_array($outcomeType, ['positive', 'luck', 'both', 'neutral']);
             } else {
-                return in_array($outcomeType, ['negative', 'misfortune', 'both']);
+                return in_array($outcomeType, ['negative', 'misfortune', 'both', 'neutral']);
             }
         });
         
