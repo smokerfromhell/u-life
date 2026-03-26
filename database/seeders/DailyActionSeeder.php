@@ -10,6 +10,23 @@ class DailyActionSeeder extends Seeder
     public function run(): void
     {
         $actions = [
+            // Utility - always available
+            [
+                'title' => 'Advance Age',
+                'description' => 'Move forward to the next year.',
+                'image' => '/css/images/event-placeholder.jpg',
+                'type' => 'system',
+                'deck_label' => 'Action',
+                'repeatable' => true,
+                'weight' => 0,
+                'auto_resolve' => false,
+                'days_to_advance' => 0,
+                'display_order' => 0,
+                'choices' => [
+                    ['text' => 'Advance', 'days_to_advance' => 1],
+                ],
+                'conditions' => null,
+            ],
             // Basic Actions - Always available
             [
                 'title' => 'Eat',
@@ -198,8 +215,9 @@ class DailyActionSeeder extends Seeder
                 'days_to_advance' => 0,
                 'display_order' => 5,
                 'choices' => [
-                    ['text' => 'Take a rest day', 'stat_effects' => '-6 Burnout, +2 Health, +2 Happiness', 'days_to_advance' => 0],
-                    ['text' => 'Push through anyway', 'stat_effects' => '+4 Burnout, -2 Health', 'days_to_advance' => 0],
+                    ['text' => 'Full rest', 'burnout_scale' => 0.5, 'days_to_advance' => 1],
+                    ['text' => 'Quick rest', 'burnout_scale' => 0.75, 'days_to_advance' => 1],
+                    ['text' => 'Skip rest', 'stat_effects' => '+5 Burnout', 'days_to_advance' => 1],
                 ],
                 'conditions' => [
                     'min_burnout' => 70,

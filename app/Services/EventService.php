@@ -17,7 +17,7 @@ class EventService
      * Standard stat names used in the game:
      * - Health, Happiness, Wealth, Intelligence, Discipline, Reputation
      * - Strength, Creativity, Charisma, Morality, Luck, Burnout
-     * - Confidence, Isolation, Ego, Addiction
+     * - Confidence, Isolation, Ego, Addiction, Social, Empathy
      */
     private const EFFECT_STAT_ALIASES = [
         // Stats that map to Burnout
@@ -183,7 +183,7 @@ class EventService
     {
         $consequences = [];
 
-        $effectiveStats = is_array($character->effective_stats) ? $character->effective_stats : [];
+        $effectiveStats = $this->normalizeEffectiveStats($character);
         $state = is_array($character->character_state) ? $character->character_state : [];
 
         $age = $this->calculateAge((int) ($character->current_day ?? 1));
@@ -201,6 +201,7 @@ class EventService
             $stateChanged = true;
             $consequences[] = [
                 'type' => 'bankruptcy',
+                'kind' => 'consequence',
                 'message' => 'You declared bankruptcy. Expensive choices will be restricted until you recover.',
             ];
         }
@@ -211,6 +212,7 @@ class EventService
             $stateChanged = true;
             $consequences[] = [
                 'type' => 'cancer',
+                'kind' => 'consequence',
                 'message' => 'You were diagnosed with cancer. Health will decline faster over time.',
             ];
         }
@@ -226,6 +228,7 @@ class EventService
 
             $consequences[] = [
                 'type' => 'disability',
+                'kind' => 'consequence',
                 'message' => 'A serious breakdown left you disabled. Some career and physical actions become harder.',
             ];
         }
@@ -238,9 +241,17 @@ class EventService
             $stateChanged = true;
             $consequences[] = [
                 'type' => 'severe_addiction',
+                'kind' => 'consequence',
                 'message' => 'Your addiction spirals out of control. Recovery options will start appearing.',
             ];
         }
+
+        $thresholdResolution = $this->applyStatThresholdMilestones($effectiveStats, $state);
+        if (!empty($thresholdResolution['events'])) {
+            $consequences = array_merge($consequences, $thresholdResolution['events']);
+        }
+        $stateChanged = $stateChanged || ($thresholdResolution['state_changed'] ?? false);
+        $statsChanged = $statsChanged || ($thresholdResolution['stats_changed'] ?? false);
 
         if ($stateChanged) {
             $character->character_state = $state;
@@ -268,7 +279,7 @@ class EventService
         }
 
         $consequences = [];
-        $effectiveStats = is_array($character->effective_stats) ? $character->effective_stats : [];
+        $effectiveStats = $this->normalizeEffectiveStats($character);
         $state = is_array($character->character_state) ? $character->character_state : [];
 
         $changed = false;
@@ -278,6 +289,7 @@ class EventService
             $effectiveStats['Health'] = max(0, (int) ($effectiveStats['Health'] ?? 50) - $delta);
             $consequences[] = [
                 'type' => 'cancer_progression',
+                'kind' => 'consequence',
                 'message' => "Cancer progresses (-{$delta} Health).",
             ];
             $changed = true;
@@ -313,6 +325,7 @@ class EventService
             $effectiveStats['Discipline'] = min(100, (int) ($effectiveStats['Discipline'] ?? 50) + $daysAdvanced);
             $consequences[] = [
                 'type' => 'study_habit',
+                'kind' => 'reward',
                 'message' => "Your study routine compounds over time (+{$daysAdvanced} Intelligence, +{$daysAdvanced} Discipline).",
             ];
             $changed = true;
@@ -325,6 +338,7 @@ class EventService
             $effectiveStats['Health'] = max(0, (int) ($effectiveStats['Health'] ?? 50) - $healthDelta);
             $consequences[] = [
                 'type' => 'burnout_cycle',
+                'kind' => 'consequence',
                 'message' => "Your burnout pattern keeps draining you (+{$burnoutDelta} Burnout, -{$healthDelta} Health).",
             ];
             $changed = true;
@@ -337,6 +351,7 @@ class EventService
             $effectiveStats['Happiness'] = max(0, (int) ($effectiveStats['Happiness'] ?? 50) - $happinessDelta);
             $consequences[] = [
                 'type' => 'relationship_strain',
+                'kind' => 'consequence',
                 'message' => "Unresolved distance keeps weighing on you (+{$isolationDelta} Isolation, -{$happinessDelta} Happiness).",
             ];
             $changed = true;
@@ -347,6 +362,7 @@ class EventService
             $effectiveStats['Reputation'] = max(0, (int) ($effectiveStats['Reputation'] ?? 50) - $repDelta);
             $consequences[] = [
                 'type' => 'scandal_marked',
+                'kind' => 'consequence',
                 'message' => "Your reputation keeps taking hits while the scandal lingers (-{$repDelta} Reputation).",
             ];
             $changed = true;
@@ -359,6 +375,7 @@ class EventService
             $effectiveStats['Health'] = max(0, (int) ($effectiveStats['Health'] ?? 50) - $healthDelta);
             $consequences[] = [
                 'type' => 'dependency_flag',
+                'kind' => 'consequence',
                 'message' => "The habit tightens its grip over time (+{$addictionDelta} Addiction, -{$healthDelta} Health).",
             ];
             $changed = true;
@@ -370,6 +387,7 @@ class EventService
             $effectiveStats['Happiness'] = max(0, (int) ($effectiveStats['Happiness'] ?? 50) - $daysAdvanced);
             $consequences[] = [
                 'type' => 'financial_trap',
+                'kind' => 'consequence',
                 'message' => "Financial pressure keeps compounding (+{$debtDelta} Debt, -{$daysAdvanced} Happiness).",
             ];
             $changed = true;
@@ -380,6 +398,7 @@ class EventService
             $effectiveStats['Health'] = min(100, (int) ($effectiveStats['Health'] ?? 50) + $daysAdvanced);
             $consequences[] = [
                 'type' => 'recovery_arc',
+                'kind' => 'reward',
                 'message' => "Your healthier habits keep paying off (-{$daysAdvanced} Burnout, +{$daysAdvanced} Health).",
             ];
             $changed = true;
@@ -405,6 +424,227 @@ class EventService
         if (isset($effectiveStats['Wealth']) || isset($effectiveStats['Finance'])) {
             $character->finance = (int) ($effectiveStats['Wealth'] ?? $effectiveStats['Finance']);
         }
+    }
+
+    private function normalizeEffectiveStats(Character $character): array
+    {
+        $baseStats = is_array($character->stats) ? $character->stats : [];
+        $hiddenStats = is_array($character->hidden_stats) ? $character->hidden_stats : [];
+        $effectiveStats = is_array($character->effective_stats) ? $character->effective_stats : [];
+
+        $stats = array_merge($hiddenStats, $baseStats, $effectiveStats);
+
+        $stats['Health'] = (int) ($stats['Health'] ?? $character->health ?? 78);
+        $stats['Happiness'] = (int) ($stats['Happiness'] ?? $character->happiness ?? 72);
+        $stats['Wealth'] = (int) ($stats['Wealth'] ?? $stats['Finance'] ?? $character->finance ?? 20);
+        $stats['Finance'] = (int) ($stats['Finance'] ?? $stats['Wealth']);
+
+        foreach ($stats as $stat => $value) {
+            $stats[$stat] = max(0, min(100, (int) $value));
+        }
+
+        return $stats;
+    }
+
+    private function applyStatThresholdMilestones(array &$effectiveStats, array &$state): array
+    {
+        $events = [];
+        $statsChanged = false;
+        $stateChanged = false;
+        $snapshot = $effectiveStats;
+
+        $milestones = is_array($state['stat_threshold_milestones'] ?? null)
+            ? $state['stat_threshold_milestones']
+            : [];
+        $tracks = is_array($state['stat_threshold_tracks'] ?? null)
+            ? $state['stat_threshold_tracks']
+            : [];
+
+        foreach ($this->getStatThresholdRules() as $stat => $rules) {
+            $value = (int) ($snapshot[$stat] ?? 0);
+
+            foreach ($rules as $rule) {
+                $flag = (string) ($rule['flag'] ?? '');
+                if ($flag === '' || !empty($milestones[$flag])) {
+                    continue;
+                }
+
+                $requiredTrack = $rule['requires_track'] ?? null;
+                if ($requiredTrack && empty($tracks[$requiredTrack])) {
+                    continue;
+                }
+
+                $min = $rule['min'] ?? null;
+                $max = $rule['max'] ?? null;
+
+                if ($min !== null && $value < (int) $min) {
+                    continue;
+                }
+                if ($max !== null && $value > (int) $max) {
+                    continue;
+                }
+
+                foreach (($rule['effects'] ?? []) as $affectedStat => $delta) {
+                    $applied = $this->applyStatDelta($effectiveStats, (string) $affectedStat, (int) $delta);
+                    $statsChanged = $statsChanged || ($applied !== 0);
+                }
+
+                foreach (($rule['state_updates'] ?? []) as $key => $valueUpdate) {
+                    if (($state[$key] ?? null) !== $valueUpdate) {
+                        $state[$key] = $valueUpdate;
+                        $stateChanged = true;
+                    }
+                }
+
+                if (!empty($rule['sets_track'])) {
+                    $trackKey = (string) $rule['sets_track'];
+                    if (empty($tracks[$trackKey])) {
+                        $tracks[$trackKey] = true;
+                        $stateChanged = true;
+                    }
+                }
+
+                if (!empty($rule['clears_track'])) {
+                    $trackKey = (string) $rule['clears_track'];
+                    if (isset($tracks[$trackKey])) {
+                        unset($tracks[$trackKey]);
+                        $stateChanged = true;
+                    }
+                }
+
+                $milestones[$flag] = true;
+                $stateChanged = true;
+
+                $events[] = [
+                    'type' => $rule['type'] ?? strtolower($flag),
+                    'kind' => $rule['kind'] ?? 'consequence',
+                    'stat' => $stat,
+                    'message' => (string) ($rule['message'] ?? "{$stat} shifted dramatically."),
+                ];
+            }
+        }
+
+        if ($stateChanged) {
+            $state['stat_threshold_milestones'] = $milestones;
+            $state['stat_threshold_tracks'] = $tracks;
+        }
+
+        return [
+            'events' => $events,
+            'state_changed' => $stateChanged,
+            'stats_changed' => $statsChanged,
+        ];
+    }
+
+    private function applyStatDelta(array &$effectiveStats, string $stat, int $delta): int
+    {
+        $before = (int) ($effectiveStats[$stat] ?? 0);
+        $after = max(0, min(100, $before + $delta));
+        $effectiveStats[$stat] = $after;
+
+        if ($stat === 'Wealth') {
+            $effectiveStats['Finance'] = $after;
+        } elseif ($stat === 'Finance') {
+            $effectiveStats['Wealth'] = $after;
+        }
+
+        return $after - $before;
+    }
+
+    private function getStatThresholdRules(): array
+    {
+        return [
+            'Health' => [
+                ['flag' => 'health_collapse', 'kind' => 'consequence', 'type' => 'health_collapse', 'max' => 10, 'message' => 'Health collapsed. Daily life feels brutal until you recover.', 'effects' => ['Happiness' => -5, 'Burnout' => 5], 'sets_track' => 'health_recovery'],
+                ['flag' => 'health_mastery', 'kind' => 'reward', 'type' => 'health_mastery', 'min' => 100, 'message' => 'Peak health gives you fresh energy and emotional stability.', 'effects' => ['Happiness' => 5, 'Burnout' => -5]],
+                ['flag' => 'health_comeback', 'kind' => 'reward', 'type' => 'health_comeback', 'min' => 80, 'requires_track' => 'health_recovery', 'clears_track' => 'health_recovery', 'message' => 'Your health bounced back in a big way.', 'effects' => ['Happiness' => 5]],
+            ],
+            'Happiness' => [
+                ['flag' => 'happiness_collapse', 'kind' => 'consequence', 'type' => 'happiness_collapse', 'max' => 10, 'message' => 'Despair sets in, making everything feel heavier.', 'effects' => ['Health' => -5, 'Burnout' => 5], 'sets_track' => 'happiness_recovery'],
+                ['flag' => 'happiness_mastery', 'kind' => 'reward', 'type' => 'happiness_mastery', 'min' => 100, 'message' => 'Pure happiness fuels resilience and lifts your health.', 'effects' => ['Health' => 5, 'Burnout' => -5]],
+                ['flag' => 'happiness_comeback', 'kind' => 'reward', 'type' => 'happiness_comeback', 'min' => 80, 'requires_track' => 'happiness_recovery', 'clears_track' => 'happiness_recovery', 'message' => 'You found your joy again.', 'effects' => ['Discipline' => 5]],
+            ],
+            'Wealth' => [
+                ['flag' => 'wealth_collapse', 'kind' => 'consequence', 'type' => 'wealth_collapse', 'max' => 10, 'message' => 'Poverty adds pressure to every decision.', 'effects' => ['Debt' => 5, 'Happiness' => -5], 'sets_track' => 'wealth_recovery'],
+                ['flag' => 'wealth_mastery', 'kind' => 'reward', 'type' => 'wealth_mastery', 'min' => 100, 'message' => 'Financial security cushions your life from stress.', 'effects' => ['Debt' => -10, 'Happiness' => 5]],
+                ['flag' => 'wealth_comeback', 'kind' => 'reward', 'type' => 'wealth_comeback', 'min' => 80, 'requires_track' => 'wealth_recovery', 'clears_track' => 'wealth_recovery', 'message' => 'You rebuilt your finances through persistence.', 'effects' => ['Discipline' => 5]],
+            ],
+            'Intelligence' => [
+                ['flag' => 'intelligence_collapse', 'kind' => 'consequence', 'type' => 'intelligence_collapse', 'max' => 10, 'message' => 'Mental fog starts costing you good decisions.', 'effects' => ['Discipline' => -5], 'sets_track' => 'intelligence_recovery'],
+                ['flag' => 'intelligence_mastery', 'kind' => 'reward', 'type' => 'intelligence_mastery', 'min' => 100, 'message' => 'Brilliance sharpens both discipline and creativity.', 'effects' => ['Discipline' => 5, 'Creativity' => 5]],
+                ['flag' => 'intelligence_comeback', 'kind' => 'reward', 'type' => 'intelligence_comeback', 'min' => 80, 'requires_track' => 'intelligence_recovery', 'clears_track' => 'intelligence_recovery', 'message' => 'Your focus and thinking power return.', 'effects' => ['Confidence' => 5]],
+            ],
+            'Discipline' => [
+                ['flag' => 'discipline_collapse', 'kind' => 'consequence', 'type' => 'discipline_collapse', 'max' => 10, 'message' => 'Your routines break down and stress surges.', 'effects' => ['Burnout' => 8], 'sets_track' => 'discipline_recovery'],
+                ['flag' => 'discipline_mastery', 'kind' => 'reward', 'type' => 'discipline_mastery', 'min' => 100, 'message' => 'Exceptional discipline protects you from chaos.', 'effects' => ['Burnout' => -8, 'Health' => 5]],
+                ['flag' => 'discipline_comeback', 'kind' => 'reward', 'type' => 'discipline_comeback', 'min' => 80, 'requires_track' => 'discipline_recovery', 'clears_track' => 'discipline_recovery', 'message' => 'You rebuilt your routines and regained control.', 'effects' => ['Happiness' => 5]],
+            ],
+            'Reputation' => [
+                ['flag' => 'reputation_collapse', 'kind' => 'consequence', 'type' => 'reputation_collapse', 'max' => 10, 'message' => 'A damaged reputation leaves you isolated and discouraged.', 'effects' => ['Isolation' => 8, 'Happiness' => -5], 'sets_track' => 'reputation_recovery'],
+                ['flag' => 'reputation_mastery', 'kind' => 'reward', 'type' => 'reputation_mastery', 'min' => 100, 'message' => 'A stellar reputation opens doors and lifts your mood.', 'effects' => ['Wealth' => 5, 'Happiness' => 5]],
+                ['flag' => 'reputation_comeback', 'kind' => 'reward', 'type' => 'reputation_comeback', 'min' => 80, 'requires_track' => 'reputation_recovery', 'clears_track' => 'reputation_recovery', 'message' => 'You earned people’s trust back.', 'effects' => ['Morality' => 5]],
+            ],
+            'Strength' => [
+                ['flag' => 'strength_collapse', 'kind' => 'consequence', 'type' => 'strength_collapse', 'max' => 10, 'message' => 'Physical weakness makes recovery much harder.', 'effects' => ['Health' => -5, 'Burnout' => 5], 'sets_track' => 'strength_recovery'],
+                ['flag' => 'strength_mastery', 'kind' => 'reward', 'type' => 'strength_mastery', 'min' => 100, 'message' => 'Physical mastery keeps both body and stress in check.', 'effects' => ['Health' => 5, 'Burnout' => -5]],
+                ['flag' => 'strength_comeback', 'kind' => 'reward', 'type' => 'strength_comeback', 'min' => 80, 'requires_track' => 'strength_recovery', 'clears_track' => 'strength_recovery', 'message' => 'Your body feels strong again.', 'effects' => ['Confidence' => 5]],
+            ],
+            'Creativity' => [
+                ['flag' => 'creativity_collapse', 'kind' => 'consequence', 'type' => 'creativity_collapse', 'max' => 10, 'message' => 'Creative burnout leaves life feeling dull and flat.', 'effects' => ['Happiness' => -5], 'sets_track' => 'creativity_recovery'],
+                ['flag' => 'creativity_mastery', 'kind' => 'reward', 'type' => 'creativity_mastery', 'min' => 100, 'message' => 'Creative flow inspires both joy and recognition.', 'effects' => ['Happiness' => 5, 'Reputation' => 5]],
+                ['flag' => 'creativity_comeback', 'kind' => 'reward', 'type' => 'creativity_comeback', 'min' => 80, 'requires_track' => 'creativity_recovery', 'clears_track' => 'creativity_recovery', 'message' => 'Your spark returned and ideas are flowing again.', 'effects' => ['Confidence' => 5]],
+            ],
+            'Charisma' => [
+                ['flag' => 'charisma_collapse', 'kind' => 'consequence', 'type' => 'charisma_collapse', 'max' => 10, 'message' => 'Social awkwardness pushes people away.', 'effects' => ['Isolation' => 8, 'Reputation' => -5], 'sets_track' => 'charisma_recovery'],
+                ['flag' => 'charisma_mastery', 'kind' => 'reward', 'type' => 'charisma_mastery', 'min' => 100, 'message' => 'Your presence naturally draws people in.', 'effects' => ['Isolation' => -8, 'Reputation' => 5]],
+                ['flag' => 'charisma_comeback', 'kind' => 'reward', 'type' => 'charisma_comeback', 'min' => 80, 'requires_track' => 'charisma_recovery', 'clears_track' => 'charisma_recovery', 'message' => 'Your confidence with people returns.', 'effects' => ['Happiness' => 5]],
+            ],
+            'Morality' => [
+                ['flag' => 'morality_collapse', 'kind' => 'consequence', 'type' => 'morality_collapse', 'max' => 10, 'message' => 'Your values slip, and people start feeling the cost.', 'effects' => ['Reputation' => -8, 'Ego' => 5], 'sets_track' => 'morality_recovery'],
+                ['flag' => 'morality_mastery', 'kind' => 'reward', 'type' => 'morality_mastery', 'min' => 100, 'message' => 'Living by your values strengthens your name and peace of mind.', 'effects' => ['Reputation' => 8, 'Happiness' => 5]],
+                ['flag' => 'morality_comeback', 'kind' => 'reward', 'type' => 'morality_comeback', 'min' => 80, 'requires_track' => 'morality_recovery', 'clears_track' => 'morality_recovery', 'message' => 'You got back to the person you wanted to be.', 'effects' => ['Discipline' => 5]],
+            ],
+            'Luck' => [
+                ['flag' => 'luck_collapse', 'kind' => 'consequence', 'type' => 'luck_collapse', 'max' => 10, 'message' => 'A run of bad luck drags down your optimism.', 'effects' => ['Happiness' => -5], 'sets_track' => 'luck_recovery'],
+                ['flag' => 'luck_mastery', 'kind' => 'reward', 'type' => 'luck_mastery', 'min' => 100, 'message' => 'Fortune smiles on you and eases the strain of life.', 'effects' => ['Wealth' => 5, 'Happiness' => 5]],
+                ['flag' => 'luck_comeback', 'kind' => 'reward', 'type' => 'luck_comeback', 'min' => 80, 'requires_track' => 'luck_recovery', 'clears_track' => 'luck_recovery', 'message' => 'Your luck finally turns around.', 'effects' => ['Confidence' => 5]],
+            ],
+            'Social' => [
+                ['flag' => 'social_collapse', 'kind' => 'consequence', 'type' => 'social_collapse', 'max' => 10, 'message' => 'Your social energy is depleted and loneliness creeps in.', 'effects' => ['Isolation' => 8, 'Happiness' => -5], 'sets_track' => 'social_recovery'],
+                ['flag' => 'social_mastery', 'kind' => 'reward', 'type' => 'social_mastery', 'min' => 100, 'message' => 'Strong social instincts make it easier to stay connected.', 'effects' => ['Isolation' => -8, 'Reputation' => 5]],
+                ['flag' => 'social_comeback', 'kind' => 'reward', 'type' => 'social_comeback', 'min' => 80, 'requires_track' => 'social_recovery', 'clears_track' => 'social_recovery', 'message' => 'You reconnect with the world around you.', 'effects' => ['Charisma' => 5]],
+            ],
+            'Empathy' => [
+                ['flag' => 'empathy_collapse', 'kind' => 'consequence', 'type' => 'empathy_collapse', 'max' => 10, 'message' => 'Emotional distance starts damaging your closest bonds.', 'effects' => ['Isolation' => 5, 'Reputation' => -5], 'sets_track' => 'empathy_recovery'],
+                ['flag' => 'empathy_mastery', 'kind' => 'reward', 'type' => 'empathy_mastery', 'min' => 100, 'message' => 'Your empathy deepens trust and meaningful happiness.', 'effects' => ['Happiness' => 5, 'Reputation' => 5]],
+                ['flag' => 'empathy_comeback', 'kind' => 'reward', 'type' => 'empathy_comeback', 'min' => 80, 'requires_track' => 'empathy_recovery', 'clears_track' => 'empathy_recovery', 'message' => 'You open back up to people again.', 'effects' => ['Morality' => 5]],
+            ],
+            'Confidence' => [
+                ['flag' => 'confidence_collapse', 'kind' => 'consequence', 'type' => 'confidence_collapse', 'max' => 10, 'message' => 'Self-doubt starts shrinking your options.', 'effects' => ['Charisma' => -5, 'Discipline' => -5], 'sets_track' => 'confidence_recovery'],
+                ['flag' => 'confidence_mastery', 'kind' => 'reward', 'type' => 'confidence_mastery', 'min' => 100, 'message' => 'Confidence radiates into your presence and follow-through.', 'effects' => ['Charisma' => 5, 'Discipline' => 5]],
+                ['flag' => 'confidence_comeback', 'kind' => 'reward', 'type' => 'confidence_comeback', 'min' => 80, 'requires_track' => 'confidence_recovery', 'clears_track' => 'confidence_recovery', 'message' => 'You believe in yourself again.', 'effects' => ['Happiness' => 5]],
+            ],
+            'Burnout' => [
+                ['flag' => 'burnout_crisis', 'kind' => 'consequence', 'type' => 'burnout_crisis', 'min' => 90, 'message' => 'Burnout reaches crisis level and starts damaging the rest of your life.', 'effects' => ['Health' => -8, 'Happiness' => -5], 'sets_track' => 'burnout_recovery'],
+                ['flag' => 'burnout_recovery', 'kind' => 'reward', 'type' => 'burnout_recovery', 'max' => 20, 'requires_track' => 'burnout_recovery', 'clears_track' => 'burnout_recovery', 'message' => 'You recovered from deep burnout and feel human again.', 'effects' => ['Health' => 5, 'Happiness' => 5]],
+            ],
+            'Isolation' => [
+                ['flag' => 'isolation_crisis', 'kind' => 'consequence', 'type' => 'isolation_crisis', 'min' => 90, 'message' => 'Extreme isolation starts crushing your emotional stability.', 'effects' => ['Happiness' => -10, 'Charisma' => -5], 'sets_track' => 'isolation_recovery'],
+                ['flag' => 'isolation_recovery', 'kind' => 'reward', 'type' => 'isolation_recovery', 'max' => 20, 'requires_track' => 'isolation_recovery', 'clears_track' => 'isolation_recovery', 'message' => 'You broke out of isolation and started reconnecting.', 'effects' => ['Happiness' => 5, 'Charisma' => 5]],
+            ],
+            'Debt' => [
+                ['flag' => 'debt_crisis', 'kind' => 'consequence', 'type' => 'debt_crisis', 'min' => 90, 'message' => 'Debt becomes a constant pressure on your mental state and reputation.', 'effects' => ['Happiness' => -10, 'Reputation' => -5], 'sets_track' => 'debt_recovery'],
+                ['flag' => 'debt_recovery', 'kind' => 'reward', 'type' => 'debt_recovery', 'max' => 20, 'requires_track' => 'debt_recovery', 'clears_track' => 'debt_recovery', 'message' => 'You clawed your way back from crushing debt.', 'effects' => ['Happiness' => 5, 'Discipline' => 5]],
+            ],
+            'Addiction' => [
+                ['flag' => 'addiction_crisis', 'kind' => 'consequence', 'type' => 'addiction_crisis', 'min' => 85, 'message' => 'Addiction takes a brutal toll on your health and mood.', 'effects' => ['Health' => -10, 'Happiness' => -5], 'sets_track' => 'addiction_recovery'],
+                ['flag' => 'addiction_recovery', 'kind' => 'reward', 'type' => 'addiction_recovery', 'max' => 20, 'requires_track' => 'addiction_recovery', 'clears_track' => 'addiction_recovery', 'message' => 'You are finally pulling away from addiction.', 'effects' => ['Health' => 5, 'Happiness' => 5]],
+            ],
+            'Ego' => [
+                ['flag' => 'ego_crisis', 'kind' => 'consequence', 'type' => 'ego_crisis', 'min' => 90, 'message' => 'Your ego begins damaging trust and pushing people away.', 'effects' => ['Reputation' => -10, 'Isolation' => 5], 'sets_track' => 'ego_recovery'],
+                ['flag' => 'ego_recovery', 'kind' => 'reward', 'type' => 'ego_recovery', 'max' => 20, 'requires_track' => 'ego_recovery', 'clears_track' => 'ego_recovery', 'message' => 'Humility steadies your relationships and reputation.', 'effects' => ['Morality' => 5, 'Reputation' => 5]],
+            ],
+        ];
     }
 
     /**
@@ -649,6 +889,18 @@ Log::error('Error in getStatefulEvents', [
     public function advanceState(Character $character, string $eventType, string $outcomeType): void
     {
         $state = $character->character_state ?? [];
+        $ageGroup = (string) ($character->age_group ?? 'child');
+        $normalizedLifeStage = match ($ageGroup) {
+            'teen', 'teenager', 'adolescent' => 'teenager',
+            'adult' => 'adult',
+            'old', 'elder', 'elderly' => 'old',
+            default => 'child',
+        };
+        $state['life_stage'] = $normalizedLifeStage;
+
+        if (in_array($normalizedLifeStage, ['child', 'teenager'], true) && empty($character->profession)) {
+            $state['profession_state'] = 'unemployed';
+        }
         
         // Preserve chain-related data that shouldn't be overwritten by FSM transitions
         $preservedData = [
@@ -659,6 +911,20 @@ Log::error('Error in getStatefulEvents', [
         ];
         
         foreach (self::STATE_TRANSITIONS as $stateType => $transitions) {
+            if ($stateType === 'life_stage') {
+                continue;
+            }
+
+            // Relationship status should only change via explicit event choices (e.g. `relationship_status_change`).
+            // Auto-advancing this via FSM caused "Single → Dating → Married → Divorced" jumps on unrelated events.
+            if ($stateType === 'relationship_status') {
+                continue;
+            }
+
+            if ($stateType === 'profession_state' && (empty($character->profession) || in_array($normalizedLifeStage, ['child', 'teenager'], true))) {
+                continue;
+            }
+
             if (isset($state[$stateType]) && isset($transitions[$state[$stateType]])) {
                 $possibleTransitions = $transitions[$state[$stateType]];
 
@@ -687,6 +953,14 @@ Log::error('Error in getStatefulEvents', [
         $state['decision_profile'] = $preservedData['decision_profile'];
         
         $character->character_state = $state;
+
+        // Keep legacy columns in sync (used by achievements/logging/back-compat checks).
+        if (isset($state['relationship_status'])) {
+            $character->relationship_status = $state['relationship_status'];
+        }
+        if (isset($state['profession_state'])) {
+            $character->career_level = $state['profession_state'];
+        }
         $character->save();
     }
 
@@ -1054,7 +1328,11 @@ Log::error('Error in getStatefulEvents', [
      */
     public function checkEventPrerequisites($event, Character $character): bool
     {
-        $completedChains = $character->completed_event_chains ?? [];
+        // `completed_event_chains` may be stored as legacy string IDs or as structured records.
+        // Always normalize to a list of chain IDs.
+        $completedChains = method_exists($character, 'getCompletedChainIds')
+            ? $character->getCompletedChainIds()
+            : ($character->completed_event_chains ?? []);
         $characterState = $character->character_state ?? [];
         $chainOutcomes = $characterState['chain_outcomes'] ?? [];
         
@@ -1163,8 +1441,17 @@ Log::error('Error in getStatefulEvents', [
             'teen' => 'teenager',
             default => $ageGroup
         };
-        $relationshipStatus = $characterState['relationship_status'] ?? $character->relationship_status ?? 'single';
-        $professionState = $characterState['profession_state'] ?? $character->career_level ?? 'unemployed';
+
+        // Prefer JSON state, but fall back to columns when JSON is still at its defaults.
+        $relationshipStatus = $characterState['relationship_status'] ?? null;
+        if (empty($relationshipStatus) || $relationshipStatus === 'single') {
+            $relationshipStatus = $character->relationship_status ?? ($relationshipStatus ?: 'single');
+        }
+
+        $professionState = $characterState['profession_state'] ?? null;
+        if (empty($professionState) || ($professionState === 'unemployed' && !empty($character->profession))) {
+            $professionState = $character->career_level ?? ($professionState ?: 'unemployed');
+        }
         $healthCondition = $characterState['health_condition'] ?? $this->getHealthStatus($character->health ?? 78);
         $wealth = $character->finance ?? $character->wealth ?? 20;
         $stats = $character->effective_stats ?? $character->stats ?? [];
@@ -1429,33 +1716,7 @@ Log::error('Error in getStatefulEvents', [
      */
     public function updateNarrativePath(Character $character, string $eventCategory, string $outcomeType): void
     {
-        $activePaths = $character->active_event_paths ?? [];
-        
-        $narrativeMappings = [
-            'education' => 'education_path',
-            'career' => 'career_path',
-            'family' => 'family_path',
-            'health' => 'health_path',
-            'social' => 'social_path',
-            'skill' => 'skill_path'
-        ];
-        
-        foreach ($narrativeMappings as $category => $narrative) {
-            if (str_contains($eventCategory, $category)) {
-                if (empty($character->current_narrative)) {
-$character->current_narrative = $narrative . (($outcomeType === 'positive') ? '_success' : (($outcomeType === 'negative') ? '_struggle' : '_neutral'));
-                }
-                
-                if (!in_array($eventCategory, $activePaths)) {
-                    $activePaths[] = $eventCategory;
-                    $character->active_event_paths = $activePaths;
-                }
-                
-                break;
-            }
-        }
-        
-        $character->save();
+        app(NarrativeService::class)->updateNarrativePath($character, $eventCategory, $outcomeType);
     }
 
     /**
@@ -1466,8 +1727,8 @@ $character->current_narrative = $narrative . (($outcomeType === 'positive') ? '_
      */
     public function completeEventChain(Character $character, string $category, string $outcomeType, int $chainOrder = 1): void
     {
-        $completedChains = $character->completed_event_chains ?? [];
         $characterState = $character->character_state ?? [];
+        $preservedDecisionProfile = $characterState['decision_profile'] ?? [];
         
         // Get chain_id from event (use category as fallback)
         $chainId = $category;
@@ -1499,9 +1760,17 @@ $character->current_narrative = $narrative . (($outcomeType === 'positive') ? '_
         
         // FIX #3: Only add to completed_chains if this is the first step (step 1)
         // This ensures sequential progression is enforced via chain_progress
-        if ($chainOrder === 1 && !in_array($category, $completedChains)) {
-            $completedChains[] = $category;
-            $character->completed_event_chains = $completedChains;
+        $character->updateChainProgress($chainId, (int) $chainOrderFloat, [
+            'category' => $category,
+            'last_outcome' => $outcomeType,
+        ]);
+
+        if ($chainOrder === 1 && !$character->hasCompletedChain($chainId)) {
+            $character->recordChainCompletion($chainId, [
+                'category' => $category,
+                'progress' => (int) $chainOrderFloat,
+                'last_outcome' => $outcomeType,
+            ]);
         }
         
         // NEW: Track pending chains for cross-age continuity
@@ -1542,7 +1811,6 @@ $character->current_narrative = $narrative . (($outcomeType === 'positive') ? '_
         $chainOutcomes[$category] = $outcomeType;
         $characterState['chain_outcomes'] = $chainOutcomes;
         
-        // Restore preserved decision_profile
         $characterState['decision_profile'] = $preservedDecisionProfile ?? [];
         
         $character->character_state = $characterState;

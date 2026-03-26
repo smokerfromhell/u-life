@@ -580,6 +580,29 @@ class Character extends Model
     public function setProfession(?string $profession): void
     {
         $this->profession = $profession;
+
+        $state = is_array($this->character_state) ? $this->character_state : [];
+
+        // Keep column + JSON state consistent so event conditions and achievements both work.
+        if (empty($profession)) {
+            $this->career_level = 'unemployed';
+            $state['profession_state'] = 'unemployed';
+        } else {
+            $stateLevel = (string) ($state['profession_state'] ?? '');
+            $columnLevel = (string) ($this->career_level ?? '');
+
+            $resolvedLevel = 'entry_level';
+            if (!empty($stateLevel) && $stateLevel !== 'unemployed') {
+                $resolvedLevel = $stateLevel;
+            } elseif (!empty($columnLevel) && $columnLevel !== 'unemployed') {
+                $resolvedLevel = $columnLevel;
+            }
+
+            $this->career_level = $resolvedLevel;
+            $state['profession_state'] = $resolvedLevel;
+        }
+
+        $this->character_state = $state;
         $this->save();
     }
 
@@ -1070,7 +1093,7 @@ class Character extends Model
      */
     public function recordChainCompletion(string $chainId, array $metadata = []): void
     {
-        $completedChains = $this->completed_event_chains ?? [];
+        $completedChains = $this->getCompletedChainRecords();
         
         // Check if already completed
         $alreadyCompleted = collect($completedChains)->contains('chain_id', $chainId);
@@ -1080,10 +1103,11 @@ class Character extends Model
                 'chain_id' => $chainId,
                 'day_completed' => $this->current_day,
                 'age_group' => $this->age_group,
+                'progress' => $metadata['progress'] ?? 1,
                 'timestamp' => now()->toISOString(),
                 'metadata' => $metadata,
             ];
-            $this->completed_event_chains = $completedChains;
+            $this->completed_event_chains = array_values($completedChains);
             $this->save();
         }
     }
@@ -1095,7 +1119,7 @@ class Character extends Model
      */
     public function hasCompletedChain(string $chainId): bool
     {
-        $completedChains = $this->completed_event_chains ?? [];
+        $completedChains = $this->getCompletedChainRecords();
         return collect($completedChains)->contains('chain_id', $chainId);
     }
 
@@ -1105,8 +1129,13 @@ class Character extends Model
      */
     public function getCompletedChainIds(): array
     {
-        $completedChains = $this->completed_event_chains ?? [];
+        $completedChains = $this->getCompletedChainRecords();
         return collect($completedChains)->pluck('chain_id')->toArray();
+    }
+
+    public function getCompletedChainRecords(): array
+    {
+        return $this->normalizeCompletedChainRecords($this->completed_event_chains ?? []);
     }
 
     /**
@@ -1116,7 +1145,7 @@ class Character extends Model
      */
     public function getChainCompletion(string $chainId): ?array
     {
-        $completedChains = $this->completed_event_chains ?? [];
+        $completedChains = $this->getCompletedChainRecords();
         $chain = collect($completedChains)->firstWhere('chain_id', $chainId);
         return $chain ?? null;
     }
@@ -1141,7 +1170,7 @@ class Character extends Model
      */
     public function getChainProgress(string $chainId): int
     {
-        $completedChains = $this->completed_event_chains ?? [];
+        $completedChains = $this->getCompletedChainRecords();
         $chain = collect($completedChains)->firstWhere('chain_id', $chainId);
         return $chain ? ($chain['progress'] ?? 0) : 0;
     }
@@ -1154,7 +1183,7 @@ class Character extends Model
      */
     public function updateChainProgress(string $chainId, int $progress, array $metadata = []): void
     {
-        $completedChains = $this->completed_event_chains ?? [];
+        $completedChains = $this->getCompletedChainRecords();
         $found = false;
         
         foreach ($completedChains as &$chain) {
@@ -1179,8 +1208,52 @@ class Character extends Model
             ];
         }
         
-        $this->completed_event_chains = $completedChains;
+        $this->completed_event_chains = array_values($completedChains);
         $this->save();
+    }
+
+    public function normalizeNarrativePath(?string $narrative = null): ?string
+    {
+        $value = strtolower(trim((string) ($narrative ?? $this->current_narrative ?? '')));
+        if ($value === '') {
+            return null;
+        }
+
+        $aliases = [
+            'education' => ['education', 'education_path', 'education_driven', 'study', 'school', 'college'],
+            'career' => ['career', 'career_path', 'career_driven', 'work', 'job', 'profession'],
+            'family' => ['family', 'family_path', 'family_centered', 'relationship', 'fractured_bonds'],
+            'health' => ['health', 'health_path', 'recovery_arc', 'survival_arc', 'dependency_arc'],
+            'wealth' => ['wealth', 'wealth_path', 'finance', 'money'],
+            'social' => ['social', 'social_path', 'socially_shaped', 'culture', 'community'],
+        ];
+
+        foreach ($aliases as $path => $needles) {
+            foreach ($needles as $needle) {
+                if ($value === $needle || str_contains($value, $needle)) {
+                    return $path;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public function normalizeNarrativeToken(?string $narrative = null): ?string
+    {
+        $path = $this->normalizeNarrativePath($narrative);
+        if ($path === null) {
+            return null;
+        }
+
+        $value = strtolower(trim((string) ($narrative ?? $this->current_narrative ?? '')));
+        $suffix = match (true) {
+            str_contains($value, 'success') => 'success',
+            str_contains($value, 'struggle'), str_contains($value, 'failure'), str_contains($value, 'negative') => 'struggle',
+            default => 'neutral',
+        };
+
+        return "{$path}_{$suffix}";
     }
 
     /**
@@ -1299,6 +1372,49 @@ class Character extends Model
         return $continuable;
     }
 
+    private function normalizeCompletedChainRecords(array $completedChains): array
+    {
+        $normalized = [];
+
+        foreach ($completedChains as $chain) {
+            if (is_string($chain) && $chain !== '') {
+                $normalized[$chain] = [
+                    'chain_id' => $chain,
+                    'progress' => 1,
+                    'metadata' => [],
+                ];
+                continue;
+            }
+
+            if (!is_array($chain)) {
+                continue;
+            }
+
+            $chainId = $chain['chain_id'] ?? null;
+            if (!is_string($chainId) || $chainId === '') {
+                continue;
+            }
+
+            $existing = $normalized[$chainId] ?? [
+                'chain_id' => $chainId,
+                'progress' => 0,
+                'metadata' => [],
+            ];
+
+            $normalized[$chainId] = array_merge($existing, $chain);
+            $normalized[$chainId]['progress'] = max(
+                (int) ($existing['progress'] ?? 0),
+                (int) ($chain['progress'] ?? 0)
+            );
+            $normalized[$chainId]['metadata'] = array_merge(
+                is_array($existing['metadata'] ?? null) ? $existing['metadata'] : [],
+                is_array($chain['metadata'] ?? null) ? $chain['metadata'] : []
+            );
+        }
+
+        return array_values($normalized);
+    }
+
     /**
      * Get compatible age groups for continuing a chain.
      * @param string $startAge The age group where chain started
@@ -1307,9 +1423,11 @@ class Character extends Model
     private function getCompatibleAgeGroups(string $startAge): array
     {
         $ageFlow = [
-            'child' => ['child', 'teen'],
-            'teen' => ['teen', 'adult'],
-            'adult' => ['adult', 'middle'],
+            'child' => ['child', 'teen', 'teenager'],
+            'teen' => ['teen', 'teenager', 'adult'],
+            'teenager' => ['teen', 'teenager', 'adult'],
+            'adult' => ['adult', 'old'],
+            'old' => ['old'],
             'middle' => ['middle', 'senior'],
             'senior' => ['senior'],
         ];

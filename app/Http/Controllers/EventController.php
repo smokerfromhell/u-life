@@ -111,13 +111,14 @@ class EventController extends Controller
             $this->checkAndApplyAgeProgression($character);
 
             // Apply deterministic ongoing consequences as time passes
-            $this->eventService->applyTimePassage($character, 1);
+            $timePassageConsequences = $this->eventService->applyTimePassage($character, 1);
 
             // Update health condition based on new state
             $this->eventService->updateHealthCondition($character);
 
             // Evaluate major consequence thresholds (bankruptcy/cancer/disability/etc.)
-            $this->eventService->checkSevereConsequences($character, []);
+            $thresholdConsequences = $this->eventService->checkSevereConsequences($character, []);
+            $consequences = array_merge($timePassageConsequences ?? [], $thresholdConsequences ?? []);
 
             // Check if game is over
             $gameOver = false;
@@ -141,6 +142,7 @@ class EventController extends Controller
                 'age' => $this->calculateAge($character->current_day),
                 'age_group' => $character->age_group,
                 'game_over' => $gameOver,
+                'consequences' => $consequences,
             ];
 
             if ($gameOver && $endingType) {
@@ -321,7 +323,7 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
             $triggerEvents = $this->getTriggeredStatEvents($character, $shownEventIds);
             if (!empty($triggerEvents)) {
                 $remainingSlots = max(0, 5 - count($triggerEvents));
-                $ageSpecific = $statefulEvents['ageSpecific'] ?? collect([]);
+                $ageSpecific = collect($this->ensureArray($statefulEvents['ageSpecific'] ?? []));
                 $sliceAgeSpecific = $ageSpecific->slice(0, $remainingSlots)->values()->toArray();
                 $statefulEvents['ageSpecific'] = array_merge($triggerEvents, $sliceAgeSpecific);
             }
@@ -352,22 +354,35 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 }
             }
 
+            $dailyDeck = $this->formatEventDeck($statefulEvents['daily'] ?? $dailyEvents, 'daily', $character);
+            $culturalDeck = $this->formatEventDeck($statefulEvents['cultural'] ?? $culturalEvents, 'cultural', $character);
+            $legacyAgeSpecificDeck = $this->getAgeSpecificEvents($character, $ageGroup, $shownEventIds);
+            $narrativeAgeSpecificDeck = $this->formatEventDeck(
+                $statefulEvents['ageSpecific'] ?? $legacyAgeSpecificDeck,
+                'ageSpecific',
+                $character
+            );
+            $ageSpecificDeck = !empty($narrativeAgeSpecificDeck) ? $narrativeAgeSpecificDeck : $this->dedupeFormattedEvents($legacyAgeSpecificDeck);
+            $professionDeck = $this->formatEventDeck($statefulEvents['profession'] ?? [], 'profession', $character);
+
             $events = [
                 // Separate decks (same interaction model as life actions)
                 'skills_to_learn' => $this->dedupeFormattedEvents($skillsToLearn),
                 'daily_actions' => $this->dedupeFormattedEvents($dailyActions),
                 'life_actions' => $this->dedupeFormattedEvents($this->getSystemActions($character)), // Backward compat
                 'triggers' => $this->dedupeFormattedEvents($triggerEvents),
-                'daily' => $this->dedupeFormattedEvents($dailyEvents),
-                'cultural' => $this->dedupeFormattedEvents($culturalEvents),
-                'ageSpecific' => $this->dedupeFormattedEvents($this->getAgeSpecificEvents($character, $ageGroup, $shownEventIds)),
-                'profession' => $this->dedupeFormattedEvents($this->ensureArray($statefulEvents['profession'] ?? [])),
+                'daily' => !empty($dailyDeck) ? $dailyDeck : $this->dedupeFormattedEvents($dailyEvents),
+                'cultural' => !empty($culturalDeck) ? $culturalDeck : $this->dedupeFormattedEvents($culturalEvents),
+                'ageSpecific' => $ageSpecificDeck,
+                'profession' => $professionDeck,
                 'profession_choices' => $this->dedupeFormattedEvents($professionChoices),
                 // NEW: Luck events
                 'luck' => $luckEvents,
                 'milestone' => $milestone,
                 'current_state' => $character->current_state,
                 'character_state' => $character->character_state,
+                'current_narrative' => $character->normalizeNarrativeToken($character->current_narrative),
+                'active_event_paths' => $character->active_event_paths ?? [],
                 // Feature 4: Age instead of day
                 'age' => $this->calculateAge($character->current_day),
                 'current_day' => $character->current_day,
@@ -376,11 +391,11 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 'health_percentage' => $character->health ?? 78,
                 // Branching system data
                 'path_progress' => $this->getPathProgress($character),
-                'completed_chains' => $character->completed_event_chains ?? [],
+                'completed_chains' => $character->getCompletedChainRecords(),
             ];
 
-            // Add profession events if character is adult with profession
-            if ($ageGroup === 'adult' && $character->profession) {
+            // Add profession events if character is adult with profession and narrative deck had none
+            if ($ageGroup === 'adult' && $character->profession && empty($events['profession'])) {
                 $events['profession'] = $this->dedupeFormattedEvents($this->getProfessionEvents($character, $shownEventIds));
             }
 
@@ -520,6 +535,7 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
         
         // If the stored age group is valid for the current day, keep it
         if ($normalizedStoredAgeGroup === $dayBasedAgeGroup) {
+            $this->synchronizeCharacterLifecycleState($character, $normalizedStoredAgeGroup);
             Log::info('Skipping age progression - stored age_group matches day-based age_group', [
                 'age_group' => $storedAgeGroup,
                 'day_based' => $dayBasedAgeGroup
@@ -529,6 +545,7 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
         
         // If user explicitly chose adult (or other) at character creation and is in early game, respect that choice
         if ($storedAgeGroup !== 'child' && $currentDay <= 10) {
+            $this->synchronizeCharacterLifecycleState($character, $normalizedStoredAgeGroup);
             Log::info('Skipping age progression - respecting stored age_group in early game', ['age_group' => $storedAgeGroup]);
             return;
         }
@@ -574,6 +591,47 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
             
             $character->save();
         }
+
+        $this->synchronizeCharacterLifecycleState($character, $newAgeGroup);
+    }
+
+    private function synchronizeCharacterLifecycleState(Character $character, string $ageGroup): void
+    {
+        $normalizedAgeGroup = $this->normalizeAgeGroupForCharacter($ageGroup);
+        $state = is_array($character->character_state) ? $character->character_state : [];
+        $originalState = $state;
+
+        $state['life_stage'] = match ($normalizedAgeGroup) {
+            'teen' => 'teenager',
+            'adult' => 'adult',
+            'old' => 'old',
+            default => 'child',
+        };
+
+        $state['max_age'] = self::MAX_AGE_BY_GROUP[$normalizedAgeGroup] ?? self::DEFAULT_MAX_DAYS;
+
+        if (in_array($normalizedAgeGroup, ['child', 'teen'], true) && empty($character->profession)) {
+            $state['profession_state'] = 'unemployed';
+        }
+
+        // Relationship status sanity by life stage (prevents impossible teen statuses like "Divorced").
+        $currentRelationship = (string) ($state['relationship_status'] ?? ($character->relationship_status ?? 'single'));
+        if ($normalizedAgeGroup === 'child') {
+            if ($currentRelationship !== 'single') {
+                $state['relationship_status'] = 'single';
+                $character->relationship_status = 'single';
+            }
+        } elseif ($normalizedAgeGroup === 'teen') {
+            if (!in_array($currentRelationship, ['single', 'dating'], true)) {
+                $state['relationship_status'] = 'single';
+                $character->relationship_status = 'single';
+            }
+        }
+
+        if ($state !== $originalState) {
+            $character->character_state = $state;
+            $character->save();
+        }
     }
 
     /**
@@ -599,8 +657,8 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
     private function getPathProgress(Character $character): array
     {
         $activePaths = is_array($character->active_event_paths) ? $character->active_event_paths : [];
-        $completedChains = is_array($character->completed_event_chains) ? $character->completed_event_chains : [];
-        $currentNarrative = $character->current_narrative;
+        $completedChains = $character->getCompletedChainRecords();
+        $currentNarrativePath = $character->normalizeNarrativePath($character->current_narrative);
         
         // Define path categories - which event categories belong to each path
         $pathCategories = [
@@ -653,7 +711,10 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
             // Use choice_history count + completed_chains for progress
             // This ensures progress shows even for non-chain events
             $historyCount = $pathEventCounts[$path] ?? 0;
-            $chainCount = isset($completedChains[$path]) ? (int)$completedChains[$path] : 0;
+            $chainCount = collect($completedChains)
+                ->where('chain_id', $path)
+                ->map(fn ($chain) => (int) ($chain['progress'] ?? 0))
+                ->max() ?? 0;
             
             // Combine both counts, but cap at total stages
             $completedCount = min($historyCount + $chainCount, count($stages));
@@ -678,7 +739,7 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 'events_completed' => $completedCount,
                 'progress_percent' => $progressPercent,
                 'is_active' => true,
-                'is_current' => ($currentNarrative === $path)
+                'is_current' => ($currentNarrativePath === $path)
             ];
         }
         
@@ -1555,10 +1616,9 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 }
             }
 
-            // Set the profession and career level
-            $character->profession = $profession;
+            // Set the profession and ensure profession_state/career_level stay in sync
             $character->career_level = 'entry_level';
-            $character->save();
+            $character->setProfession($profession);
 
             Log::info('Character profession set', [
                 'character_id' => $character->id,
@@ -1600,7 +1660,8 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 'event_type' => 'required|string',
                 'event_id' => 'required|integer',
                 'choice_index' => 'required|integer|min:0',
-                'mini_game_score' => 'nullable|integer|min:0|max:100'
+                'mini_game_score' => 'nullable|integer|min:0|max:100',
+                'mini_game_effects' => 'nullable|array',
             ]);
 
             $isSystemEvent = ($validated['event_type'] === 'system');
@@ -1721,6 +1782,28 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
 
             // Apply stat effects with FULL LOGGING (now passes event/choice data)
             $baseStatEffects = $choice['stat_effects'] ?? ($event->stat_effects ?? ($eventData['statEffects'] ?? null));
+            if (!empty($validated['mini_game_effects']) && is_array($validated['mini_game_effects'])) {
+                $baseStatEffects = $this->formatStatEffectsArrayAsText($validated['mini_game_effects']);
+            }
+
+            // Support dynamic burnout reduction like "reduce burnout to 50% of current".
+            // Use `burnout_scale` on a choice (e.g. 0.5 for half, 0.75 for 3/4).
+            if (isset($choice['burnout_scale'])) {
+                $scale = (float) $choice['burnout_scale'];
+                if ($scale > 0 && $scale < 1) {
+                    $effectiveStats = is_array($character->effective_stats) ? $character->effective_stats : [];
+                    $currentBurnout = (int) ($effectiveStats['Burnout'] ?? 0);
+                    $targetBurnout = (int) floor($currentBurnout * $scale);
+                    $delta = $targetBurnout - $currentBurnout;
+
+                    if ($delta !== 0) {
+                        $baseStatEffects = $this->mergeStatEffectsText(
+                            $baseStatEffects,
+                            sprintf('%+d Burnout', $delta)
+                        );
+                    }
+                }
+            }
             $statEffects = $this->mergeStatEffectsText($baseStatEffects, $choiceOutcomeEffects);
             $effectsResult = $this->eventService->applyStatEffects(
                 $character, 
@@ -2031,10 +2114,9 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
 
             // Game-over evaluation happens after time advancement + consequences.
 
-            // Feature 3: Support days_to_advance - determine how many days to skip
-            $explicitDays = $choice['days_to_advance'] ?? $event->days_to_advance ?? null;
-            // If not set or 0, default to 1. Otherwise use the explicit value (like 5).
-            $daysToAdvance = ($explicitDays === null || $explicitDays == 0) ? 1 : (int) $explicitDays;
+            // Daily actions stay on the current day unless they explicitly advance time.
+            // Other event types advance by one day by default.
+            $daysToAdvance = $this->resolveDaysToAdvance($validated['event_type'], is_array($choice) ? $choice : [], $event);
             
             // Feature 2: Only advance day if daysToAdvance > 0, otherwise stay on same day for multiple choices
             if ($daysToAdvance > 0) {
@@ -2045,13 +2127,24 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 $shouldSetProfession = (bool) ($choice['set_profession'] ?? ($choiceIndex === 0));
                 if ($shouldSetProfession) {
                     $character->profession = (string) ($eventData['profession'] ?? $character->profession);
-                    $character->career_level = $character->career_level ?: 'entry_level';
+
+                    $state = is_array($character->character_state) ? $character->character_state : [];
+                    $stateLevel = (string) ($state['profession_state'] ?? 'unemployed');
+
+                    if (empty($character->career_level) || $character->career_level === 'unemployed') {
+                        $character->career_level = $stateLevel !== 'unemployed' ? $stateLevel : 'entry_level';
+                    }
+
+                    if ($stateLevel === 'unemployed') {
+                        $state['profession_state'] = $character->career_level;
+                        $character->character_state = $state;
+                    }
                 }
             }
             $character->save();
 
             // Update narrative path based on the event choice (must be after save so narrative is persisted)
-            $this->handleEventBranching($character, $event, $effects);
+            $this->handleEventBranching($character, $event, $statEffects);
 
             // Apply any age progression based on the new day
             $this->checkAndApplyAgeProgression($character);
@@ -2381,7 +2474,7 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 // Feature 8: Severe consequences
                 'consequences' => $consequences ?? [],
                 'current_day' => $character->current_day,
-                'narrative_path' => $character->current_narrative,
+                'narrative_path' => $character->normalizeNarrativeToken($character->current_narrative),
                 'active_paths' => $character->active_event_paths,
                 'milestone' => $this->checkMilestone($character)
             ]);
@@ -2429,6 +2522,7 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 'ending_type' => $endingType,
                 'ending_title' => $endingDetails['title'],
                 'ending_description' => $endingDetails['description'],
+                'death_cause' => (is_array($character->character_state) ? ($character->character_state['death_cause'] ?? 'suicide') : 'suicide'),
                 'character_state' => $character->character_state,
                 'age' => $this->calculateAge((int) ($character->current_day ?? 1)),
                 'age_group' => $character->age_group,
@@ -2540,7 +2634,7 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
     /**
      * Handle event branching - update narrative path and complete chains
      */
-    private function handleEventBranching(Character $character, $event, array $effects): void
+    private function handleEventBranching(Character $character, $event, ?string $appliedEffectsText = null): void
     {
         // Get the event category if it exists
         $eventCategory = $event->event_category ?? null;
@@ -2559,7 +2653,7 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
         $chainOrder = (int) ($event->chain_order ?? 1);
         
         // Determine outcome type based on stat effects
-        $outcomeType = $this->eventService->determineOutcomeType($event->stat_effects ?? '');
+        $outcomeType = $this->eventService->determineOutcomeType($appliedEffectsText ?: ($event->stat_effects ?? ''));
         
         // Update the narrative path using NarrativeService
         $narrativeService = app(\App\Services\NarrativeService::class);
@@ -2700,6 +2794,8 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
     private function getSystemActions(Character $character): array
     {
         $state = is_array($character->character_state) ? $character->character_state : [];
+        $effectiveStats = is_array($character->effective_stats) ? $character->effective_stats : [];
+        $burnout = (int) ($effectiveStats['Burnout'] ?? 0);
 
         // If already dead/over, hide actions.
         if (($state['health_condition'] ?? null) === 'dead') {
@@ -2713,10 +2809,51 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
         $actions = [];
         foreach ($dailyActions as $action) {
             if ($action->isAvailable($character)) {
+                // Override the built-in Rest action to support dynamic burnout reduction.
+                if (strcasecmp((string) $action->title, 'Rest') === 0) {
+                    $action->description = 'Take a break to recover from burnout.';
+                    $action->choices = [
+                        ['text' => 'Full rest', 'burnout_scale' => 0.5, 'days_to_advance' => 1],
+                        ['text' => 'Quick rest', 'burnout_scale' => 0.75, 'days_to_advance' => 1],
+                        ['text' => 'Skip rest', 'stat_effects' => '+5 Burnout', 'days_to_advance' => 1],
+                    ];
+                }
+
+                // Upgrade Advance Age choices when burnout is high.
+                if (strcasecmp((string) $action->title, 'Advance Age') === 0) {
+                    // Desired behavior:
+                    // - High burnout: only allow small step forward (1 year)
+                    // - Low burnout: allow fast-forward (5 years)
+                    $action->choices = $burnout >= 70
+                        ? [['text' => 'Advance 1 year', 'days_to_advance' => 1]]
+                        : [['text' => 'Advance 5 years', 'days_to_advance' => 5]];
+                }
+
                 $actionData = $action->toActionArray();
                 $actionData['choices'] = $this->resolveEventChoices($action, 'system', $character, $character->age_group ?? 'adult');
                 $actions[] = $actionData;
             }
+        }
+
+        // Always provide a simple "Advance Age" action so players can move forward even if they don't
+        // want to take any other action.
+        $hasAdvanceAge = collect($actions)->contains(function ($action) {
+            $title = strtolower(trim((string) ($action['title'] ?? '')));
+            return $title === 'advance age' || $title === 'advance year' || $title === 'advance day';
+        });
+
+        if (!$hasAdvanceAge) {
+            $advanceChoices = $burnout >= 70
+                ? [['text' => 'Advance 1 year', 'days_to_advance' => 1]]
+                : [['text' => 'Advance 5 years', 'days_to_advance' => 5]];
+
+            array_unshift($actions, $this->buildSystemAction(
+                91006,
+                'Advance Age',
+                'Move forward to the next year.',
+                '/css/images/event-placeholder.jpg',
+                $advanceChoices
+            ));
         }
 
         $profile = $this->adaptiveNarrativeService->getDecisionProfile($character);
@@ -2877,6 +3014,24 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
         return [$value];
     }
 
+    private function formatEventDeck(mixed $events, string $type, Character $character): array
+    {
+        $formatted = [];
+
+        foreach ($this->ensureArray($events) as $event) {
+            if (is_array($event) && isset($event['title'], $event['choices'])) {
+                $formatted[] = $event;
+                continue;
+            }
+
+            if (is_object($event)) {
+                $formatted[] = $this->formatEvent($event, $type, $character);
+            }
+        }
+
+        return $this->dedupeFormattedEvents($formatted);
+    }
+
     private function isRepeatableEvent(string $type, object $event): bool
     {
         // System actions are always repeatable.
@@ -2953,6 +3108,10 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
             'choices' => $this->resolveEventChoices($event, $type, $character, $character?->age_group),
             'weight' => $event->dynamic_weight ?? $event->calculated_weight ?? $event->weight,
             'archetype' => $archetype,
+            'event_category' => $event->event_category ?? null,
+            'parent_category' => $event->parent_category ?? null,
+            'chain_id' => $event->chain_id ?? null,
+            'chain_order' => $event->chain_order ?? null,
             // Feature 5: Game-decided outcomes
             'auto_resolve' => $event->auto_resolve ?? false,
             // Feature 3: Days to advance
@@ -3021,6 +3180,12 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
             $rawChoices = [];
         }
 
+        // System actions should use authored choices as-is (no auto-filling / adaptive re-writing).
+        // This keeps daily actions predictable and supports custom choice keys like `burnout_scale`.
+        if ($type === 'system') {
+            return $this->formatChoices($rawChoices, $this->defaultDaysToAdvanceForEventType($type));
+        }
+
         $choices = $this->adaptiveNarrativeService->buildChoicesForEvent(
             (string) ($event->event_choice ?? $event->title ?? 'Event'),
             $event->outcome ?? $event->description ?? null,
@@ -3057,13 +3222,13 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
             }
         }
 
-        return $this->formatChoices($choices);
+        return $this->formatChoices($choices, $this->defaultDaysToAdvanceForEventType($type));
     }
 
     /**
      * Format choices with default if not provided
      */
-    private function formatChoices($choices): array
+    private function formatChoices($choices, int $defaultDaysToAdvance = 1): array
     {
         // If choices is null or empty, return 4 diverse choices
         if ($choices === null || $choices === '' || $choices === 'null' || empty($choices)) {
@@ -3071,12 +3236,12 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
                 [
                     'text' => 'Do it carefully',
                     'stat_effects' => '+2 Happiness, +1 Discipline, -1 Burnout',
-                    'days_to_advance' => 0
+                    'days_to_advance' => $defaultDaysToAdvance
                 ],
                 [
                     'text' => 'Take a shortcut',
                     'stat_effects' => '+1 Happiness, +1 Burnout, -1 Discipline',
-                    'days_to_advance' => 0
+                    'days_to_advance' => $defaultDaysToAdvance
                 ]
             ];
         }
@@ -3087,9 +3252,8 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
             if (is_array($decoded) && count($decoded) > 0) {
                 // Ensure each choice has days_to_advance
                 foreach ($decoded as &$choice) {
-                    // If explicitly set to > 0, preserve it. Otherwise default to 1.
-                    if (!isset($choice['days_to_advance']) || $choice['days_to_advance'] == 0) {
-                        $choice['days_to_advance'] = 1;
+                    if (!array_key_exists('days_to_advance', $choice)) {
+                        $choice['days_to_advance'] = $defaultDaysToAdvance;
                     }
                     $choice['text'] = $this->normalizeChoiceText($choice['text'] ?? null);
                 }
@@ -3101,8 +3265,8 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
         if (is_array($choices) && count($choices) > 0) {
             // Ensure each choice has days_to_advance
             foreach ($choices as &$choice) {
-                if (!isset($choice['days_to_advance'])) {
-                    $choice['days_to_advance'] = 0;
+                if (!array_key_exists('days_to_advance', $choice)) {
+                    $choice['days_to_advance'] = $defaultDaysToAdvance;
                 }
                 $choice['text'] = $this->normalizeChoiceText($choice['text'] ?? null);
             }
@@ -3114,24 +3278,58 @@ Log::info('EventController::getAvailableEvents - Narrative events loaded', [
             [
                 'text' => 'Take the Opportunity',
                 'stat_effects' => '+10 Happiness, +5 Health',
-                'days_to_advance' => 0
+                'days_to_advance' => $defaultDaysToAdvance
             ],
             [
                 'text' => 'Go with the Flow',
                 'stat_effects' => null,
-                'days_to_advance' => 0
+                'days_to_advance' => $defaultDaysToAdvance
             ],
             [
                 'text' => 'Avoid the Situation',
                 'stat_effects' => '-5 Happiness, +5 Burnout',
-                'days_to_advance' => 0
+                'days_to_advance' => $defaultDaysToAdvance
             ],
             [
                 'text' => 'Do Nothing (Skip)',
                 'stat_effects' => '+10 Burnout',
-                'days_to_advance' => 0
+                'days_to_advance' => $defaultDaysToAdvance
             ]
         ];
+    }
+
+    private function defaultDaysToAdvanceForEventType(string $eventType): int
+    {
+        return $eventType === 'system' ? 0 : 1;
+    }
+
+    private function resolveDaysToAdvance(string $eventType, array $choice, object $event): int
+    {
+        $defaultDaysToAdvance = $this->defaultDaysToAdvanceForEventType($eventType);
+
+        if ($eventType === 'system') {
+            if (array_key_exists('days_to_advance', $choice)) {
+                return (int) $choice['days_to_advance'];
+            }
+
+            $eventDaysToAdvance = data_get($event, 'days_to_advance');
+            if ($eventDaysToAdvance !== null) {
+                return (int) $eventDaysToAdvance;
+            }
+
+            return $defaultDaysToAdvance;
+        }
+
+        if (array_key_exists('days_to_advance', $choice) && (int) $choice['days_to_advance'] > 0) {
+            return (int) $choice['days_to_advance'];
+        }
+
+        $eventDaysToAdvance = data_get($event, 'days_to_advance');
+        if ($eventDaysToAdvance !== null && (int) $eventDaysToAdvance > 0) {
+            return (int) $eventDaysToAdvance;
+        }
+
+        return $defaultDaysToAdvance;
     }
 
     private function normalizeChoiceText(?string $text): string

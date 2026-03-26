@@ -115,26 +115,6 @@ class AdaptiveNarrativeService
         $state = is_array($character->character_state) ? $character->character_state : [];
         $profile = $this->initializeProfile($state['decision_profile'] ?? []);
 
-        // If event_category is provided in context, use it for narrative path
-        // This ensures events like "Birth" show as "health" instead of profile-based detection
-        $providedCategory = $eventContext['event_category'] ?? null;
-        
-        // Map event_category to narrative path
-        $categoryToPath = [
-            'health' => 'health_path',
-            'education' => 'education_path',
-            'career' => 'career_path',
-            'family' => 'family_path',
-            'social' => 'social_path',
-            'skill' => 'skill_path',
-            'random' => null, // Skip random events
-        ];
-        
-        $providedNarrative = null;
-        if ($providedCategory && isset($categoryToPath[$providedCategory])) {
-            $providedNarrative = $categoryToPath[$providedCategory];
-        }
-
         $archetype = $eventContext['archetype'] ?? $this->detectArchetype(
             $eventContext['title'] ?? '',
             $eventContext['description'] ?? '',
@@ -296,7 +276,7 @@ class AdaptiveNarrativeService
         $pathMap = [
             'study' => 'education',
             'work' => 'career',
-            'money' => 'career',
+            'money' => 'wealth',
             'family' => 'family',
             'health' => 'health',
             'social' => 'social',
@@ -314,13 +294,6 @@ class AdaptiveNarrativeService
             $character->active_event_paths = array_values(array_unique($activePaths));
         }
 
-        // Use provided event_category for narrative when available
-        // This ensures events like "Birth" show correct category (health) instead of profile-based detection
-        if ($providedNarrative) {
-            $character->current_narrative = $providedNarrative;
-        } else {
-            $character->current_narrative = $this->determineNarrativeFromProfile($profile);
-        }
         $character->save();
     }
 

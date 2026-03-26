@@ -656,15 +656,36 @@
             </h3>
             <div class="game-over-panel">
               <div class="game-over-content">
+                <div class="game-over-kicker">Run Complete</div>
                 <h3 class="game-over-title">{{ endingTitle || 'Your journey has ended.' }}</h3>
                 <p class="game-over-text">{{ endingDescription || `You lived until Age ${character.age || character.currentDay} as a ${character.ageGroup}.` }}</p>
-                <p v-if="deathCause" class="death-cause">💀 Cause of Death: {{ deathCause }}</p>
-                <v-btn color="info" size="large" class="new-game-btn" variant="tonal" @click="openLifeSummary">
-                  Life Summary
-                </v-btn>
-                <v-btn color="primary" size="large" class="new-game-btn" @click="startNewGame">
-                  Start New Life
-                </v-btn>
+                <p v-if="deathCause" class="death-cause">Cause of Death: {{ gameOverCauseLabel }}</p>
+
+                <div class="game-over-summary-grid">
+                  <div v-for="card in gameOverSummaryCards" :key="card.label" class="game-over-summary-card">
+                    <span class="game-over-summary-label">{{ card.label }}</span>
+                    <strong class="game-over-summary-value">{{ card.value }}</strong>
+                  </div>
+                </div>
+
+                <div v-if="gameOverTimelinePreview.length > 0" class="game-over-summary-preview">
+                  <div class="game-over-preview-title">Last Turning Points</div>
+                  <div class="game-over-preview-list">
+                    <div v-for="(entry, idx) in gameOverTimelinePreview" :key="`go-${idx}`" class="game-over-preview-item">
+                      <span class="game-over-preview-age">Age {{ entry.age }}</span>
+                      <span class="game-over-preview-event">{{ entry.event_title || entry.title }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="game-over-actions">
+                  <v-btn color="info" size="large" class="new-game-btn" variant="tonal" @click="openLifeSummary">
+                    Life Summary
+                  </v-btn>
+                  <v-btn color="primary" size="large" class="new-game-btn" @click="startNewGame">
+                    Start New Life
+                  </v-btn>
+                </div>
               </div>
             </div>
           </div>
@@ -1152,7 +1173,8 @@
             color="error"
             class="death-confirm-btn pulse-danger"
             @click="confirmSuicide"
-            :disabled="!selectedSuicideMethod"
+            :disabled="!selectedSuicideMethod || processingSuicide"
+            :loading="processingSuicide"
             style="font-size: 1.4rem; padding: 20px 60px; min-width: 280px;"
           >
             💀 END BY {{ selectedSuicideMethod ? selectedSuicideMethod.name.toUpperCase() : 'CHOOSE METHOD' }} 💀
@@ -1162,6 +1184,7 @@
             color="grey"
             size="large"
             @click="cancelSuicide"
+            :disabled="processingSuicide"
             class="live-on-btn"
           >
             LIVE ON...
@@ -1211,44 +1234,84 @@
       </v-card>
     </v-dialog>
 
-    <!-- Step 5: BLOODY HELLISH GAME OVER OVERLAY ☠️🩸 -->
-    <v-overlay v-model="showGameOverOverlay" contained z-index="9999" class="gameover-hell-overlay align-center justify-center text-center">
-      <div class="gameover-hell-container">
-        <!-- Circling Death Emojis (4 orbiting) -->
-        <div class="death-orbit" style="--orbit-delay: 0s; --orbit-radius: 120px;">☠️</div>
-        <div class="death-orbit" style="--orbit-delay: -3s; --orbit-radius: 160px;">💀</div>
-        <div class="death-orbit" style="--orbit-delay: -6s; --orbit-radius: 200px;">🩸</div>
-        <div class="death-orbit" style="--orbit-delay: -9s; --orbit-radius: 240px;">🔥</div>
-        
-        <!-- MASSIVE DISTORTED STAMP -->
-        <div class="gameover-stamp glitch-hell" data-text="GAME OVER">
-          G A M E&nbsp;&nbsp;&nbsp;O V E R
+    <v-overlay v-model="showGameOverOverlay" contained z-index="9999" class="gameover-popup-overlay align-center justify-center text-center">
+      <div class="gameover-popup-shell">
+        <div class="gameover-popup-glow" aria-hidden="true"></div>
+        <div class="gameover-popup-grid" aria-hidden="true"></div>
+
+        <div class="gameover-popup-header">
+          <div class="gameover-popup-badge">Final Record</div>
+          <h2 class="gameover-popup-title">{{ endingTitle || 'Game Over' }}</h2>
+          <p class="gameover-popup-copy">{{ endingDescription || `You lived until Age ${character.age || character.currentDay}.` }}</p>
         </div>
-        
-        <!-- Bloody Subtitle -->
-        <div class="hell-subtitle">
-          {{ selectedSuicideMethod?.name?.toUpperCase() || 'FATE UNKNOWN' }}<br>
-          <span>FINAL AGE: {{ character.age || character.currentDay }}</span>
+
+        <div class="gameover-popup-meta">
+          <div class="gameover-meta-card">
+            <span class="gameover-meta-label">Cause</span>
+            <strong class="gameover-meta-value">{{ gameOverCauseLabel }}</strong>
+          </div>
+          <div class="gameover-meta-card">
+            <span class="gameover-meta-label">Final Age</span>
+            <strong class="gameover-meta-value">{{ character.age || character.currentDay }}</strong>
+          </div>
+          <div class="gameover-meta-card">
+            <span class="gameover-meta-label">Path</span>
+            <strong class="gameover-meta-value">{{ currentNarrativeLabel || 'Life Lived' }}</strong>
+          </div>
         </div>
-        
-        <!-- Blood Splatter Effects -->
-        <div class="blood-splatter" aria-hidden="true"></div>
-        <div class="blood-drips-1" aria-hidden="true"></div>
-        <div class="blood-drips-2" aria-hidden="true"></div>
-        
-        <!-- Hellfire Background Glow -->
-        <div class="hellfire-glow" aria-hidden="true"></div>
-        
-        <!-- REINCARNATE Button -->
-        <v-btn 
-          size="x-large" 
-          color="error" 
-          class="restart-hell-btn pulse-hellfire"
-          style="font-size: 1.4rem; padding: 20px 60px; margin-top: 40px;"
-          @click="startNewGame"
-        >
-          👹 REINCARNATE 👹
-        </v-btn>
+
+        <div class="gameover-popup-summary">
+          <div class="gameover-popup-summary-head">
+            <span>Life Summary Snapshot</span>
+          </div>
+
+          <div v-if="lifeSummaryLoading" class="gameover-popup-loading">
+            <v-progress-circular indeterminate size="34" color="#7dd3fc"></v-progress-circular>
+            <span>Collecting your life story...</span>
+          </div>
+
+          <div v-else-if="lifeSummaryError" class="gameover-popup-error">
+            {{ lifeSummaryError }}
+          </div>
+
+          <template v-else>
+            <div class="gameover-popup-cards">
+              <div v-for="card in gameOverSummaryCards" :key="`popup-${card.label}`" class="gameover-popup-card">
+                <span class="gameover-popup-card-label">{{ card.label }}</span>
+                <strong class="gameover-popup-card-value">{{ card.value }}</strong>
+              </div>
+            </div>
+
+            <div v-if="gameOverTimelinePreview.length > 0" class="gameover-popup-timeline">
+              <div v-for="(entry, idx) in gameOverTimelinePreview" :key="`popup-tl-${idx}`" class="gameover-popup-timeline-item">
+                <span class="gameover-popup-timeline-age">Age {{ entry.age }}</span>
+                <span class="gameover-popup-timeline-text">
+                  {{ entry.event_title || entry.title }}
+                </span>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <div class="gameover-popup-actions">
+          <v-btn
+            size="large"
+            variant="tonal"
+            color="info"
+            class="gameover-popup-btn gameover-popup-btn--summary"
+            @click="openLifeSummary"
+          >
+            Open Life Summary
+          </v-btn>
+          <v-btn
+            size="large"
+            color="primary"
+            class="gameover-popup-btn gameover-popup-btn--restart"
+            @click="startNewGame"
+          >
+            Reincarnate
+          </v-btn>
+        </div>
       </div>
     </v-overlay>
 
@@ -1583,6 +1646,21 @@ const formatNarrativeLabel = (value) => {
   return formatBadgeLabel(value)
 }
 
+const formatEventPathLabel = (value) => {
+  const text = String(value || '').toLowerCase().trim()
+  if (!text) return ''
+
+  if (['education', 'study', 'exam', 'school', 'college', 'learning'].some(token => text.includes(token))) return 'Education'
+  if (['career', 'work', 'job', 'profession', 'business', 'promotion'].some(token => text.includes(token))) return 'Career'
+  if (['family', 'relationship', 'dating', 'marriage', 'parent'].some(token => text.includes(token))) return 'Family'
+  if (['health', 'fitness', 'recovery', 'doctor', 'illness'].some(token => text.includes(token))) return 'Health'
+  if (['wealth', 'finance', 'money', 'investment'].some(token => text.includes(token))) return 'Wealth'
+  if (['social', 'friend', 'community', 'culture'].some(token => text.includes(token))) return 'Social'
+  if (['skill', 'creative', 'competition', 'talent'].some(token => text.includes(token))) return 'Skill'
+
+  return formatBadgeLabel(text)
+}
+
 const normalizeEventsPayload = (data = {}) => ({
   skills_to_learn: Array.isArray(data.skills_to_learn) ? data.skills_to_learn : [],
   daily_actions: Array.isArray(data.daily_actions) ? data.daily_actions : [],
@@ -1604,6 +1682,13 @@ const syncCharacterRuntime = (source = {}, { announceState = false } = {}) => {
   const previousFlags = { ...(character.value?.characterState?.decision_profile?.flags || {}) }
   const nextCharacterState = source.character_state || source.characterState || character.value.characterState || {}
   const nextFlags = { ...(nextCharacterState?.decision_profile?.flags || {}) }
+  const nextRelationshipStatus =
+    source.relationship_status ||
+    source.relationshipStatus ||
+    source.character?.relationship_status ||
+    nextCharacterState?.relationship_status ||
+    character.value.relationshipStatus ||
+    'single'
 
   character.value = {
     ...character.value,
@@ -1618,6 +1703,7 @@ const syncCharacterRuntime = (source = {}, { announceState = false } = {}) => {
     age: source.age || character.value.age || source.current_day || character.value.currentDay,
     healthStatus: source.health_status || source.healthStatus || character.value.healthStatus || 'healthy',
     healthPercentage: source.health_percentage || source.healthPercentage || character.value.healthPercentage || 100,
+    relationshipStatus: nextRelationshipStatus,
     currentNarrative: source.narrative_path || source.current_narrative || source.currentNarrative || character.value.currentNarrative || null,
     activePaths: source.active_paths || source.active_event_paths || source.activePaths || character.value.activePaths || [],
     characterState: nextCharacterState,
@@ -1662,6 +1748,13 @@ const endDay = async () => {
       deathCause.value = data.death_cause || null
       return
     }
+
+    if (data.consequences && data.consequences.length > 0) {
+      for (const consequence of data.consequences) {
+        const icon = consequence.kind === 'reward' ? '✨' : '⚠️'
+        narrationHistory.value.push(`${icon} ${consequence.message}`)
+      }
+    }
     
     // Reload events for new age
     await fetchEvents()
@@ -1698,6 +1791,7 @@ const suicideDialog = ref(false)
 const selectedSuicideMethod = ref(null)
 const showSurvivalPopup = ref(false)
 const showGameOverOverlay = ref(false)
+const processingSuicide = ref(false)
 
 // Ending details
 const endingTitle = ref(null)
@@ -1899,7 +1993,8 @@ const selectedEventMeta = computed(() => {
   const meta = []
   if (selectedEvent.value.deck_label) meta.push(selectedEvent.value.deck_label)
   if (selectedEvent.value.archetype) meta.push(formatBadgeLabel(selectedEvent.value.archetype))
-  if (currentNarrativeLabel.value) meta.push(currentNarrativeLabel.value)
+  const eventPathLabel = formatEventPathLabel(selectedEvent.value.event_category || selectedEvent.value.parent_category)
+  if (eventPathLabel) meta.push(eventPathLabel)
 
   return meta
 })
@@ -2167,6 +2262,16 @@ const fetchEvents = async () => {
     const data = await response.json()
     availableEvents.value = normalizeEventsPayload(data)
     syncCharacterRuntime(data, { announceState: false })
+
+    if (data.game_over === true) {
+      endingTitle.value = data.ending_title || null
+      endingDescription.value = data.ending_description || null
+      endingType.value = data.ending_type || null
+      deathCause.value = data.death_cause || null
+      gameOver.value = true
+    } else {
+      gameOver.value = false
+    }
   } catch (error) {
     console.error('Error fetching events:', error)
     narrationHistory.value.push('Error loading events.')
@@ -2295,7 +2400,8 @@ const applyChoiceWithEffects = async (choiceIndex, additionalEffects = {}, messa
         event_type: selectedEvent.value.type,
         event_id: selectedEvent.value.id,
         choice_index: choiceIndex,
-        mini_game_score: miniGameScore
+        mini_game_score: miniGameScore,
+        mini_game_effects: additionalEffects
       }),
       credentials: 'include'
     })
@@ -2469,10 +2575,11 @@ const applyChoice = async (choiceIndex) => {
       updateEffectiveStats()
     }
     
-    // Feature 8: Handle severe consequences
+    // Feature 8: Handle stat rewards and consequences
     if (data.consequences && data.consequences.length > 0) {
       for (const consequence of data.consequences) {
-        narrationHistory.value.push(`⚠️ ${consequence.message}`)
+        const icon = consequence.kind === 'reward' ? '✨' : '⚠️'
+        narrationHistory.value.push(`${icon} ${consequence.message}`)
       }
     }
     
@@ -2581,7 +2688,44 @@ const openLifeSummary = async () => {
 }
 
 watch(gameOver, (isOver) => {
-  if (isOver) loadLifeSummary()
+  if (isOver) {
+    showGameOverOverlay.value = true
+    if (!lifeSummary.value && !lifeSummaryLoading.value) {
+      loadLifeSummary()
+    }
+  } else {
+    showGameOverOverlay.value = false
+  }
+})
+
+const gameOverCauseLabel = computed(() => {
+  if (deathCause.value) return formatBadgeLabel(deathCause.value)
+  if (selectedSuicideMethod.value?.name) return selectedSuicideMethod.value.name
+  return 'Unknown'
+})
+
+const gameOverSummaryCards = computed(() => [
+  {
+    label: 'Age',
+    value: lifeSummary.value?.lifespan_years ?? character.value?.age ?? character.value?.currentDay ?? '0',
+  },
+  {
+    label: 'Story',
+    value: lifeSummary.value?.story_decisions ?? 0,
+  },
+  {
+    label: 'Actions',
+    value: lifeSummary.value?.daily_actions ?? 0,
+  },
+  {
+    label: 'Moments',
+    value: lifeSummary.value?.milestones?.length ?? 0,
+  },
+])
+
+const gameOverTimelinePreview = computed(() => {
+  if (!Array.isArray(lifeSummary.value?.timeline)) return []
+  return lifeSummary.value.timeline.slice(0, 3)
 })
 
 /**
@@ -3299,7 +3443,9 @@ const closeSurvivalPopup = async () => {
   }, 50)
 }
 
-const confirmSuicide = () => {
+const confirmSuicide = async () => {
+  if (!selectedSuicideMethod.value || !character.value?.id || processingSuicide.value) return
+
   // TRULY RANDOM SUCCESS - REGENERATED EVERY ATTEMPT (0-50%)
   const successRate = 0.90  // 90% success rate - high chance of death, minimal survival
   const success = Math.random() < successRate
@@ -3309,11 +3455,52 @@ const confirmSuicide = () => {
   suicideDialog.value = false
 
   if (success) {
-    // RARE SUCCESS → FULL HELL OVERLAY (Step 5 prepares this)
-    narrationHistory.value.push(`💀 ${selectedSuicideMethod.value.name.toUpperCase()}: FATE SEALED`)
-    narrationHistory.value.push('GAME OVER → ETERNAL DARKNESS')
-    showGameOverOverlay.value = true
-    gameOver.value = true
+    try {
+      processingSuicide.value = true
+      lifeSummary.value = null
+      lifeSummaryError.value = null
+
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+      const response = await fetch(`/api/characters/${character.value.id}/suicide`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-CSRF-TOKEN': csrfToken || ''
+        },
+        body: JSON.stringify({
+          method: selectedSuicideMethod.value.name
+        }),
+        credentials: 'include'
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.message || data.error || 'Failed to end the journey')
+      }
+
+      narrationHistory.value.push(`💀 ${selectedSuicideMethod.value.name.toUpperCase()}: FATE SEALED`)
+      narrationHistory.value.push('GAME OVER → ETERNAL DARKNESS')
+
+      syncCharacterRuntime({
+        ...(data.character || {}),
+        age: data.age || data.character?.age,
+        health_status: data.health_status || 'dead',
+        health_percentage: data.health_percentage || 0,
+        character_state: data.character_state || data.character?.character_state,
+      }, { announceState: true })
+
+      endingTitle.value = data.ending_title || 'Your journey has ended.'
+      endingDescription.value = data.ending_description || null
+      endingType.value = data.ending_type || null
+      deathCause.value = data.death_cause || 'suicide'
+      gameOver.value = data.game_over === true
+    } catch (error) {
+      console.error('Error confirming suicide:', error)
+      narrationHistory.value.push(`❌ ${error?.message || 'Failed to end the journey.'}`)
+    } finally {
+      processingSuicide.value = false
+    }
   } else {
     // SURVIVAL (most common)
     narrationHistory.value.push(`☠️ ${selectedSuicideMethod.value.name} → FAILED`)
@@ -3328,10 +3515,15 @@ const confirmSuicide = () => {
  */
 const startNewGame = () => {
   gameOver.value = false
+  showGameOverOverlay.value = false
+  showLifeSummaryDialog.value = false
+  lifeSummary.value = null
+  lifeSummaryError.value = null
   endingTitle.value = null
   endingDescription.value = null
   endingType.value = null
   deathCause.value = null
+  selectedSuicideMethod.value = null
   router.push('/character-creation')
 }
 </script>
@@ -5048,36 +5240,381 @@ body::-webkit-scrollbar-corner,
    GAME OVER PANEL
    ======================================== */
 .game-over-panel {
-  background: linear-gradient(145deg, rgba(40, 20, 20, 0.9), rgba(20, 10, 10, 0.95));
-  border: 2px solid #ef4444;
-  border-radius: 16px;
-  padding: 40px;
-  text-align: center;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top, rgba(125, 211, 252, 0.14), transparent 42%),
+    linear-gradient(145deg, rgba(11, 19, 43, 0.96), rgba(25, 9, 30, 0.94));
+  border: 1px solid rgba(125, 211, 252, 0.35);
+  box-shadow:
+    0 28px 90px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 34px;
+  text-align: left;
 }
 
 .game-over-content {
-  max-width: 400px;
+  max-width: 840px;
   margin: 0 auto;
+}
+
+.game-over-kicker {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  margin-bottom: 14px;
+  border-radius: 999px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #7dd3fc;
+  background: rgba(125, 211, 252, 0.1);
+  border: 1px solid rgba(125, 211, 252, 0.24);
 }
 
 .game-over-title {
   font-family: 'Press Start 2P', monospace;
-  font-size: 1.5rem;
+  font-size: clamp(1.2rem, 2vw, 1.8rem);
   font-weight: 700;
-  color: #ef4444;
-  margin-bottom: 12px;
+  line-height: 1.5;
+  color: #f8fafc;
+  margin-bottom: 14px;
 }
 
 .game-over-text {
+  max-width: 720px;
   color: #cbd5e1;
-  font-size: 1rem;
+  font-size: 1.02rem;
+  line-height: 1.7;
+  margin-bottom: 18px;
+}
+
+.death-cause {
+  margin-bottom: 22px;
+  color: #fca5a5;
+  font-family: 'VT323', monospace;
+  font-size: 1.35rem;
+  letter-spacing: 0.04em;
+}
+
+.game-over-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.game-over-summary-card {
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.game-over-summary-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #94a3b8;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.game-over-summary-value {
+  color: #f8fafc;
+  font-size: 1.5rem;
+  font-family: 'Press Start 2P', monospace;
+}
+
+.game-over-summary-preview {
+  padding: 18px;
   margin-bottom: 24px;
+  border-radius: 20px;
+  background: rgba(2, 6, 23, 0.58);
+  border: 1px solid rgba(125, 211, 252, 0.16);
+}
+
+.game-over-preview-title {
+  margin-bottom: 12px;
+  color: #7dd3fc;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.game-over-preview-list {
+  display: grid;
+  gap: 10px;
+}
+
+.game-over-preview-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.74);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.game-over-preview-age {
+  color: #fda4af;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.62rem;
+  white-space: nowrap;
+}
+
+.game-over-preview-event {
+  color: #e2e8f0;
+  font-size: 0.95rem;
+  text-align: right;
+}
+
+.game-over-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
 }
 
 .new-game-btn {
   background: linear-gradient(135deg, rgb(var(--accent2-rgb)) 0%, rgb(var(--indigo-rgb)) 50%, rgb(var(--teal-rgb)) 100%) !important;
   color: #ffffff !important;
   font-weight: 600 !important;
+  min-width: 180px;
+}
+
+.gameover-popup-overlay {
+  background:
+    radial-gradient(circle at top, rgba(125, 211, 252, 0.18), transparent 35%),
+    linear-gradient(180deg, rgba(2, 6, 23, 0.9), rgba(15, 23, 42, 0.95));
+  backdrop-filter: blur(14px);
+}
+
+.gameover-popup-shell {
+  position: relative;
+  width: min(92vw, 860px);
+  padding: 30px;
+  border-radius: 28px;
+  overflow: hidden;
+  border: 1px solid rgba(125, 211, 252, 0.28);
+  background:
+    linear-gradient(135deg, rgba(8, 15, 37, 0.97), rgba(32, 13, 34, 0.96));
+  box-shadow:
+    0 35px 120px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.gameover-popup-glow,
+.gameover-popup-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.gameover-popup-glow {
+  background:
+    radial-gradient(circle at top right, rgba(244, 114, 182, 0.2), transparent 28%),
+    radial-gradient(circle at top left, rgba(125, 211, 252, 0.24), transparent 32%);
+}
+
+.gameover-popup-grid {
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.06) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: linear-gradient(to bottom, rgba(255,255,255,0.45), transparent 85%);
+}
+
+.gameover-popup-header,
+.gameover-popup-meta,
+.gameover-popup-summary,
+.gameover-popup-actions {
+  position: relative;
+  z-index: 1;
+}
+
+.gameover-popup-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  margin-bottom: 14px;
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.26);
+  color: #fecaca;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.gameover-popup-title {
+  margin: 0 0 12px;
+  color: #f8fafc;
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(1.35rem, 2.6vw, 2.2rem);
+  line-height: 1.4;
+}
+
+.gameover-popup-copy {
+  margin: 0 0 20px;
+  color: #cbd5e1;
+  font-size: 1.02rem;
+  line-height: 1.75;
+}
+
+.gameover-popup-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.gameover-meta-card,
+.gameover-popup-card {
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.gameover-meta-label,
+.gameover-popup-card-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.gameover-meta-value,
+.gameover-popup-card-value {
+  color: #f8fafc;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.gameover-popup-summary {
+  padding: 20px;
+  border-radius: 22px;
+  background: rgba(2, 6, 23, 0.55);
+  border: 1px solid rgba(125, 211, 252, 0.16);
+}
+
+.gameover-popup-summary-head {
+  margin-bottom: 16px;
+  color: #7dd3fc;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.gameover-popup-loading,
+.gameover-popup-error {
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: #cbd5e1;
+}
+
+.gameover-popup-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.gameover-popup-timeline {
+  display: grid;
+  gap: 10px;
+}
+
+.gameover-popup-timeline-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.74);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.gameover-popup-timeline-age {
+  color: #fda4af;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+  white-space: nowrap;
+}
+
+.gameover-popup-timeline-text {
+  color: #e2e8f0;
+  text-align: right;
+}
+
+.gameover-popup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.gameover-popup-btn {
+  min-width: 220px;
+}
+
+.gameover-popup-btn--summary {
+  background: rgba(125, 211, 252, 0.12) !important;
+}
+
+.gameover-popup-btn--restart {
+  background: linear-gradient(135deg, #ef4444, #f97316) !important;
+}
+
+@media (max-width: 960px) {
+  .game-over-summary-grid,
+  .gameover-popup-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gameover-popup-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .game-over-panel,
+  .gameover-popup-shell {
+    padding: 22px;
+  }
+
+  .game-over-preview-item,
+  .gameover-popup-timeline-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .game-over-preview-event,
+  .gameover-popup-timeline-text {
+    text-align: left;
+  }
+
+  .game-over-summary-grid,
+  .gameover-popup-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .game-over-actions,
+  .gameover-popup-actions {
+    flex-direction: column;
+  }
 }
 
 /* ========================================

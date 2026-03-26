@@ -48,6 +48,22 @@ class AchievementService
         'retired'
     ];
 
+    protected function normalizeCareerLevelValue(string $value): string
+    {
+        $value = strtolower(trim($value));
+
+        return match ($value) {
+            'entry_level', 'entry' => 'entry_level',
+            'mid_level', 'junior', 'mid' => 'mid_level',
+            'sr', 'senior' => 'senior',
+            'mgr', 'manager' => 'manager',
+            'exec', 'executive' => 'executive',
+            'retired' => 'retired',
+            'entrepreneur' => 'entrepreneur',
+            default => 'unemployed',
+        };
+    }
+
     /**
      * Check if achievements table has data.
      */
@@ -871,8 +887,9 @@ class AchievementService
             
             case 'has_promotion':
                 // Check if career_level is higher than entry level
-                $promotionLevels = ['entry', 'junior', 'senior', 'manager', 'executive', 'retired'];
-                return in_array($careerLevel, $promotionLevels, true);
+                $normalizedCareer = $this->normalizeCareerLevelValue($careerLevel);
+                $promotionLevels = ['entry_level', 'mid_level', 'senior', 'manager', 'executive', 'retired'];
+                return in_array($normalizedCareer, $promotionLevels, true);
             
             case 'was_unemployed':
                 // Check decision logs for past unemployment
@@ -990,7 +1007,10 @@ class AchievementService
      */
     protected function compareCareerLevel(string $current, string $target): bool
     {
-        $levels = self::CAREER_LEVELS;
+        $current = $this->normalizeCareerLevelValue($current);
+        $target = $this->normalizeCareerLevelValue($target);
+
+        $levels = ['unemployed', 'entry_level', 'mid_level', 'senior', 'manager', 'executive', 'retired'];
         $currentIndex = array_search($current, $levels, true);
         $targetIndex = array_search($target, $levels, true);
         

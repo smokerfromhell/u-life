@@ -56,11 +56,12 @@ class NarrativeService
     public function getNarrativeEvents(Character $character, string $ageGroup, array $shownEventIds = []): array
     {
         $currentNarrative = $character->current_narrative ?? null;
-        $activePaths = $character->active_event_paths ?? [];
-        $completedChains = $character->completed_event_chains ?? [];
+        $activePaths = is_array($character->active_event_paths) ? $character->active_event_paths : [];
+        $completedChains = $character->getCompletedChainRecords();
 
         // Determine which story paths are active based on character state
         $activeStoryPaths = $this->determineActivePaths($character);
+        $activePaths = array_values(array_unique(array_merge($activePaths, $activeStoryPaths)));
 
         // Get events from different sources
         $dailyEvents = $this->getDailyEventsWithNarrative($character, $activePaths, $ageGroup);
@@ -89,13 +90,21 @@ class NarrativeService
         $stats = $character->effective_stats ?? $character->stats ?? [];
         $characterState = $character->character_state ?? [];
         $relationshipStatus = $characterState['relationship_status'] ?? $character->relationship_status ?? 'single';
-        $professionState = $characterState['profession_state'] ?? $character->career_level ?? 'unemployed';
+
+        // Prefer JSON state, but fall back to the column when JSON is still at its default.
+        $professionState = $characterState['profession_state'] ?? null;
+        if (empty($professionState) || ($professionState === 'unemployed' && !empty($character->profession))) {
+            $professionState = $character->career_level ?? 'unemployed';
+        }
         $health = $character->health ?? 78;
         $wealth = $character->finance ?? $character->wealth ?? 20;
+        $intelligence = (int) ($stats['Intelligence'] ?? $stats['intelligence'] ?? 0);
+        $social = (int) ($stats['Social'] ?? $stats['social'] ?? 0);
+        $ageGroup = $character->age_group ?? $characterState['life_stage'] ?? 'adult';
 
         // Education path - based on age and int stat
-        if (($character->ageGroup ?? $characterState['life_stage'] ?? 'adult') !== 'child') {
-            if (($stats['intelligence'] ?? 0) > 30) {
+        if ($ageGroup !== 'child') {
+            if ($intelligence > 30) {
                 $activePaths[] = 'education';
             }
         }
@@ -121,11 +130,11 @@ class NarrativeService
         }
 
         // Social path - based on social stat
-        if (($stats['social'] ?? 0) > 20) {
+        if ($social > 20) {
             $activePaths[] = 'social';
         }
 
-        return $activePaths;
+        return array_values(array_unique($activePaths));
     }
 
     /**
@@ -602,40 +611,27 @@ class NarrativeService
      */
     public function updateNarrativePath(Character $character, string $eventCategory, string $outcome): void
     {
-        $activePaths = $character->active_event_paths ?? [];
-        $completedChains = $character->completed_event_chains ?? [];
-
-        // Determine which story path this event belongs to
-        $matchedPath = null;
-        foreach (self::STORY_PATHS as $pathKey => $pathConfig) {
-            if (in_array($eventCategory, $pathConfig['events'])) {
-                $matchedPath = $pathKey;
-                break;
-            }
-        }
+        $activePaths = is_array($character->active_event_paths) ? $character->active_event_paths : [];
+        $matchedPath = $this->resolveStoryPath($eventCategory);
 
         if (!$matchedPath) {
-            return; // No matching narrative path
+            return;
         }
 
-        // Add to active paths if not already there
-        if (!in_array($matchedPath, $activePaths)) {
+        if (!in_array($matchedPath, $activePaths, true)) {
             $activePaths[] = $matchedPath;
-            $character->active_event_paths = $activePaths;
         }
+        $character->active_event_paths = array_values(array_unique($activePaths));
 
-        // Determine narrative outcome
         $narrativeSuffix = match($outcome) {
             'positive', 'success' => '_success',
             'negative', 'failure' => '_struggle',
             default => '_neutral'
         };
 
-        // Set current narrative if not set, or update to reflect latest choice
         $newNarrative = $matchedPath . $narrativeSuffix;
-        
-        // Only update if different from current or if it's a more advanced outcome
-        $currentNarrative = $character->current_narrative;
+        $currentNarrative = $character->normalizeNarrativeToken($character->current_narrative);
+
         if (empty($currentNarrative) || !$this->isAdvancedOutcome($currentNarrative, $newNarrative)) {
             $character->current_narrative = $newNarrative;
         }
@@ -681,7 +677,7 @@ class NarrativeService
      */
     public function getNarrativeDescription(Character $character): string
     {
-        $narrative = $character->current_narrative ?? 'none';
+        $narrative = $character->normalizeNarrativeToken($character->current_narrative) ?? 'none';
         
         if ($narrative === 'none' || empty($narrative)) {
             return "Your story is just beginning. Make choices to shape your path!";
@@ -709,6 +705,47 @@ class NarrativeService
         ];
 
         return $descriptions[$narrative] ?? "Your story is evolving: {$narrative}";
+    }
+
+    private function resolveStoryPath(string $eventCategory): ?string
+    {
+        $eventCategory = strtolower(trim($eventCategory));
+        if ($eventCategory === '') {
+            return null;
+        }
+
+        foreach (self::STORY_PATHS as $pathKey => $pathConfig) {
+            $events = array_map('strtolower', $pathConfig['events'] ?? []);
+            if ($eventCategory === $pathKey || in_array($eventCategory, $events, true)) {
+                return $pathKey;
+            }
+
+            foreach ($events as $eventKey) {
+                if (str_contains($eventCategory, $eventKey)) {
+                    return $pathKey;
+                }
+            }
+        }
+
+        return match (true) {
+            str_contains($eventCategory, 'study'),
+            str_contains($eventCategory, 'school'),
+            str_contains($eventCategory, 'college') => 'education',
+            str_contains($eventCategory, 'work'),
+            str_contains($eventCategory, 'job'),
+            str_contains($eventCategory, 'profession') => 'career',
+            str_contains($eventCategory, 'family'),
+            str_contains($eventCategory, 'relationship') => 'family',
+            str_contains($eventCategory, 'health'),
+            str_contains($eventCategory, 'recovery') => 'health',
+            str_contains($eventCategory, 'wealth'),
+            str_contains($eventCategory, 'finance'),
+            str_contains($eventCategory, 'money') => 'wealth',
+            str_contains($eventCategory, 'social'),
+            str_contains($eventCategory, 'community'),
+            str_contains($eventCategory, 'culture') => 'social',
+            default => null,
+        };
     }
 
     /**

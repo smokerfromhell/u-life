@@ -41,6 +41,7 @@ Route::middleware(['web'])->group(function () {
         Route::get('/characters/{character}/random-event', [EventController::class, 'getRandomEvent']);
         Route::post('/characters/{character}/apply-event', [EventController::class, 'applyEventOutcome']);
         Route::post('/characters/{character}/end-day', [EventController::class, 'endDay']);
+        Route::post('/characters/{character}/suicide', [EventController::class, 'suicide']);
         Route::get('/characters/{character}/life-summary', [EventController::class, 'getLifeSummary']);
         Route::post('/characters/{character}/reincarnate', [EventController::class, 'reincarnate']);
         Route::post('/characters/{character}/set-profession', [EventController::class, 'setProfession']);
@@ -73,4 +74,3 @@ Route::middleware(['web'])->group(function () {
         Route::get('/analytics/export/effectiveness', [AnalyticsExportController::class, 'exportChoiceEffectiveness']);
     });
 });
-

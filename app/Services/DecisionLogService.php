@@ -117,7 +117,7 @@ class DecisionLogService
             
             // Process choice consequences for branching system
             $eventService = app(\App\Services\EventService::class);
-            $eventCategory = $this->determineEventCategory($eventType);
+            $eventCategory = (string) ($event['event_category'] ?? $this->determineEventCategory($eventType));
             $choiceId = $eventId . '_choice_' . $choiceIndex;
             
             // Determine next chain category based on event
